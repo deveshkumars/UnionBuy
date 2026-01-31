@@ -1,0 +1,8 @@
+{
+  "name": "secretlittlemonkey",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "sandbox": "npm run sandbox --prefix amplify"
+  }
+}

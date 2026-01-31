@@ -5,11 +5,15 @@
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
-import { AppProvider, useRole } from '@/context/AppContext';
 import { MetroColors } from '@/constants/theme';
+import { AppProvider, useRole } from '@/context/AppContext';
+import { configureAmplify } from '@/lib/amplify';
+
+// Configure AWS (Cognito + DynamoDB) when amplify_outputs.json is present
+configureAmplify();
 
 function RootNavigator() {
   const { role } = useRole();
