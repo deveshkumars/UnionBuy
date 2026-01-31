@@ -1,6 +1,5 @@
 /**
- * Mock API Service
- * Simulated API calls with realistic delays for development
+ * API Service: uses AWS backend (Cognito + DynamoDB) when configured, else mock data
  */
 
 import {
@@ -26,8 +25,20 @@ import {
   currentUser,
   currentRunner,
 } from './mockData';
+import {
+  isBackendConfigured,
+  fetchProductsFromBackend,
+  fetchProductByIdFromBackend,
+  searchProductsFromBackend,
+  fetchUserPledgesFromBackend,
+  createPledgeInBackend,
+  cancelPledgeInBackend,
+  fetchBulkOrdersFromBackend,
+  fetchActiveBulkOrdersFromBackend,
+  getCurrentAuthUserFromBackend,
+} from './backend';
 
-// Simulate network delay
+// Simulate network delay (mock only)
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ============================================
@@ -35,16 +46,19 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // ============================================
 
 export async function fetchProducts(): Promise<Product[]> {
+  if (isBackendConfigured()) return fetchProductsFromBackend();
   await delay(500);
   return mockProducts;
 }
 
 export async function fetchProductById(id: string): Promise<Product | null> {
+  if (isBackendConfigured()) return fetchProductByIdFromBackend(id);
   await delay(300);
   return mockProducts.find((p) => p.id === id) || null;
 }
 
 export async function searchProducts(query: string): Promise<Product[]> {
+  if (isBackendConfigured()) return searchProductsFromBackend(query);
   await delay(400);
   const lowerQuery = query.toLowerCase();
   return mockProducts.filter(
@@ -56,6 +70,10 @@ export async function searchProducts(query: string): Promise<Product[]> {
 }
 
 export async function fetchProductsByCategory(category: string): Promise<Product[]> {
+  if (isBackendConfigured()) {
+    const all = await fetchProductsFromBackend();
+    return all.filter((p) => p.category === category);
+  }
   await delay(400);
   return mockProducts.filter((p) => p.category === category);
 }
@@ -65,11 +83,13 @@ export async function fetchProductsByCategory(category: string): Promise<Product
 // ============================================
 
 export async function fetchBulkOrders(): Promise<BulkOrder[]> {
+  if (isBackendConfigured()) return fetchBulkOrdersFromBackend();
   await delay(500);
   return mockBulkOrders;
 }
 
 export async function fetchActiveBulkOrders(): Promise<BulkOrder[]> {
+  if (isBackendConfigured()) return fetchActiveBulkOrdersFromBackend();
   await delay(400);
   return mockBulkOrders.filter((o) => o.status === 'collecting');
 }
@@ -89,36 +109,39 @@ export async function fetchBulkOrderForProduct(productId: string): Promise<BulkO
 // ============================================
 
 export async function fetchUserPledges(userId: string): Promise<Pledge[]> {
+  if (isBackendConfigured()) return fetchUserPledgesFromBackend(userId);
   await delay(400);
   return mockPledges.filter((p) => p.userId === userId);
 }
 
 export async function fetchActivePledges(userId: string): Promise<Pledge[]> {
-  await delay(400);
-  return mockPledges.filter(
-    (p) => p.userId === userId && ['pending', 'locked', 'active'].includes(p.status)
-  );
+  const pledges = isBackendConfigured()
+    ? await fetchUserPledgesFromBackend(userId)
+    : mockPledges.filter((p) => p.userId === userId);
+  return pledges.filter((p) => ['pending', 'locked', 'active'].includes(p.status));
 }
 
 export async function createPledge(
   productId: string,
   quantity: number
 ): Promise<{ success: boolean; pledge?: Pledge; error?: string }> {
-  await delay(800);
-  
-  const product = mockProducts.find((p) => p.id === productId);
-  if (!product) {
-    return { success: false, error: 'Product not found' };
+  if (isBackendConfigured()) {
+    const product = await fetchProductById(productId);
+    if (!product) return { success: false, error: 'Product not found' };
+    const bulkOrder = await fetchBulkOrderForProduct(productId);
+    const unitPrice = bulkOrder?.pricePerUnit ?? product.bulkPrice * 1.1;
+    const totalAmount = unitPrice * quantity;
+    const maxAmount = product.retailPrice * quantity;
+    return createPledgeInBackend(productId, product, quantity, unitPrice, totalAmount, maxAmount);
   }
 
-  const bulkOrder = mockBulkOrders.find(
-    (o) => o.productId === productId && o.status === 'collecting'
-  );
-
+  await delay(800);
+  const product = mockProducts.find((p) => p.id === productId);
+  if (!product) return { success: false, error: 'Product not found' };
+  const bulkOrder = mockBulkOrders.find((o) => o.productId === productId && o.status === 'collecting');
   const unitPrice = bulkOrder?.pricePerUnit || product.bulkPrice * 1.1;
   const totalAmount = unitPrice * quantity;
   const maxAmount = product.retailPrice * quantity;
-
   const newPledge: Pledge = {
     id: `pledge-${Date.now()}`,
     userId: currentUser.id,
@@ -132,27 +155,16 @@ export async function createPledge(
     createdAt: new Date().toISOString(),
     lockedAt: new Date().toISOString(),
   };
-
-  // In a real app, this would be saved to the backend
   mockPledges.push(newPledge);
-  
   return { success: true, pledge: newPledge };
 }
 
-export async function cancelPledge(
-  pledgeId: string
-): Promise<{ success: boolean; error?: string }> {
+export async function cancelPledge(pledgeId: string): Promise<{ success: boolean; error?: string }> {
+  if (isBackendConfigured()) return cancelPledgeInBackend(pledgeId);
   await delay(600);
-  
   const pledge = mockPledges.find((p) => p.id === pledgeId);
-  if (!pledge) {
-    return { success: false, error: 'Pledge not found' };
-  }
-
-  if (!['pending', 'locked'].includes(pledge.status)) {
-    return { success: false, error: 'Cannot cancel pledge in current status' };
-  }
-
+  if (!pledge) return { success: false, error: 'Pledge not found' };
+  if (!['pending', 'locked'].includes(pledge.status)) return { success: false, error: 'Cannot cancel pledge in current status' };
   pledge.status = 'cancelled';
   return { success: true };
 }
@@ -287,6 +299,14 @@ export async function completeDistribution(
 // ============================================
 
 export async function fetchCurrentUser(): Promise<User> {
+  if (isBackendConfigured()) {
+    try {
+      const user = await getCurrentAuthUserFromBackend();
+      if (user) return user;
+    } catch {
+      /* not signed in — fall back to mock */
+    }
+  }
   await delay(300);
   return currentUser;
 }
