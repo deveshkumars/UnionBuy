@@ -3,27 +3,30 @@
  * Profile, payment info, preferences, and role switching
  */
 
+import { signOut } from 'aws-amplify/auth';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  Alert,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import {
-  MetroCard,
-  MetroButton,
-  TrustScore,
-  StatusBadge,
+    MetroButton,
+    MetroCard,
+    StatusBadge,
+    TrustScore,
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import { useApp, useRole } from '@/context/AppContext';
+import { isBackendConfigured } from '@/lib/amplify';
 
 export default function AccountScreen() {
   const { user } = useApp();
@@ -38,6 +41,32 @@ export default function AccountScreen() {
   };
 
   const handleRoleSwitch = () => {}; // legacy stub, replaced by direct buttons
+  const handleSignOut = async () => {
+    if (!isBackendConfigured()) {
+      Alert.alert('Info', 'Backend not configured (using mock data)');
+      return;
+    }
+
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/auth');
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to sign out');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -200,9 +229,13 @@ export default function AccountScreen() {
 
         {/* Support */}
         <MetroCard style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
+          <View>
             <Text style={styles.sectionTitle}>SUPPORT</Text>
           </View>
+          <TouchableOpacity style={styles.supportItem} onPress={() => router.push('/(customer)/test-db')}>
+            <Text style={styles.supportLabel}>🧪 Test DynamoDB</Text>
+            <Text style={styles.supportArrow}>→</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.supportItem}>
             <Text style={styles.supportLabel}>Help Center</Text>
             <Text style={styles.supportArrow}>→</Text>
