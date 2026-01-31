@@ -4,33 +4,28 @@
  * Full-screen map with route, status indicator, and action buttons
  */
 
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Alert,
+    Alert,
+    Dimensions,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  MetroCard,
-  MetroButton,
-  StatusBadge,
-  LocationIndicator,
-  TargetReticle,
-} from '@/components/metro';
 import LeafletMap from '@/components/LeafletMap';
-import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
-import { Location } from '@/types';
+import {
+    MetroButton,
+    StatusBadge
+} from '@/components/metro';
+import { FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useMission } from '@/context/AppContext';
 import { updateMissionStatus } from '@/services/api';
-import { MissionStatus } from '@/types';
-import { mockUsers } from '@/services/mockData';
 import { findOptimalDropZone } from '@/services/kmeans';
+import { mockMissions, mockStores, mockUsers } from '@/services/mockData';
+import { Location, MissionStatus } from '@/types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -78,33 +73,25 @@ const statusLabels: Record<MissionStatus, string> = {
   completed: 'Mission Complete',
 };
 
+// Demo mission for testing UI
+const demoMission = {
+  ...mockMissions[0],
+  status: 'en_route_to_store' as MissionStatus,
+  stores: mockStores.slice(0, 2),
+  estimatedEarnings: 42.50,
+  tips: 8.00,
+  totalItems: 92,
+};
+
 export default function MissionScreen() {
   const router = useRouter();
   const { activeMission, setActiveMission } = useMission();
   const [updating, setUpdating] = useState(false);
 
-  if (!activeMission) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.noMissionContainer}>
-          <Text style={styles.noMissionIcon}>◉</Text>
-          <Text style={styles.noMissionTitle}>NO ACTIVE ORDER</Text>
-          <Text style={styles.noMissionSubtext}>
-            Accept a mission from the Job Board to begin
-          </Text>
-          <MetroButton
-            title="VIEW JOB BOARD"
-            variant="primary"
-            size="lg"
-            onPress={() => router.push('/(runner)/')}
-            style={styles.viewJobsButton}
-          />
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // Use demo mission if no active mission for demo purposes
+  const displayMission = activeMission || demoMission;
 
-  const currentStatusIndex = statusFlow.indexOf(activeMission.status);
+  const currentStatusIndex = statusFlow.indexOf(displayMission.status);
   const nextStatus = statusFlow[currentStatusIndex + 1];
 
   const handleAdvanceStatus = async () => {
@@ -119,18 +106,18 @@ export default function MissionScreen() {
           text: 'Confirm',
           onPress: async () => {
             setUpdating(true);
-            const result = await updateMissionStatus(activeMission.id, nextStatus);
+            const result = await updateMissionStatus(displayMission.id, nextStatus);
             setUpdating(false);
 
             if (result.success) {
               if (nextStatus === 'completed') {
                 Alert.alert(
                   'Mission Complete!',
-                  `You earned $${(activeMission.estimatedEarnings + activeMission.tips).toFixed(2)}`,
+                  `You earned $${(displayMission.estimatedEarnings + displayMission.tips).toFixed(2)}`,
                   [{ text: 'OK', onPress: () => setActiveMission(null) }]
                 );
               } else {
-                setActiveMission({ ...activeMission, status: nextStatus });
+                setActiveMission({ ...displayMission, status: nextStatus });
               }
             } else {
               Alert.alert('Error', result.error || 'Failed to update status');
@@ -147,19 +134,19 @@ export default function MissionScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.missionId}>
-            ORDER #{activeMission.id.slice(-4).toUpperCase()}
+            ORDER #{displayMission.id.slice(-4).toUpperCase()}
           </Text>
           <StatusBadge
-            label={statusLabels[activeMission.status]}
-            variant={activeMission.status === 'completed' ? 'success' : 'info'}
+            label={statusLabels[displayMission.status]}
+            variant={displayMission.status === 'completed' ? 'success' : 'info'}
             size="md"
-            pulse={activeMission.status !== 'completed'}
+            pulse={displayMission.status !== 'completed'}
           />
         </View>
         <View style={styles.headerRight}>
           <Text style={styles.earningsLabel}>EARNINGS</Text>
           <Text style={styles.earningsValue}>
-            ${(activeMission.estimatedEarnings + activeMission.tips).toFixed(2)}
+            ${(displayMission.estimatedEarnings + displayMission.tips).toFixed(2)}
           </Text>
         </View>
       </View>
@@ -167,17 +154,17 @@ export default function MissionScreen() {
       {/* Map Area */}
       <View style={styles.mapContainer}>
         <LeafletMap
-          stores={activeMission.stores}
+          stores={displayMission.stores}
           dropZone={kmeansResult.location} // K-means optimized drop zone
-          runnerPosition={getRunnerLocation(activeMission.status, activeMission.stores, activeMission.dropZone)}
+          runnerPosition={getRunnerLocation(displayMission.status, displayMission.stores, displayMission.dropZone)}
           customerLocations={orderCustomers.map(c => c.location)} // Show all customers to runner
-          missionStatus={activeMission.status}
+          missionStatus={displayMission.status}
         />
 
         {/* Map info overlay */}
         <View style={styles.mapInfo}>
           <Text style={styles.mapInfoText}>
-            {activeMission.route.totalDistance} mi • {activeMission.route.estimatedTime} min • {orderCustomers.length} customers
+            {displayMission.route.totalDistance} mi • {displayMission.route.estimatedTime} min • {orderCustomers.length} customers
           </Text>
         </View>
       </View>
@@ -224,8 +211,8 @@ export default function MissionScreen() {
 
       {/* Quick Stats */}
       <View style={styles.statsRow}>
-        <StatBox label="ITEMS" value={activeMission.totalItems} />
-        <StatBox label="STORES" value={activeMission.stores.length} />
+        <StatBox label="ITEMS" value={displayMission.totalItems} />
+        <StatBox label="STORES" value={displayMission.stores.length} />
         <StatBox label="NEIGHBORS" value={5} />
       </View>
 
@@ -233,7 +220,7 @@ export default function MissionScreen() {
       <View style={styles.actionContainer}>
         {nextStatus ? (
           <MetroButton
-            title={statusActions[activeMission.status]}
+            title={statusActions[displayMission.status]}
             variant="primary"
             size="lg"
             fullWidth
@@ -320,14 +307,15 @@ const styles = StyleSheet.create({
   noMissionTitle: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '700',
     letterSpacing: 1,
     marginBottom: Spacing[2],
   },
   noMissionSubtext: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     textAlign: 'center',
     marginBottom: Spacing[6],
   },
@@ -349,8 +337,8 @@ const styles = StyleSheet.create({
   missionId: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
     letterSpacing: 1,
   },
   headerRight: {
@@ -359,14 +347,15 @@ const styles = StyleSheet.create({
   earningsLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   earningsValue: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
   },
   mapContainer: {
     flex: 1,
@@ -385,7 +374,8 @@ const styles = StyleSheet.create({
   mapInfoText: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   progressContainer: {
     paddingHorizontal: Spacing[4],
@@ -441,7 +431,8 @@ const styles = StyleSheet.create({
   progressLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: 8,
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   statsRow: {
@@ -456,13 +447,14 @@ const styles = StyleSheet.create({
   statValue: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
   },
   statLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   actionContainer: {

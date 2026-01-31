@@ -3,9 +3,9 @@
  * Used for agent verification, order status, and trust scores
  */
 
+import { BorderRadius, FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { MetroColors, FontSizes, Fonts, Spacing, BorderRadius } from '@/constants/theme';
+import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'locked';
 type BadgeSize = 'sm' | 'md' | 'lg';
@@ -53,9 +53,9 @@ const variantStyles: Record<BadgeVariant, { bg: string; border: string; text: st
 };
 
 const sizeStyles: Record<BadgeSize, { padding: number; fontSize: number }> = {
-  sm: { padding: Spacing[1], fontSize: FontSizes.xs },
-  md: { padding: Spacing[2], fontSize: FontSizes.sm },
-  lg: { padding: Spacing[3], fontSize: FontSizes.md },
+  sm: { padding: Spacing[2], fontSize: FontSizes.sm },
+  md: { padding: Spacing[2], fontSize: FontSizes.md },
+  lg: { padding: Spacing[3], fontSize: FontSizes.lg },
 };
 
 export function StatusBadge({
@@ -90,6 +90,7 @@ export function StatusBadge({
           {
             color: colors.text,
             fontSize: dimensions.fontSize,
+            fontWeight: '800',
           },
         ]}
       >
@@ -117,7 +118,7 @@ export function ConfidenceBadge({ score, label = 'CONFIDENCE', style }: Confiden
   return (
     <View style={[styles.confidenceContainer, style]}>
       <Text style={styles.confidenceLabel}>{label}</Text>
-      <StatusBadge label={`${score}%`} variant={getVariant()} size="sm" />
+      <StatusBadge label={`${score}%`} variant={getVariant()} size="md" />
     </View>
   );
 }
@@ -198,7 +199,7 @@ export function OrderStatusBadge({ status, style }: OrderStatusBadgeProps) {
     <StatusBadge
       label={statusLabels[status]}
       variant={statusVariants[status]}
-      size="sm"
+      size="md"
       pulse={status === 'active'}
       style={style}
     />
@@ -209,22 +210,22 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: BorderRadius.sm,
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.md,
     gap: Spacing[1],
   },
   pulseIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    opacity: 0.8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    opacity: 0.9,
   },
   iconContainer: {
     marginRight: Spacing[1],
   },
   label: {
-    fontFamily: Fonts.mono,
-    fontWeight: '600',
+    fontFamily: Fonts.sans,
+    fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -234,19 +235,21 @@ const styles = StyleSheet.create({
     gap: Spacing[2],
   },
   confidenceLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   trustContainer: {
-    gap: Spacing[1],
+    gap: Spacing[2],
   },
   trustLabel: {
-    color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   trustStarsContainer: {
     flexDirection: 'row',
@@ -254,30 +257,30 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
   },
   starCell: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
   },
   starText: {
-    fontSize: 18,
-    lineHeight: 20,
+    fontSize: 22,
+    lineHeight: 24,
     fontFamily: Fonts.sans,
   },
   starEmpty: {
-    color: MetroColors.border.muted,
+    color: MetroColors.border.default,
   },
   starFill: {
-    color: MetroColors.accent.orange,
+    color: MetroColors.accent.yellow,
   },
   starFillMask: {
     position: 'absolute',
     top: 0,
     left: 0,
-    height: 20,
+    height: 24,
     overflow: 'hidden',
   },
   trustValue: {
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.lg,
+    fontWeight: '800',
   },
 });

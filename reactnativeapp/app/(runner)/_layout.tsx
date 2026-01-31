@@ -5,24 +5,25 @@
 
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 
 // Custom tab bar icon component
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons: Record<string, string> = {
-    jobs: '▣',
-    mission: '◉',
-    checklist: '☰',
-    scanner: '⌗',
+    jobs: 'JOB',
+    mission: 'HUD',
+    checklist: 'LST',
+    scanner: 'SCN',
+    account: 'ACC',
   };
 
   return (
     <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
       <Text style={[styles.icon, focused && styles.iconActive]}>
-        {icons[name] || '○'}
+        {icons[name] || 'O'}
       </Text>
       {focused && <View style={styles.activeIndicator} />}
     </View>
@@ -35,7 +36,7 @@ export default function RunnerTabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: MetroColors.accent.cyan,
+        tabBarActiveTintColor: MetroColors.accent.green,
         tabBarInactiveTintColor: MetroColors.text.muted,
         tabBarLabelStyle: styles.tabLabel,
         tabBarButton: HapticTab,
@@ -44,29 +45,36 @@ export default function RunnerTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'JOBS',
+          title: 'Jobs',
           tabBarIcon: ({ focused }) => <TabIcon name="jobs" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="mission"
         options={{
-          title: 'MISSION',
+          title: 'Mission',
           tabBarIcon: ({ focused }) => <TabIcon name="mission" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="checklist"
         options={{
-          title: 'CHECKLIST',
+          title: 'Checklist',
           tabBarIcon: ({ focused }) => <TabIcon name="checklist" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="scanner"
         options={{
-          title: 'SCANNER',
+          title: 'Scanner',
           tabBarIcon: ({ focused }) => <TabIcon name="scanner" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: 'Account',
+          tabBarIcon: ({ focused }) => <TabIcon name="account" focused={focused} />,
         }}
       />
     </Tabs>
@@ -75,31 +83,39 @@ export default function RunnerTabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: MetroColors.background.primary,
-    borderTopWidth: 1,
-    borderTopColor: MetroColors.accent.green + '40',
-    height: 85,
+    backgroundColor: MetroColors.background.secondary,
+    borderTopWidth: 1.5,
+    borderTopColor: MetroColors.accent.green,
+    height: 82,
     paddingTop: Spacing[2],
-    paddingBottom: Spacing[6],
+    paddingBottom: Spacing[5],
   },
   tabLabel: {
     fontFamily: Fonts.mono,
     fontSize: FontSizes.xs,
-    letterSpacing: 1,
+    fontWeight: '600',
+    letterSpacing: 0.5,
     marginTop: 4,
+    textTransform: 'capitalize',
   },
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 36,
-    height: 36,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: MetroColors.border.muted,
+    backgroundColor: MetroColors.background.primary,
   },
   iconContainerActive: {
     backgroundColor: MetroColors.accent.greenMuted,
-    borderRadius: 4,
+    borderColor: MetroColors.accent.green,
   },
   icon: {
-    fontSize: 20,
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '700',
     color: MetroColors.text.muted,
   },
   iconActive: {
@@ -107,7 +123,7 @@ const styles = StyleSheet.create({
   },
   activeIndicator: {
     position: 'absolute',
-    bottom: -2,
+    bottom: -6,
     width: 4,
     height: 4,
     backgroundColor: MetroColors.accent.green,

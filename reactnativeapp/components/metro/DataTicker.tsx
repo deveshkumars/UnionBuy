@@ -3,9 +3,9 @@
  * Stock market / trading floor aesthetic
  */
 
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 interface TickerItem {
   id: string;
@@ -25,31 +25,39 @@ interface DataTickerProps {
 export function DataTicker({
   items,
   speed = 32,
-  height = 44,
+  height = 48,
   showChange = false,
 }: DataTickerProps) {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Double the items for seamless loop
-  const tickerItems = [...items, ...items];
+  // Triple the items for seamless loop
+  const tickerItems = [...items, ...items, ...items];
 
   useEffect(() => {
-    // Auto-scroll animation
-    const totalWidth = items.length * 180; // approximate width per item
+    if (items.length === 0) return;
     
-    const animation = Animated.loop(
+    // Auto-scroll animation with reset for infinite loop
+    const itemWidth = 200; // approximate width per item
+    const totalWidth = items.length * itemWidth;
+    
+    const startAnimation = () => {
+      scrollX.setValue(0);
       Animated.timing(scrollX, {
         toValue: -totalWidth,
         duration: (totalWidth / speed) * 1000,
-        useNativeDriver: true,
-      })
-    );
+        useNativeDriver: false, // Changed to false to avoid call stack issues
+      }).start(({ finished }) => {
+        if (finished) {
+          startAnimation(); // Restart when complete
+        }
+      });
+    };
 
-    animation.start();
+    startAnimation();
 
-    return () => animation.stop();
-  }, [items, speed]);
+    return () => scrollX.stopAnimation();
+  }, [items.length, speed, scrollX]);
 
   return (
     <View style={[styles.container, { height }]}>
@@ -194,28 +202,29 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   itemName: {
-    color: MetroColors.text.tertiary,
+    color: MetroColors.text.primary,
     fontFamily: Fonts.sans,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    marginRight: Spacing[2],
-    maxWidth: 140,
-  },
-  itemValue: {
-    color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
     fontSize: FontSizes.md,
     fontWeight: '700',
+    marginRight: Spacing[2],
+    maxWidth: 160,
+  },
+  itemValue: {
+    color: MetroColors.accent.green,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.lg,
+    fontWeight: '800',
   },
   itemChange: {
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
     marginLeft: Spacing[2],
   },
   separator: {
-    width: 1,
-    height: 18,
-    backgroundColor: MetroColors.border.muted,
+    width: 2,
+    height: 20,
+    backgroundColor: MetroColors.accent.cyanMuted,
     marginLeft: Spacing[4],
   },
   edgeFade: {
@@ -250,17 +259,18 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   infoLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   infoValue: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
   },
   liveValueContainer: {
     flexDirection: 'row',

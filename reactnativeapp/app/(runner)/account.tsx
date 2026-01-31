@@ -1,6 +1,6 @@
 /**
- * Account Screen - User Settings
- * Profile, payment info, preferences, and role switching
+ * Runner Account Screen
+ * Profile and role switching for runners
  */
 
 import { signOut } from 'aws-amplify/auth';
@@ -12,8 +12,7 @@ import {
     StyleSheet,
     Switch,
     Text,
-    TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -27,7 +26,7 @@ import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import { useApp, useRole } from '@/context/AppContext';
 import { isBackendConfigured } from '@/lib/amplify';
 
-export default function AccountScreen() {
+export default function RunnerAccountScreen() {
   const { user } = useApp();
   const { role, switchRole } = useRole();
   const [notifications, setNotifications] = useState(true);
@@ -36,7 +35,7 @@ export default function AccountScreen() {
 
   const setRoleAndNavigate = (newRole: 'customer' | 'runner') => {
     switchRole(newRole);
-    // Force navigation to the correct layout
+    // Force navigation to root to trigger re-render
     if (newRole === 'customer') {
       router.replace('/(customer)');
     } else {
@@ -44,7 +43,6 @@ export default function AccountScreen() {
     }
   };
 
-  const handleRoleSwitch = () => {}; // legacy stub, replaced by direct buttons
   const handleSignOut = async () => {
     if (!isBackendConfigured()) {
       Alert.alert('Info', 'Backend not configured (using mock data)');
@@ -63,8 +61,8 @@ export default function AccountScreen() {
             try {
               await signOut();
               router.replace('/auth');
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to sign out');
+            } catch (error) {
+              console.error('Sign out error:', error);
             }
           },
         },
@@ -78,30 +76,17 @@ export default function AccountScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerLabel}>UNION BUY</Text>
-          <Text style={styles.headerTitle}>Account</Text>
+          <Text style={styles.headerTitle}>Runner Profile</Text>
         </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
-            <Text style={styles.utilityIcon}>CRT</Text>
-          </TouchableOpacity>
-          <MetroButton
-            title="Runner"
-            variant={role === 'runner' ? 'primary' : 'ghost'}
-            size="sm"
-            onPress={() => setRoleAndNavigate('runner')}
-          />
-          <MetroButton
-            title="Customer"
-            variant={role === 'customer' ? 'primary' : 'ghost'}
-            size="sm"
-            onPress={() => setRoleAndNavigate('customer')}
-          />
+        <View style={styles.headerRight}>
+          <StatusBadge label="RUNNER" variant="success" size="sm" />
+          <StatusBadge label="CUSTOMER" variant="info" size="sm" />
         </View>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Profile Card */}
-        <MetroCard variant="active" style={styles.profileCard}>
+        <MetroCard variant="success" style={styles.profileCard}>
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
               <Text style={styles.avatarText}>
@@ -112,25 +97,25 @@ export default function AccountScreen() {
               <Text style={styles.profileName}>{user.name}</Text>
               <Text style={styles.profileEmail}>{user.email}</Text>
               <StatusBadge
-                label={role.toUpperCase()}
-                variant={role === 'customer' ? 'info' : 'success'}
+                label="RUNNER"
+                variant="success"
                 size="sm"
               />
             </View>
           </View>
           <View style={styles.profileStats}>
             <View style={styles.profileStatItem}>
-              <Text style={styles.profileStatLabel}>MEMBER SINCE</Text>
-              <Text style={styles.profileStatValue}>
-                {new Date(user.joinedAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </Text>
+              <Text style={styles.profileStatLabel}>DELIVERIES</Text>
+              <Text style={styles.profileStatValue}>47</Text>
             </View>
             <View style={styles.profileStatDivider} />
             <View style={styles.profileStatItem}>
-              <Text style={styles.profileStatLabel}>TRUST SCORE</Text>
+              <Text style={styles.profileStatLabel}>EARNINGS</Text>
+              <Text style={[styles.profileStatValue, { color: MetroColors.accent.green }]}>$892</Text>
+            </View>
+            <View style={styles.profileStatDivider} />
+            <View style={styles.profileStatItem}>
+              <Text style={styles.profileStatLabel}>RATING</Text>
               <TrustScore score={user.trustScore} />
             </View>
           </View>
@@ -139,7 +124,7 @@ export default function AccountScreen() {
         {/* Role Switch */}
         <MetroCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>MODE</Text>
+            <Text style={styles.sectionTitle}>SWITCH MODE</Text>
           </View>
           <View style={styles.roleButtons}>
             <MetroButton
@@ -159,22 +144,18 @@ export default function AccountScreen() {
           </View>
         </MetroCard>
 
-        {/* Location */}
+        {/* Vehicle Info */}
         <MetroCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>LOCATION</Text>
+            <Text style={styles.sectionTitle}>VEHICLE</Text>
           </View>
-          <View style={styles.locationInfo}>
-            <View style={styles.locationIcon}>
-              <Text style={styles.locationIconText}>LOC</Text>
+          <View style={styles.vehicleInfo}>
+            <View style={styles.vehicleIcon}>
+              <Text style={styles.vehicleIconText}>CAR</Text>
             </View>
-            <View style={styles.locationDetails}>
-              <Text style={styles.locationAddress}>
-                {user.location.address || 'No address set'}
-              </Text>
-              <Text style={styles.locationNeighborhood}>
-                {user.location.neighborhood || 'Unknown neighborhood'}
-              </Text>
+            <View style={styles.vehicleDetails}>
+              <Text style={styles.vehicleType}>Sedan / Hatchback</Text>
+              <Text style={styles.vehicleCapacity}>Capacity: ~200 lbs</Text>
             </View>
             <MetroButton
               title="EDIT"
@@ -191,117 +172,71 @@ export default function AccountScreen() {
             <Text style={styles.sectionTitle}>SETTINGS</Text>
           </View>
 
-          <SettingRow
-            label="Push Notifications"
-            description="Order updates and alerts"
-            value={notifications}
-            onValueChange={setNotifications}
-          />
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Push Notifications</Text>
+              <Text style={styles.settingDesc}>New job alerts</Text>
+            </View>
+            <Switch
+              value={notifications}
+              onValueChange={setNotifications}
+              trackColor={{ false: MetroColors.border.muted, true: MetroColors.accent.greenMuted }}
+              thumbColor={notifications ? MetroColors.accent.green : MetroColors.text.muted}
+            />
+          </View>
 
-          <SettingRow
-            label="Location Tracking"
-            description="Required for drop zone calculations"
-            value={locationTracking}
-            onValueChange={setLocationTracking}
-          />
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Location Tracking</Text>
+              <Text style={styles.settingDesc}>Required for deliveries</Text>
+            </View>
+            <Switch
+              value={locationTracking}
+              onValueChange={setLocationTracking}
+              trackColor={{ false: MetroColors.border.muted, true: MetroColors.accent.greenMuted }}
+              thumbColor={locationTracking ? MetroColors.accent.green : MetroColors.text.muted}
+            />
+          </View>
         </MetroCard>
 
-        {/* Payment */}
+        {/* Earnings Summary */}
         <MetroCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>PAYMENT</Text>
+            <Text style={styles.sectionTitle}>THIS WEEK</Text>
           </View>
-          <View style={styles.paymentMethod}>
-            <View style={styles.cardIcon}>
-              <Text style={styles.cardIconText}>CARD</Text>
+          <View style={styles.earningsGrid}>
+            <View style={styles.earningsItem}>
+              <Text style={styles.earningsLabel}>BASE</Text>
+              <Text style={styles.earningsValue}>$127.50</Text>
             </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardLabel}>Visa ending in 4242</Text>
-              <Text style={styles.cardExpiry}>Expires 12/27</Text>
+            <View style={styles.earningsItem}>
+              <Text style={styles.earningsLabel}>TIPS</Text>
+              <Text style={[styles.earningsValue, { color: MetroColors.accent.cyan }]}>$34.00</Text>
             </View>
-            <StatusBadge label="DEFAULT" variant="success" size="sm" />
+            <View style={styles.earningsItem}>
+              <Text style={styles.earningsLabel}>BONUS</Text>
+              <Text style={[styles.earningsValue, { color: MetroColors.accent.purple }]}>$15.00</Text>
+            </View>
+            <View style={styles.earningsItem}>
+              <Text style={styles.earningsLabel}>TOTAL</Text>
+              <Text style={[styles.earningsValue, { color: MetroColors.accent.green }]}>$176.50</Text>
+            </View>
           </View>
-          <MetroButton
-            title="ADD PAYMENT METHOD"
-            variant="secondary"
-            size="md"
-            fullWidth
-            onPress={() => {}}
-            style={styles.addPaymentButton}
-          />
         </MetroCard>
 
-        {/* Support */}
-        <MetroCard style={styles.sectionCard}>
-          <View>
-            <Text style={styles.sectionTitle}>SUPPORT</Text>
-          </View>
-          <TouchableOpacity style={styles.supportItem} onPress={() => router.push('/(customer)/test-db')}>
-            <Text style={styles.supportLabel}>TEST DynamoDB</Text>
-            <Text style={styles.supportArrow}>></Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.supportItem}>
-            <Text style={styles.supportLabel}>Help Center</Text>
-            <Text style={styles.supportArrow}>></Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.supportItem}>
-            <Text style={styles.supportLabel}>Terms of Service</Text>
-            <Text style={styles.supportArrow}>></Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.supportItem}>
-            <Text style={styles.supportLabel}>Privacy Policy</Text>
-            <Text style={styles.supportArrow}>></Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.supportItem}>
-            <Text style={styles.supportLabel}>Contact Support</Text>
-            <Text style={styles.supportArrow}>></Text>
-          </TouchableOpacity>
-        </MetroCard>
-
-        {/* Logout */}
+        {/* Sign Out */}
         <MetroButton
-          title="SIGN OUT"
-          variant="danger"
+          title="Sign Out"
+          variant="secondary"
           size="lg"
           fullWidth
-          onPress={() => Alert.alert('Sign Out', 'Are you sure you want to sign out?')}
+          onPress={handleSignOut}
           style={styles.signOutButton}
         />
 
-        {/* Version */}
-        <Text style={styles.versionText}>METROPOLIS v1.0.0 • BUILD 2026.01.31</Text>
+        <Text style={styles.versionText}>UNION BUY RUNNER v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function SettingRow({
-  label,
-  description,
-  value,
-  onValueChange,
-}: {
-  label: string;
-  description: string;
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-}) {
-  return (
-    <View style={styles.settingRow}>
-      <View style={styles.settingInfo}>
-        <Text style={styles.settingLabel}>{label}</Text>
-        <Text style={styles.settingDesc}>{description}</Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{
-          false: MetroColors.border.default,
-          true: MetroColors.accent.cyanMuted,
-        }}
-        thumbColor={value ? MetroColors.accent.cyan : MetroColors.text.muted}
-      />
-    </View>
   );
 }
 
@@ -311,6 +246,9 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.background.primary,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[4],
     borderBottomWidth: 1,
@@ -318,7 +256,7 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.background.secondary,
   },
   headerLabel: {
-    color: MetroColors.accent.indigo,
+    color: MetroColors.accent.green,
     fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
     fontWeight: '600',
@@ -332,38 +270,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 2,
   },
-  headerActions: {
+  headerRight: {
     flexDirection: 'row',
     gap: Spacing[2],
-    alignItems: 'center',
-  },
-  utilityPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: MetroColors.background.secondary,
-    borderWidth: 1,
-    borderColor: MetroColors.border.default,
-    borderRadius: 12,
-    paddingHorizontal: Spacing[2],
-    paddingVertical: Spacing[1],
-  },
-  utilityIcon: {
-    color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: Spacing[3],
-    paddingBottom: Spacing[9],
+    padding: Spacing[4],
+    paddingBottom: Spacing[10],
   },
   profileCard: {
-    marginBottom: Spacing[3],
-    paddingVertical: Spacing[4],
-    paddingHorizontal: Spacing[3],
+    marginBottom: Spacing[4],
+    paddingVertical: Spacing[5],
+    paddingHorizontal: Spacing[4],
   },
   profileHeader: {
     flexDirection: 'row',
@@ -371,39 +292,41 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[4],
   },
   avatarContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
-    backgroundColor: MetroColors.accent.indigoMuted,
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: MetroColors.accent.greenMuted,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing[4],
+    borderWidth: 2,
+    borderColor: MetroColors.accent.green,
   },
   avatarText: {
-    color: MetroColors.accent.indigo,
+    color: MetroColors.accent.green,
     fontFamily: Fonts.heading,
-    fontSize: FontSizes['3xl'],
-    fontWeight: '800',
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
   },
   profileInfo: {
     flex: 1,
-    gap: Spacing[2],
+    gap: Spacing[1],
   },
   profileName: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
     fontSize: FontSizes.xl,
     fontWeight: '700',
-    lineHeight: 28,
   },
   profileEmail: {
-    color: MetroColors.text.tertiary,
+    color: MetroColors.text.secondary,
     fontFamily: Fonts.body,
     fontSize: FontSizes.md,
+    marginBottom: Spacing[1],
   },
   profileStats: {
     flexDirection: 'row',
-    paddingTop: Spacing[3],
+    paddingTop: Spacing[4],
     borderTopWidth: 1,
     borderTopColor: MetroColors.border.muted,
   },
@@ -426,7 +349,7 @@ const styles = StyleSheet.create({
   profileStatValue: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     fontWeight: '800',
   },
   sectionCard: {
@@ -452,36 +375,36 @@ const styles = StyleSheet.create({
   roleButton: {
     flex: 1,
   },
-  locationInfo: {
+  vehicleInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  locationIcon: {
+  vehicleIcon: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: MetroColors.accent.cyanMuted,
+    backgroundColor: MetroColors.accent.greenMuted,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing[3],
   },
-  locationIconText: {
-    color: MetroColors.accent.cyan,
+  vehicleIconText: {
+    color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: 12,
-    letterSpacing: 1,
+    fontSize: FontSizes.xs,
+    fontWeight: '700',
   },
-  locationDetails: {
+  vehicleDetails: {
     flex: 1,
   },
-  locationAddress: {
+  vehicleType: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.body,
     fontSize: FontSizes.md,
     fontWeight: '600',
     marginBottom: 4,
   },
-  locationNeighborhood: {
+  vehicleCapacity: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
@@ -513,64 +436,31 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '500',
   },
-  paymentMethod: {
+  earningsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing[3],
+    flexWrap: 'wrap',
+    gap: Spacing[2],
   },
-  cardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: MetroColors.accent.greenMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing[3],
-  },
-  cardIconText: {
-    color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-  },
-  cardInfo: {
+  earningsItem: {
     flex: 1,
-  },
-  cardLabel: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  cardExpiry: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.sm,
-    fontWeight: '500',
-  },
-  addPaymentButton: {
-    marginTop: Spacing[2],
-  },
-  supportItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    minWidth: '45%',
+    backgroundColor: MetroColors.background.tertiary,
+    padding: Spacing[3],
+    borderRadius: 8,
     alignItems: 'center',
-    paddingVertical: Spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: MetroColors.border.muted,
   },
-  supportLabel: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.md,
-    fontWeight: '500',
-  },
-  supportArrow: {
-    color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
+  earningsLabel: {
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.xs,
     fontWeight: '700',
+    marginBottom: Spacing[1],
+  },
+  earningsValue: {
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
   },
   signOutButton: {
     marginTop: Spacing[4],

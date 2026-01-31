@@ -3,33 +3,33 @@
  * Trading floor style with trending items and bulk buy opportunities
  */
 
-import React, { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  FlatList,
+  RefreshControl,
   ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  RefreshControl,
-  FlatList,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  MetroCard,
+  DataTicker,
+  InfoBar,
   MetroButton,
+  MetroCard,
   PriceDisplay,
   ProgressBar,
   StatusBadge,
-  DataTicker,
-  InfoBar,
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
+import { FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useCart } from '@/context/AppContext';
-import { fetchTrendingItems, fetchProducts, searchProducts } from '@/services/api';
-import { TrendingItem, Product } from '@/types';
+import { fetchProducts, fetchTrendingItems, searchProducts } from '@/services/api';
+import { Product, TrendingItem } from '@/types';
 
 export default function MarketScreen() {
   const router = useRouter();
@@ -40,11 +40,37 @@ export default function MarketScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState('');
 
   const categories = ['grains', 'pantry', 'dairy', 'meat', 'produce', 'household'];
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Countdown timer for cutoff
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date();
+      const cutoff = new Date();
+      cutoff.setHours(18, 0, 0, 0);
+      
+      // If past cutoff today, set to tomorrow
+      if (now > cutoff) {
+        cutoff.setDate(cutoff.getDate() + 1);
+      }
+      
+      const diff = cutoff.getTime() - now.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      setTimeRemaining(`${hours}h ${minutes}m`);
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
   }, []);
 
   const loadData = async () => {
@@ -84,7 +110,7 @@ export default function MarketScreen() {
     .slice(0, 10)
     .map((item) => ({
       id: item.product.id,
-      name: `🔥 ${item.product.name}`,
+      name: `[HOT] ${item.product.name}`,
       value: `$${item.product.bulkPrice.toFixed(2)}`,
       change: undefined,
       suffix: `/${item.product.unit}`,
@@ -92,100 +118,111 @@ export default function MarketScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerLabel}>UNION BUY</Text>
-          <Text style={styles.headerTitle}>Market</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/wallet')}>
-            <Text style={styles.utilityIcon}>⬡</Text>
-            <Text style={styles.utilityText}>$</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
-            <Text style={styles.utilityIcon}>🛒</Text>
-            <Text style={styles.utilityText}>{cartTotals.items}</Text>
-          </TouchableOpacity>
-          <View style={styles.cutoffBox}>
-            <Text style={styles.timeLabel}>CUTOFF</Text>
-            <Text style={styles.timeValue}>18:00</Text>
+      <View style={styles.backgroundFX} pointerEvents="none">
+        <View style={styles.backgroundGlow} />
+        <View style={styles.backgroundGlowSecondary} />
+        <View style={styles.backgroundStreak} />
+        <View style={styles.backgroundScan} />
+      </View>
+      <View style={styles.fixedHeader}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerLabel}>UNION BUY</Text>
+            <Text style={styles.headerTitle}>Market</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/wallet')}>
+              <Text style={styles.utilityIcon}>WLT</Text>
+              <Text style={styles.utilityText}>$</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+              <Text style={styles.utilityIcon}>CRT</Text>
+              <Text style={styles.utilityText}>{cartTotals.items}</Text>
+            </TouchableOpacity>
+            <View style={styles.cutoffBox}>
+              <Text style={styles.timeLabel}>CUTOFF</Text>
+              <Text style={styles.timeValue}>18:00</Text>
+              {timeRemaining && (
+                <Text style={styles.timeRemaining}>{timeRemaining}</Text>
+              )}
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Trending Ticker (simplified text) */}
-      <DataTicker items={tickerData} speed={36} height={46} showChange={false} />
+        {/* Trending Ticker (simplified text) */}
+        <DataTicker items={tickerData} speed={36} height={46} showChange={false} />
 
-      {/* Info Bar */}
-      <InfoBar
-        items={[
-          { label: 'HOT', value: trendingItems.length, highlight: true },
-          { label: 'ACTIVE ORDERS', value: 5 },
-          { label: 'SAVED', value: '$2.8K' },
-        ]}
-      />
+        {/* Info Bar */}
+        <InfoBar
+          items={[
+            { label: 'HOT', value: trendingItems.length, highlight: true },
+            { label: 'ACTIVE ORDERS', value: 5 },
+            { label: 'SAVED', value: '$2.8K' },
+          ]}
+        />
 
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="SEARCH ITEMS..."
-            placeholderTextColor={MetroColors.text.muted}
-            value={searchQuery}
-            onChangeText={handleSearch}
-            autoCapitalize="none"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
-              <Text style={styles.clearIcon}>✕</Text>
-            </TouchableOpacity>
-          )}
+        {/* Search */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputWrapper}>
+            <Text style={styles.searchIcon}>FND</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search products..."
+              placeholderTextColor={MetroColors.text.tertiary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoCapitalize="none"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <Text style={styles.clearIcon}>X</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
 
-      {/* Categories */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        <TouchableOpacity
-          style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
-          onPress={() => setSelectedCategory(null)}
+        {/* Categories */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesContainer}
+          contentContainerStyle={styles.categoriesContent}
         >
-          <Text
-            style={[
-              styles.categoryText,
-              !selectedCategory && styles.categoryTextActive,
-            ]}
-          >
-            ALL
-          </Text>
-        </TouchableOpacity>
-        {categories.map((cat) => (
           <TouchableOpacity
-            key={cat}
-            style={[
-              styles.categoryChip,
-              selectedCategory === cat && styles.categoryChipActive,
-            ]}
-            onPress={() => setSelectedCategory(cat)}
+            style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
+            onPress={() => setSelectedCategory(null)}
           >
             <Text
               style={[
                 styles.categoryText,
-                selectedCategory === cat && styles.categoryTextActive,
+                !selectedCategory && styles.categoryTextActive,
               ]}
             >
-              {cat.toUpperCase()}
+              ALL
             </Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          {categories.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[
+                styles.categoryChip,
+                selectedCategory === cat && styles.categoryChipActive,
+              ]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === cat && styles.categoryTextActive,
+                ]}
+              >
+                {cat.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Products List */}
       <FlatList
@@ -226,7 +263,7 @@ export default function MarketScreen() {
                   <StatusBadge
                     label={`-${savings.toFixed(0)}%`}
                     variant="success"
-                    size="sm"
+                    size="md"
                   />
                 </View>
 
@@ -238,7 +275,7 @@ export default function MarketScreen() {
                         ${item.retailPrice.toFixed(2)}
                       </Text>
                     </View>
-                    <Text style={styles.priceArrow}>→</Text>
+                    <Text style={styles.priceArrow}>{'→'}</Text>
                     <View style={styles.priceItem}>
                       <Text style={styles.priceLabel}>BULK</Text>
                       <PriceDisplay
@@ -285,7 +322,7 @@ export default function MarketScreen() {
         }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>◇</Text>
+            <Text style={styles.emptyIcon}>[]</Text>
             <Text style={styles.emptyText}>NO ITEMS FOUND</Text>
             <Text style={styles.emptySubtext}>Try adjusting your search</Text>
           </View>
@@ -319,6 +356,53 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: MetroColors.background.primary,
   },
+  fixedHeader: {
+    backgroundColor: MetroColors.background.primary,
+    zIndex: 10,
+  },
+  backgroundFX: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  backgroundGlow: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: MetroColors.accent.cyan,
+    opacity: 0.14,
+    top: -80,
+    right: -90,
+  },
+  backgroundGlowSecondary: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: MetroColors.accent.purple,
+    opacity: 0.12,
+    bottom: 140,
+    left: -70,
+  },
+  backgroundStreak: {
+    position: 'absolute',
+    width: 360,
+    height: 120,
+    backgroundColor: MetroColors.accent.cyan,
+    opacity: 0.06,
+    top: 200,
+    left: -60,
+    transform: [{ rotate: '-8deg' }],
+  },
+  backgroundScan: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 130,
+    height: 2,
+    backgroundColor: MetroColors.accent.cyan,
+    opacity: 0.14,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -327,140 +411,167 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[3],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
+    backgroundColor: MetroColors.background.secondary,
   },
   headerLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
-    letterSpacing: 2,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   headerTitle: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
     fontWeight: '700',
-    letterSpacing: 1,
+    marginTop: 2,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[2],
+    gap: Spacing[1],
   },
   utilityPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: MetroColors.background.secondary,
-    borderWidth: 1,
-    borderColor: MetroColors.border.default,
-    borderRadius: 12,
-    paddingHorizontal: Spacing[2],
+    backgroundColor: MetroColors.accent.cyanMuted,
+    borderWidth: 1.5,
+    borderColor: MetroColors.accent.cyan,
+    borderRadius: 16,
+    paddingHorizontal: Spacing[3],
     paddingVertical: Spacing[1],
   },
   utilityIcon: {
-    fontSize: FontSizes.md,
-    marginRight: Spacing[1],
+    fontSize: 10,
+    marginRight: 6,
+    fontFamily: Fonts.mono,
+    letterSpacing: 1,
+    color: MetroColors.accent.cyan,
   },
   utilityText: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   cutoffBox: {
     alignItems: 'flex-end',
-    marginLeft: Spacing[2],
+    marginLeft: Spacing[3],
+    backgroundColor: MetroColors.accent.orangeMuted,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: MetroColors.accent.orange,
   },
   timeLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    color: MetroColors.accent.orange,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
+    fontWeight: '600',
     letterSpacing: 1,
   },
   timeValue: {
     color: MetroColors.accent.orange,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.heading,
     fontSize: FontSizes.lg,
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  timeRemaining: {
+    color: MetroColors.accent.orange,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
+    marginTop: 2,
   },
   searchContainer: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[2],
+    backgroundColor: MetroColors.background.primary,
   },
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: MetroColors.background.secondary,
-    borderWidth: 1,
-    borderColor: MetroColors.border.default,
-    borderRadius: 14,
-    paddingHorizontal: Spacing[3],
+    borderWidth: 2,
+    borderColor: MetroColors.border.accent,
+    borderRadius: 20,
+    paddingHorizontal: Spacing[4],
+    ...Shadows.cyanGlow,
   },
   searchIcon: {
-    color: MetroColors.text.muted,
-    fontSize: FontSizes.lg,
+    color: MetroColors.accent.cyan,
+    fontSize: FontSizes.sm,
     marginRight: Spacing[2],
+    fontFamily: Fonts.mono,
+    letterSpacing: 1,
   },
   searchInput: {
     flex: 1,
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    paddingVertical: Spacing[3],
-    letterSpacing: 0.5,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
+    paddingVertical: Spacing[2],
   },
   clearIcon: {
-    color: MetroColors.text.muted,
+    color: MetroColors.accent.cyan,
     fontSize: FontSizes.md,
+    fontWeight: '600',
     padding: Spacing[2],
   },
   categoriesContainer: {
-    maxHeight: 44,
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
-    marginBottom: Spacing[5],
     paddingTop: Spacing[1],
-    zIndex: 2,
-    position: 'relative',
     backgroundColor: MetroColors.background.primary,
     paddingBottom: Spacing[1],
   },
   categoriesContent: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[2],
-    gap: Spacing[2],
+    paddingVertical: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryChip: {
     paddingHorizontal: Spacing[3],
     paddingVertical: Spacing[1],
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: MetroColors.border.default,
-    borderRadius: 999,
+    borderRadius: 20,
     marginRight: Spacing[2],
-    backgroundColor: MetroColors.background.tertiary,
+    backgroundColor: MetroColors.background.secondary,
   },
   categoryChipActive: {
     borderColor: MetroColors.accent.cyan,
-    backgroundColor: MetroColors.accent.cyanMuted,
+    backgroundColor: MetroColors.accent.cyan,
+    ...Shadows.cyanGlow,
   },
   categoryText: {
-    color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   categoryTextActive: {
-    color: MetroColors.accent.cyan,
+    color: MetroColors.background.secondary,
   },
   productsContainer: {
-    padding: Spacing[4],
-    paddingBottom: 100,
-    paddingTop: Spacing[10],
-    marginTop: Spacing[1],
+    padding: Spacing[3],
+    paddingBottom: 96,
   },
   listSpacer: {
-    height: Spacing[4],
+    height: 2,
   },
   productCard: {
-    marginBottom: Spacing[3],
+    marginBottom: Spacing[2],
+    paddingVertical: Spacing[3],
+    paddingHorizontal: Spacing[3],
+    borderWidth: 1,
+    borderColor: MetroColors.border.muted,
+    backgroundColor: MetroColors.background.secondary,
   },
   productHeader: {
     flexDirection: 'row',
@@ -470,19 +581,21 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     flex: 1,
+    marginRight: Spacing[2],
   },
   productName: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
-    marginBottom: 2,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
+    marginBottom: 6,
+    lineHeight: 28,
   },
   productCategory: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 0.5,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
   },
   priceRow: {
     flexDirection: 'row',
@@ -495,60 +608,72 @@ const styles = StyleSheet.create({
     gap: Spacing[3],
   },
   priceItem: {
-    gap: 2,
+    gap: 4,
   },
   priceLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   retailPrice: {
-    color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.heading,
     fontSize: FontSizes.lg,
     textDecorationLine: 'line-through',
   },
   priceArrow: {
-    color: MetroColors.accent.cyan,
+    color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.lg,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   unitText: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.lg,
     marginLeft: Spacing[1],
+    fontWeight: '600',
   },
   progressSection: {
-    marginBottom: Spacing[3],
+    marginBottom: Spacing[4],
+    marginTop: Spacing[3],
+    paddingTop: Spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: MetroColors.border.muted,
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing[2],
+    marginBottom: Spacing[3],
   },
   progressLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   pledgeCount: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.accent.purple,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   cardActions: {
     flexDirection: 'row',
-    gap: Spacing[2],
+    gap: Spacing[3],
     justifyContent: 'flex-end',
+    marginTop: Spacing[2],
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing[16],
   },
   emptyIcon: {
-    fontSize: 48,
+    fontSize: 32,
     color: MetroColors.text.muted,
     marginBottom: Spacing[4],
   },
