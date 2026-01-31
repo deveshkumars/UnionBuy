@@ -5,8 +5,8 @@
 import 'react-native-get-random-values';
 
 import { Amplify } from 'aws-amplify';
+import { fetchAuthSession, getCurrentUser, signIn, signOut, signUp } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/data';
-import { getCurrentUser, signIn, signUp, signOut, fetchAuthSession } from 'aws-amplify/auth';
 
 // Schema type from Amplify backend (for typed Data client)
 import type { Schema } from 'amplify/data/resource';
@@ -39,7 +39,8 @@ export function isBackendConfigured(): boolean {
 
 /** Typed Data client for AppSync/DynamoDB (Products, Pledges, BulkOrders, UserProfile) */
 export function getDataClient() {
-  return generateClient<Schema>({ authMode: 'userPool' });
+  // Use API key for now (no sign-in required)
+  return generateClient<Schema>({ authMode: 'apiKey' });
 }
 
 /** Auth helpers (Cognito) */

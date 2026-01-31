@@ -34,7 +34,7 @@ const schema = a.schema({
       available: a.boolean(),
       image: a.string(),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.authenticated(), allow.publicApiKey()]),
 
   // User pledge: "I want quantity X of product Y" (owner = userId)
   Pledge: a
@@ -67,7 +67,7 @@ const schema = a.schema({
       runnerId: a.string(),
       dropZoneJson: a.string(), // JSON: Location
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.authenticated(), allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

@@ -1,0 +1,56 @@
+type UserProfile @model @auth(rules: [{allow: owner, ownerField: "owner"}])
+{
+  name: String!
+  email: String!
+  phone: String
+  role: String!
+  locationJson: String
+  trustScore: Float
+  joinedAt: String!
+  avatar: String
+}
+
+type Product @model @auth(rules: [{allow: private},
+  {allow: public, provider: apiKey}])
+{
+  name: String!
+  category: String!
+  description: String
+  unit: String!
+  retailPrice: Float!
+  bulkPrice: Float!
+  bulkMinimum: Int!
+  storeJson: String!
+  available: Boolean
+  image: String
+}
+
+type Pledge @model @auth(rules: [{allow: owner, ownerField: "owner"}])
+{
+  userId: String!
+  productId: String!
+  productSnapshotJson: String!
+  quantity: Int!
+  unitPrice: Float!
+  totalAmount: Float!
+  maxAmount: Float!
+  status: String!
+  orderId: String
+  lockedAt: String
+  completedAt: String
+}
+
+type BulkOrder @model @auth(rules: [{allow: private},
+  {allow: public, provider: apiKey}])
+{
+  productId: String!
+  productSnapshotJson: String!
+  totalQuantity: Int!
+  targetQuantity: Int!
+  pricePerUnit: Float!
+  status: String!
+  cutoffTime: String!
+  executedAt: String
+  runnerId: String
+  dropZoneJson: String
+}
