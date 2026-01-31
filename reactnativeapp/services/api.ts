@@ -318,4 +318,3 @@ export function calculateCartTotals(items: CartItem[]): Cart {
     totalSavings,
   };
 }
-

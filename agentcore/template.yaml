@@ -1,0 +1,134 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Bulk Buy Agents - Amazon Bedrock powered agents for community bulk purchasing
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        MOCK_MODE: "false"
+        AWS_REGION: !Ref AWS::Region
+        BEDROCK_MODEL_ID: "amazon.titan-text-premier-v1:0"
+        SAVINGS_THRESHOLD: "0.20"
+        MAX_DISTANCE_MILES: "5.0"
+        MIN_DEMAND_PERCENT: "0.60"
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment stage
+
+Resources:
+  # ============================================
+  # API GATEWAY
+  # ============================================
+  
+  BulkBuyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "bulk-buy-agents-api-${Stage}"
+      StageName: !Ref Stage
+      Description: API for Bulk Buy Agents
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+        AllowOrigin: "'*'"
+      Auth:
+        DefaultAuthorizer: NONE
+
+  # ============================================
+  # LAMBDA FUNCTIONS
+  # ============================================
+
+  BulkBuyAgentsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "bulk-buy-agents-${Stage}"
+      Description: Main handler for all bulk buy agent endpoints
+      CodeUri: .
+      Handler: handlers.lambda_handler.handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: "*"
+      Events:
+        EvaluateBulkBuy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BulkBuyApi
+            Path: /api/evaluate-bulk-buy
+            Method: POST
+        PriceComparison:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BulkBuyApi
+            Path: /api/agents/price-comparison
+            Method: POST
+        BulkApproval:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BulkBuyApi
+            Path: /api/agents/bulk-approval
+            Method: POST
+        SecurityCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BulkBuyApi
+            Path: /api/agents/security-check
+            Method: POST
+        HealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BulkBuyApi
+            Path: /health
+            Method: GET
+
+  # ============================================
+  # CLOUDWATCH LOG GROUP
+  # ============================================
+
+  BulkBuyAgentsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/bulk-buy-agents-${Stage}"
+      RetentionInDays: 14
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${BulkBuyApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+    Export:
+      Name: !Sub "BulkBuyAgentsApiEndpoint-${Stage}"
+
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt BulkBuyAgentsFunction.Arn
+    Export:
+      Name: !Sub "BulkBuyAgentsFunctionArn-${Stage}"
+
+  ApiId:
+    Description: API Gateway ID
+    Value: !Ref BulkBuyApi
+    Export:
+      Name: !Sub "BulkBuyAgentsApiId-${Stage}"
+

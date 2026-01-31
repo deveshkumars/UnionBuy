@@ -4,16 +4,15 @@
  */
 
 import {
-  User,
-  Product,
-  Store,
-  Pledge,
-  BulkOrder,
-  Mission,
-  Wallet,
-  Transaction,
-  TrendingItem,
-  Distribution,
+    BulkOrder,
+    Distribution,
+    Mission,
+    Pledge,
+    Product,
+    Store,
+    TrendingItem,
+    User,
+    Wallet
 } from '@/types';
 
 // ============================================
