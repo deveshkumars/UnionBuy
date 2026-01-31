@@ -1,0 +1,175 @@
+{
+  "items": [
+    {
+      "name": "jasmine rice",
+      "aliases": ["rice", "thai rice", "white rice"],
+      "retail": {
+        "price": 1.89,
+        "unit": "lb",
+        "store": "Walmart",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 0.79,
+        "unit": "lb",
+        "minimum": 50,
+        "store": "Costco",
+        "store_type": "wholesale"
+      }
+    },
+    {
+      "name": "olive oil",
+      "aliases": ["extra virgin olive oil", "evoo"],
+      "retail": {
+        "price": 0.42,
+        "unit": "oz",
+        "store": "Target",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 0.24,
+        "unit": "oz",
+        "minimum": 128,
+        "store": "Costco",
+        "store_type": "wholesale"
+      }
+    },
+    {
+      "name": "organic eggs",
+      "aliases": ["eggs", "cage-free eggs", "free range eggs"],
+      "retail": {
+        "price": 6.99,
+        "unit": "dozen",
+        "store": "Whole Foods",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 4.49,
+        "unit": "dozen",
+        "minimum": 15,
+        "store": "BJ's Wholesale",
+        "store_type": "wholesale"
+      }
+    },
+    {
+      "name": "chicken breast",
+      "aliases": ["chicken", "boneless chicken", "skinless chicken"],
+      "retail": {
+        "price": 4.99,
+        "unit": "lb",
+        "store": "Stop & Shop",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 2.89,
+        "unit": "lb",
+        "minimum": 40,
+        "store": "Restaurant Depot",
+        "store_type": "wholesale"
+      }
+    },
+    {
+      "name": "all-purpose flour",
+      "aliases": ["flour", "white flour", "ap flour"],
+      "retail": {
+        "price": 0.89,
+        "unit": "lb",
+        "store": "Walmart",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 0.42,
+        "unit": "lb",
+        "minimum": 50,
+        "store": "Costco",
+        "store_type": "wholesale"
+      }
+    },
+    {
+      "name": "black beans",
+      "aliases": ["canned beans", "beans"],
+      "retail": {
+        "price": 1.29,
+        "unit": "can",
+        "store": "Target",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 0.68,
+        "unit": "can",
+        "minimum": 24,
+        "store": "BJ's Wholesale",
+        "store_type": "wholesale"
+      }
+    },
+    {
+      "name": "paper towels",
+      "aliases": ["towels", "kitchen towels"],
+      "retail": {
+        "price": 1.99,
+        "unit": "roll",
+        "store": "CVS",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 0.89,
+        "unit": "roll",
+        "minimum": 30,
+        "store": "Costco",
+        "store_type": "wholesale"
+      }
+    },
+    {
+      "name": "whole milk",
+      "aliases": ["milk", "dairy milk"],
+      "retail": {
+        "price": 4.29,
+        "unit": "gallon",
+        "store": "Walmart",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 3.19,
+        "unit": "gallon",
+        "minimum": 12,
+        "store": "BJ's Wholesale",
+        "store_type": "wholesale"
+      }
+    },
+    {
+      "name": "ground beef",
+      "aliases": ["beef", "hamburger meat", "80/20 beef"],
+      "retail": {
+        "price": 5.99,
+        "unit": "lb",
+        "store": "Stop & Shop",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 3.79,
+        "unit": "lb",
+        "minimum": 30,
+        "store": "Restaurant Depot",
+        "store_type": "wholesale"
+      }
+    },
+    {
+      "name": "bananas",
+      "aliases": ["banana", "yellow bananas"],
+      "retail": {
+        "price": 0.69,
+        "unit": "lb",
+        "store": "Trader Joe's",
+        "store_type": "retail"
+      },
+      "bulk": {
+        "price": 0.39,
+        "unit": "lb",
+        "minimum": 40,
+        "store": "Costco",
+        "store_type": "wholesale"
+      }
+    }
+  ]
+}
+
