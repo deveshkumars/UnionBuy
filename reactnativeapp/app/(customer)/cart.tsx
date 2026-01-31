@@ -4,22 +4,22 @@
  * Creates pledges in DynamoDB when user pledges items.
  */
 
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 
-import { MetroCard, MetroButton, PriceDisplay, StatusBadge } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
-import { useCart, usePledges } from '@/context/AppContext';
+import { MetroButton, MetroCard, PriceDisplay, StatusBadge } from '@/components/metro';
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { useApp, useCart, usePledges } from '@/context/AppContext';
 import { createPledge } from '@/services/api';
 import { Product } from '@/types';
 
@@ -27,6 +27,7 @@ export default function CartScreen() {
   const router = useRouter();
   const { cart, updateCartQuantity, removeFromCart, clearCart, getCartTotal } = useCart();
   const { addPledge } = usePledges();
+  const { user } = useApp();
   const totals = getCartTotal();
   const [pledgingItem, setPledgingItem] = useState<string | null>(null);
   const [pledgingAll, setPledgingAll] = useState(false);
@@ -35,7 +36,7 @@ export default function CartScreen() {
   const handlePledgeItem = async (product: Product, quantity: number) => {
     setPledgingItem(product.id);
     try {
-      const result = await createPledge(product.id, quantity);
+      const result = await createPledge(product.id, quantity, user.id);
       if (result.success && result.pledge) {
         addPledge(result.pledge);
         removeFromCart(product.id);
@@ -74,7 +75,7 @@ export default function CartScreen() {
 
             for (const { product, quantity } of cart) {
               try {
-                const result = await createPledge(product.id, quantity);
+                const result = await createPledge(product.id, quantity, user.id);
                 if (result.success && result.pledge) {
                   addPledge(result.pledge);
                   pledgedItems.push(product.id);

@@ -137,9 +137,12 @@ export async function fetchActivePledges(userId: string): Promise<Pledge[]> {
 
 export async function createPledge(
   productId: string,
-  quantity: number
+  quantity: number,
+  userId?: string
 ): Promise<{ success: boolean; pledge?: Pledge; error?: string }> {
-  console.log('[createPledge] Backend configured:', isBackendConfigured());
+  // Use provided userId or fall back to currentUser.id
+  const effectiveUserId = userId || currentUser.id;
+  console.log('[createPledge] Backend configured:', isBackendConfigured(), 'userId:', effectiveUserId);
   
   if (isBackendConfigured()) {
     console.log('[createPledge] 🔥 Using DynamoDB backend');
@@ -149,8 +152,7 @@ export async function createPledge(
     const unitPrice = bulkOrder?.pricePerUnit ?? product.bulkPrice * 1.1;
     const totalAmount = unitPrice * quantity;
     const maxAmount = product.retailPrice * quantity;
-    // Use the mock currentUser.id as the anonymous user ID
-    return createPledgeInBackend(productId, product, quantity, unitPrice, totalAmount, maxAmount, currentUser.id);
+    return createPledgeInBackend(productId, product, quantity, unitPrice, totalAmount, maxAmount, effectiveUserId);
   }
 
   // Fall back to mock data
@@ -164,7 +166,7 @@ export async function createPledge(
   const maxAmount = product.retailPrice * quantity;
   const newPledge: Pledge = {
     id: `pledge-${Date.now()}`,
-    userId: currentUser.id,
+    userId: effectiveUserId,
     productId,
     product,
     quantity,

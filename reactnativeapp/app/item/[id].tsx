@@ -25,7 +25,7 @@ import {
   StatusBadge,
 } from '@/components/metro';
 import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
-import { useCart, usePledges } from '@/context/AppContext';
+import { useCart, usePledges, useApp } from '@/context/AppContext';
 import {
   fetchProductById,
   fetchBulkOrderForProduct,
@@ -41,6 +41,7 @@ export default function ItemDetailModal() {
   const router = useRouter();
   const { addToCart } = useCart();
   const { addPledge } = usePledges();
+  const { user } = useApp();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [bulkOrder, setBulkOrder] = useState<BulkOrder | null>(null);
@@ -115,7 +116,7 @@ export default function ItemDetailModal() {
           text: 'Pledge',
           onPress: async () => {
             setPledging(true);
-            const result = await createPledge(product.id, qty);
+            const result = await createPledge(product.id, qty, user.id);
             setPledging(false);
             
             if (result.success && result.pledge) {
