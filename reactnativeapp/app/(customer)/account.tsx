@@ -24,12 +24,13 @@ import {
     TrustScore,
 } from '@/components/metro';
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
-import { useApp, useRole } from '@/context/AppContext';
+import { useApp, useRole, useUser } from '@/context/AppContext';
 import { isBackendConfigured } from '@/lib/amplify';
 
 export default function AccountScreen() {
   const { user } = useApp();
   const { role, switchRole } = useRole();
+  const { isAuthenticated, authInitialized } = useUser();
   const [notifications, setNotifications] = useState(true);
   const [locationTracking, setLocationTracking] = useState(true);
   const router = useRouter();
@@ -258,15 +259,43 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </MetroCard>
 
-        {/* Logout */}
-        <MetroButton
-          title="SIGN OUT"
-          variant="danger"
-          size="lg"
-          fullWidth
-          onPress={() => Alert.alert('Sign Out', 'Are you sure you want to sign out?')}
-          style={styles.signOutButton}
-        />
+        {/* Auth Status & Actions */}
+        {authInitialized && (
+          <MetroCard style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>AUTHENTICATION</Text>
+            </View>
+            <View style={styles.authStatus}>
+              <StatusBadge 
+                label={isAuthenticated ? 'SIGNED IN' : 'NOT SIGNED IN'} 
+                variant={isAuthenticated ? 'success' : 'warning'} 
+                size="sm" 
+              />
+              <Text style={styles.authDescription}>
+                {isAuthenticated 
+                  ? 'Your pledges are saved to the cloud' 
+                  : 'Sign in to save pledges to DynamoDB'}
+              </Text>
+            </View>
+            {isAuthenticated ? (
+              <MetroButton
+                title="SIGN OUT"
+                variant="danger"
+                size="lg"
+                fullWidth
+                onPress={handleSignOut}
+              />
+            ) : (
+              <MetroButton
+                title="SIGN IN / SIGN UP"
+                variant="primary"
+                size="lg"
+                fullWidth
+                onPress={() => router.push('/auth')}
+              />
+            )}
+          </MetroCard>
+        )}
 
         {/* Version */}
         <Text style={styles.versionText}>METROPOLIS v1.0.0 • BUILD 2026.01.31</Text>
@@ -572,9 +601,17 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: '700',
   },
-  signOutButton: {
-    marginTop: Spacing[4],
-    marginBottom: Spacing[4],
+  authStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing[3],
+    gap: Spacing[2],
+  },
+  authDescription: {
+    flex: 1,
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.xs,
   },
   versionText: {
     color: MetroColors.text.muted,

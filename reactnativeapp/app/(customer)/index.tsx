@@ -6,25 +6,25 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  FlatList,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    FlatList,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  DataTicker,
-  InfoBar,
-  MetroButton,
-  MetroCard,
-  PriceDisplay,
-  ProgressBar,
-  StatusBadge,
+    DataTicker,
+    InfoBar,
+    MetroButton,
+    MetroCard,
+    PriceDisplay,
+    ProgressBar,
+    StatusBadge,
 } from '@/components/metro';
 import { FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useCart } from '@/context/AppContext';

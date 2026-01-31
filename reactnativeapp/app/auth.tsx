@@ -3,6 +3,7 @@
  */
 
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { useUser } from '@/context/AppContext';
 import { confirmSignUp, signIn, signUp } from 'aws-amplify/auth';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -20,6 +21,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AuthScreen() {
+  const { initializeAuth } = useUser();
   const [mode, setMode] = useState<'signin' | 'signup' | 'confirm'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -81,7 +83,9 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       await signIn({ username: email, password });
-      Alert.alert('Success', 'Signed in!');
+      // Re-initialize app context to load user from DynamoDB
+      await initializeAuth();
+      Alert.alert('Success', 'Signed in! Your pledges will now be saved to the cloud.');
       router.replace('/(customer)');
     } catch (error: any) {
       if (error.name === 'UserNotConfirmedException') {

@@ -3,10 +3,12 @@ import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 /**
  * Data schema → DynamoDB tables + AppSync GraphQL API
  * Stored as JSON strings where we need nested objects (location, store, product snapshot).
+ * 
+ * ALL TABLES ARE PUBLIC (API Key) - No authentication required!
  */
 
 const schema = a.schema({
-  // App profile for the Cognito user (id = Cognito sub)
+  // User profile (no auth required)
   UserProfile: a
     .model({
       name: a.string().required(),
@@ -18,9 +20,9 @@ const schema = a.schema({
       joinedAt: a.string().required(),
       avatar: a.string(),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
-  // Product catalog (read by all authenticated users)
+  // Product catalog (public access)
   Product: a
     .model({
       name: a.string().required(),
@@ -34,9 +36,9 @@ const schema = a.schema({
       available: a.boolean(),
       image: a.string(),
     })
-    .authorization((allow) => [allow.authenticated(), allow.publicApiKey()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
-  // User pledge: "I want quantity X of product Y" (owner = userId)
+  // User pledge (public access)
   Pledge: a
     .model({
       userId: a.string().required(),
@@ -51,9 +53,9 @@ const schema = a.schema({
       lockedAt: a.string(),
       completedAt: a.string(),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
-  // Bulk order round (one per product/window)
+  // Bulk order round (public access)
   BulkOrder: a
     .model({
       productId: a.string().required(),
@@ -67,7 +69,7 @@ const schema = a.schema({
       runnerId: a.string(),
       dropZoneJson: a.string(), // JSON: Location
     })
-    .authorization((allow) => [allow.authenticated(), allow.publicApiKey()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -75,7 +77,7 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'userPool',
-    apiKeyAuthorizationMode: { expiresInDays: 7 },
+    defaultAuthorizationMode: 'apiKey',
+    apiKeyAuthorizationMode: { expiresInDays: 30 },
   },
 });

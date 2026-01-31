@@ -27,6 +27,8 @@ import {
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import { useCart, usePledges } from '@/context/AppContext';
 import { comparePrices, evaluateBulkBuy } from '@/services/agents';
+import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
+import { useCart, usePledges, useApp } from '@/context/AppContext';
 import {
     createPledge,
     fetchBulkOrderForProduct,
@@ -41,6 +43,7 @@ export default function ItemDetailModal() {
   const router = useRouter();
   const { addToCart } = useCart();
   const { addPledge } = usePledges();
+  const { user } = useApp();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [bulkOrder, setBulkOrder] = useState<BulkOrder | null>(null);
@@ -115,7 +118,7 @@ export default function ItemDetailModal() {
           text: 'Pledge',
           onPress: async () => {
             setPledging(true);
-            const result = await createPledge(product.id, qty);
+            const result = await createPledge(product.id, qty, user.id);
             setPledging(false);
             
             if (result.success && result.pledge) {
