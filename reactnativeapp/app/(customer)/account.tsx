@@ -16,6 +16,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import {
     MetroButton,
@@ -32,22 +33,14 @@ export default function AccountScreen() {
   const { role, switchRole } = useRole();
   const [notifications, setNotifications] = useState(true);
   const [locationTracking, setLocationTracking] = useState(true);
+  const router = useRouter();
 
-  const handleRoleSwitch = () => {
-    const newRole = role === 'customer' ? 'runner' : 'customer';
-    Alert.alert(
-      'Switch Role',
-      `Switch to ${newRole.toUpperCase()} mode?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Switch',
-          onPress: () => switchRole(newRole),
-        },
-      ]
-    );
+  const setRoleAndNavigate = (newRole: 'customer' | 'runner') => {
+    switchRole(newRole);
+    router.replace('/');
   };
 
+  const handleRoleSwitch = () => {}; // legacy stub, replaced by direct buttons
   const handleSignOut = async () => {
     if (!isBackendConfigured()) {
       Alert.alert('Info', 'Backend not configured (using mock data)');
@@ -79,8 +72,27 @@ export default function AccountScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerLabel}>YOUR</Text>
-        <Text style={styles.headerTitle}>ACCOUNT</Text>
+        <View>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Account</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+            <Text style={styles.utilityIcon}>🛒</Text>
+          </TouchableOpacity>
+          <MetroButton
+            title="Runner"
+            variant={role === 'runner' ? 'primary' : 'ghost'}
+            size="sm"
+            onPress={() => setRoleAndNavigate('runner')}
+          />
+          <MetroButton
+            title="Customer"
+            variant={role === 'customer' ? 'primary' : 'ghost'}
+            size="sm"
+            onPress={() => setRoleAndNavigate('customer')}
+          />
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
@@ -125,40 +137,22 @@ export default function AccountScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>MODE</Text>
           </View>
-          <TouchableOpacity style={styles.roleSwitch} onPress={handleRoleSwitch}>
-            <View style={styles.roleOption}>
-              <View style={[
-                styles.roleIndicator,
-                role === 'customer' && styles.roleIndicatorActive
-              ]} />
-              <View>
-                <Text style={[
-                  styles.roleLabel,
-                  role === 'customer' && styles.roleLabelActive
-                ]}>CUSTOMER</Text>
-                <Text style={styles.roleDesc}>Browse and join bulk buys</Text>
-              </View>
-            </View>
-            <View style={styles.roleSwitchTrack}>
-              <View style={[
-                styles.roleSwitchThumb,
-                role === 'runner' && styles.roleSwitchThumbRight
-              ]} />
-            </View>
-            <View style={styles.roleOption}>
-              <View style={[
-                styles.roleIndicator,
-                role === 'runner' && styles.roleIndicatorActive
-              ]} />
-              <View>
-                <Text style={[
-                  styles.roleLabel,
-                  role === 'runner' && styles.roleLabelActive
-                ]}>RUNNER</Text>
-                <Text style={styles.roleDesc}>Deliver orders, earn money</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.roleButtons}>
+            <MetroButton
+              title="Customer"
+              variant={role === 'customer' ? 'primary' : 'secondary'}
+              size="md"
+              fullWidth
+              onPress={() => setRoleAndNavigate('customer')}
+            />
+            <MetroButton
+              title="Runner"
+              variant={role === 'runner' ? 'primary' : 'secondary'}
+              size="md"
+              fullWidth
+              onPress={() => setRoleAndNavigate('runner')}
+            />
+          </View>
         </MetroCard>
 
         {/* Location */}
@@ -331,6 +325,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: Spacing[2],
+    alignItems: 'center',
+  },
+  utilityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: MetroColors.background.secondary,
+    borderWidth: 1,
+    borderColor: MetroColors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+  },
+  utilityIcon: {
+    fontSize: FontSizes.md,
+  },
   scrollView: {
     flex: 1,
   },
@@ -415,57 +427,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     letterSpacing: 2,
   },
-  roleSwitch: {
+  roleButtons: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  roleOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing[2],
-  },
-  roleIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: MetroColors.border.default,
-  },
-  roleIndicatorActive: {
-    backgroundColor: MetroColors.accent.cyan,
-  },
-  roleLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  roleLabelActive: {
-    color: MetroColors.accent.cyan,
-  },
-  roleDesc: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-  },
-  roleSwitchTrack: {
-    width: 44,
-    height: 24,
-    backgroundColor: MetroColors.background.tertiary,
-    borderRadius: 2,
-    padding: 2,
-    marginHorizontal: Spacing[3],
-  },
-  roleSwitchThumb: {
-    width: 20,
-    height: 20,
-    backgroundColor: MetroColors.accent.cyan,
-    borderRadius: 2,
-  },
-  roleSwitchThumbRight: {
-    alignSelf: 'flex-end',
   },
   locationInfo: {
     flexDirection: 'row',
@@ -582,4 +546,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
-

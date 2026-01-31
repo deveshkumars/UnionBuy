@@ -10,8 +10,10 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import {
   MetroCard,
@@ -25,6 +27,7 @@ import { fetchWallet } from '@/services/api';
 import { Wallet, Transaction } from '@/types';
 
 export default function WalletScreen() {
+  const router = useRouter();
   const { user } = useApp();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,8 +61,13 @@ export default function WalletScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerLabel}>YOUR</Text>
-        <Text style={styles.headerTitle}>WALLET</Text>
+        <View>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Wallet</Text>
+        </View>
+        <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+          <Text style={styles.utilityIcon}>🛒</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -240,6 +248,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[3],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
   headerLabel: {
     color: MetroColors.text.muted,
@@ -253,6 +264,19 @@ const styles = StyleSheet.create({
     fontSize: FontSizes['2xl'],
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  utilityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: MetroColors.background.secondary,
+    borderWidth: 1,
+    borderColor: MetroColors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+  },
+  utilityIcon: {
+    fontSize: FontSizes.md,
   },
   scrollView: {
     flex: 1,
@@ -425,4 +449,3 @@ const styles = StyleSheet.create({
     color: MetroColors.accent.orange,
   },
 });
-

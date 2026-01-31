@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: MetroColors.background.secondary,
     borderWidth: 1,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.lg,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -144,4 +144,3 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
-

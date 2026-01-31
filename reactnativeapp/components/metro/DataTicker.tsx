@@ -19,9 +19,15 @@ interface DataTickerProps {
   items: TickerItem[];
   speed?: number; // pixels per second
   height?: number;
+  showChange?: boolean;
 }
 
-export function DataTicker({ items, speed = 50, height = 40 }: DataTickerProps) {
+export function DataTicker({
+  items,
+  speed = 32,
+  height = 44,
+  showChange = false,
+}: DataTickerProps) {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -56,7 +62,7 @@ export function DataTicker({ items, speed = 50, height = 40 }: DataTickerProps) 
         ]}
       >
         {tickerItems.map((item, index) => (
-          <TickerItemView key={`${item.id}-${index}`} item={item} />
+          <TickerItemView key={`${item.id}-${index}`} item={item} showChange={showChange} />
         ))}
       </Animated.View>
 
@@ -67,14 +73,16 @@ export function DataTicker({ items, speed = 50, height = 40 }: DataTickerProps) 
   );
 }
 
-function TickerItemView({ item }: { item: TickerItem }) {
-  const changeColor = item.change
-    ? item.change > 0
-      ? MetroColors.accent.green
-      : item.change < 0
-      ? MetroColors.accent.red
-      : MetroColors.text.tertiary
-    : undefined;
+function TickerItemView({ item, showChange }: { item: TickerItem; showChange: boolean }) {
+  const changeColor = !showChange
+    ? undefined
+    : item.change
+      ? item.change > 0
+        ? MetroColors.accent.green
+        : item.change < 0
+        ? MetroColors.accent.red
+        : MetroColors.text.tertiary
+      : undefined;
 
   return (
     <View style={styles.tickerItem}>
@@ -85,7 +93,7 @@ function TickerItemView({ item }: { item: TickerItem }) {
         {item.value}
         {item.suffix}
       </Text>
-      {item.change !== undefined && (
+      {showChange && item.change !== undefined && (
         <Text style={[styles.itemChange, { color: changeColor }]}>
           {item.change > 0 ? '+' : ''}
           {item.change.toFixed(1)}%
@@ -187,16 +195,17 @@ const styles = StyleSheet.create({
   },
   itemName: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    marginRight: Spacing[2],
-    maxWidth: 80,
-  },
-  itemValue: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.sm,
     fontWeight: '600',
+    marginRight: Spacing[2],
+    maxWidth: 140,
+  },
+  itemValue: {
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   itemChange: {
     fontFamily: Fonts.mono,
@@ -205,7 +214,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     width: 1,
-    height: 16,
+    height: 18,
     backgroundColor: MetroColors.border.muted,
     marginLeft: Spacing[4],
   },
@@ -271,4 +280,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-

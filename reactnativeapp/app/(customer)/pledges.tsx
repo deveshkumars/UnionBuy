@@ -14,6 +14,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import {
   MetroCard,
@@ -21,17 +22,20 @@ import {
   PriceDisplay,
   ProgressBar,
   OrderStatusBadge,
+  StatusBadge,
 } from '@/components/metro';
 import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
 import { usePledges, useApp } from '@/context/AppContext';
-import { fetchUserPledges, cancelPledge } from '@/services/api';
+import { fetchUserPledges, cancelPledge, fetchBulkOrderForProduct } from '@/services/api';
 import { Pledge } from '@/types';
 
 export default function PledgesScreen() {
+  const router = useRouter();
   const { user } = useApp();
   const { pledges, setPledges, updatePledge } = usePledges();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [orderProgress, setOrderProgress] = useState<Record<string, { total: number; target: number }>>({});
 
   useEffect(() => {
     loadPledges();
@@ -40,6 +44,25 @@ export default function PledgesScreen() {
   const loadPledges = async () => {
     const userPledges = await fetchUserPledges(user.id);
     setPledges(userPledges);
+
+    const productIds = Array.from(new Set(userPledges.map((p) => p.productId)));
+    const progressEntries = await Promise.all(
+      productIds.map(async (id) => {
+        const order = await fetchBulkOrderForProduct(id);
+        if (order) {
+          return [id, { total: order.totalQuantity, target: order.targetQuantity }];
+        }
+        return null;
+      })
+    );
+    const map: Record<string, { total: number; target: number }> = {};
+    progressEntries.forEach((entry) => {
+      if (entry) {
+        const [id, value] = entry;
+        map[id] = value;
+      }
+    });
+    setOrderProgress(map);
   };
 
   const onRefresh = async () => {
@@ -75,6 +98,7 @@ export default function PledgesScreen() {
     if (filter === 'completed') return ['completed', 'cancelled'].includes(p.status);
     return true;
   });
+  const rolloverPledges = pledges.filter((p) => p.status === 'rollover');
 
   const activePledges = pledges.filter((p) =>
     ['pending', 'locked', 'active'].includes(p.status)
@@ -86,8 +110,13 @@ export default function PledgesScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerLabel}>YOUR</Text>
-        <Text style={styles.headerTitle}>PLEDGES</Text>
+        <View>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Pledges</Text>
+        </View>
+        <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+          <Text style={styles.utilityIcon}>🛒</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Summary Card */}
@@ -108,6 +137,9 @@ export default function PledgesScreen() {
             Potential savings: ${(totalMaxHold - totalLocked).toFixed(2)}
           </Text>
         </View>
+        <Text style={styles.legendText}>
+          Completed = bulk executed (not cancellable). Active = collecting (cancellable) until cutoff.
+        </Text>
       </MetroCard>
 
       {/* Filter Tabs */}
@@ -147,6 +179,30 @@ export default function PledgesScreen() {
           />
         }
       >
+        {rolloverPledges.length > 0 && (
+          <View style={styles.rolloverSection}>
+            <Text style={styles.rolloverTitle}>ROLLOVER TO TODAY</Text>
+            {rolloverPledges.map((pledge) => (
+              <MetroCard key={pledge.id} style={styles.rolloverCard}>
+                <View style={styles.rolloverHeader}>
+                  <Text style={styles.rolloverName}>{pledge.product.name}</Text>
+                  <StatusBadge label="ROLLED" variant="warning" size="sm" />
+                </View>
+                <Text style={styles.rolloverMeta}>
+                  {pledge.quantity} {pledge.product.unit} • Needed {pledge.product.bulkMinimum}
+                </Text>
+                <MetroButton
+                  title="Re-pledge"
+                  variant="primary"
+                  size="sm"
+                  onPress={() => Alert.alert('Re-pledge', 'Would move this into today’s batch.')}
+                  style={styles.rolloverButton}
+                />
+              </MetroCard>
+            ))}
+          </View>
+        )}
+
         {filteredPledges.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>◇</Text>
@@ -160,6 +216,7 @@ export default function PledgesScreen() {
             <PledgeCard
               key={pledge.id}
               pledge={pledge}
+              progress={orderProgress[pledge.productId]}
               onCancel={() => handleCancelPledge(pledge)}
             />
           ))
@@ -171,13 +228,18 @@ export default function PledgesScreen() {
 
 interface PledgeCardProps {
   pledge: Pledge;
+  progress?: { total: number; target: number };
   onCancel: () => void;
 }
 
-function PledgeCard({ pledge, onCancel }: PledgeCardProps) {
+function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
   const isActive = ['pending', 'locked', 'active'].includes(pledge.status);
   const isCompleted = pledge.status === 'completed';
   const isCancelled = pledge.status === 'cancelled';
+  const target = progress?.target || pledge.product.bulkMinimum;
+  const total = progress?.total ?? pledge.quantity;
+  const remaining = Math.max(target - total, 0);
+  const pct = Math.min(total / target, 1);
 
   const variant = isCompleted
     ? 'success'
@@ -236,10 +298,14 @@ function PledgeCard({ pledge, onCancel }: PledgeCardProps) {
         </View>
       )}
 
-      {pledge.status === 'active' && (
+      {['pending', 'locked', 'active'].includes(pledge.status) && (
         <View style={styles.progressSection}>
-          <Text style={styles.progressText}>Order in progress...</Text>
-          <ProgressBar progress={0.6} height={4} />
+          <Text style={styles.progressText}>
+            {remaining === 0
+              ? 'Bulk ready • executing at cutoff'
+              : `Need ~${remaining} more ${pledge.product.unit} to reach bulk`}
+          </Text>
+          <ProgressBar progress={pct} height={10} showLabel />
         </View>
       )}
 
@@ -283,6 +349,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[3],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
   headerLabel: {
     color: MetroColors.text.muted,
@@ -296,6 +365,19 @@ const styles = StyleSheet.create({
     fontSize: FontSizes['2xl'],
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  utilityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: MetroColors.background.secondary,
+    borderWidth: 1,
+    borderColor: MetroColors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+  },
+  utilityIcon: {
+    fontSize: FontSizes.md,
   },
   summaryCard: {
     margin: Spacing[4],
@@ -332,6 +414,12 @@ const styles = StyleSheet.create({
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.sm,
+  },
+  legendText: {
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.xs,
+    marginTop: Spacing[2],
   },
   filterContainer: {
     flexDirection: 'row',
@@ -403,6 +491,39 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     textAlign: 'center',
     paddingHorizontal: Spacing[8],
+  },
+  rolloverSection: {
+    marginBottom: Spacing[4],
+    gap: Spacing[2],
+  },
+  rolloverTitle: {
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.xs,
+    letterSpacing: 1,
+  },
+  rolloverCard: {
+    paddingVertical: Spacing[3],
+  },
+  rolloverHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing[1],
+  },
+  rolloverName: {
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+  },
+  rolloverMeta: {
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.xs,
+  },
+  rolloverButton: {
+    marginTop: Spacing[2],
   },
   pledgeCard: {
     marginBottom: Spacing[3],
@@ -529,4 +650,3 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
   },
 });
-

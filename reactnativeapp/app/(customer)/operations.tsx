@@ -43,7 +43,8 @@ const orderCustomers = [
 const kmeansResult = findOptimalDropZone(orderCustomers);
 
 export default function OperationsScreen() {
-  const [activeMissions] = useState(mockMissions.filter(
+  const router = useRouter();
+  const [activeMissions, setActiveMissions] = useState(mockMissions.filter(
     m => !['completed', 'available'].includes(m.status)
   ));
   const [userLocation, setUserLocation] = useState<Location | null>(null);
@@ -52,17 +53,27 @@ export default function OperationsScreen() {
 
   const currentMission = activeMissions[0];
 
-  // Get user's real GPS location
-  useEffect(() => {
-    (async () => {
-      // Request permission
-      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationError('Location permission denied');
-        // Fall back to mock location
-        setUserLocation(currentUser.location);
-        return;
-      }
+  // Dummy pickup window
+  const pickupWindow = '18:30–19:00';
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Track Order</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+            <Text style={styles.utilityIcon}>🛒</Text>
+          </TouchableOpacity>
+          <View style={styles.statusIndicator}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>LIVE</Text>
+          </View>
+        </View>
+      </View>
 
       try {
         // Get current position
@@ -89,69 +100,47 @@ export default function OperationsScreen() {
     // Optional: track sheet position
   }, []);
 
-  return (
-    <GestureHandlerRootView style={styles.container}>
-      {/* Full-screen Map */}
-      <View style={styles.mapContainer}>
-        {currentMission ? (
-          <LeafletMap
-            stores={currentMission.stores}
-            dropZone={kmeansResult.location} // Use K-means optimized drop zone
-            runnerPosition={getRunnerLocation(currentMission)}
-            userLocation={userLocation || undefined}
-            missionStatus={currentMission.status}
-          />
-        ) : (
-          <View style={styles.noMissionMap}>
-            <PulseRadar size={150} label="SCANNING" />
+            {/* Map labels */}
+            <View style={styles.mapLabels}>
+              <Text style={styles.mapLabel}>PROVIDENCE METRO AREA</Text>
+              <Text style={styles.mapCoords}>Pickup window {pickupWindow}</Text>
+            </View>
           </View>
         )}
       </View>
 
-      {/* Top Status Bar Overlay */}
-      <SafeAreaView style={styles.topOverlay} edges={['top']}>
-        <View style={styles.topBar}>
-          <View>
-            <Text style={styles.topLabel}>LIVE TRACKING</Text>
-            {currentMission && (
-              <Text style={styles.topTitle}>
-                MISSION #{currentMission.id.slice(-4).toUpperCase()}
-              </Text>
-            )}
+        {/* Pickup Summary */}
+        <MetroCard style={styles.centerCard}>
+          <View style={styles.centerRow}>
+            <View>
+              <Text style={styles.centerLabel}>PICKUP WINDOW</Text>
+              <Text style={styles.centerTitle}>{pickupWindow}</Text>
+              <Text style={styles.centerCoords}>Drop zone: Providence Community Center</Text>
+            </View>
+            <StatusBadge label="ETA" variant="info" size="sm" />
           </View>
-          <View style={styles.statusPill}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>
-              {currentMission ? currentMission.status.replace(/_/g, ' ').toUpperCase() : 'NO MISSION'}
-            </Text>
-          </View>
-        </View>
-      </SafeAreaView>
+        </MetroCard>
 
-      {/* Bottom Sheet */}
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={1}
-        snapPoints={snapPoints}
-        onChange={handleSheetChanges}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.sheetHandle}
-        enablePanDownToClose={false}
-      >
-        <BottomSheetScrollView style={styles.sheetContent}>
-          {currentMission ? (
-            <>
-              {/* Mission Progress */}
-              <View style={styles.section}>
-                <View style={styles.progressHeader}>
-                  <Text style={styles.sectionTitle}>DELIVERY PROGRESS</Text>
-                  <StatusBadge
-                    label={currentMission.status.replace(/_/g, ' ').toUpperCase()}
-                    variant="info"
-                    size="sm"
-                    pulse
-                  />
-                </View>
+        {/* Mission Status */}
+        {currentMission && (
+          <MetroCard variant="active" label="ACTIVE" style={styles.missionCard}>
+            <View style={styles.missionHeader}>
+              <Text style={styles.missionTitle}>MISSION #{currentMission.id.slice(-4).toUpperCase()}</Text>
+              <StatusBadge
+                label={currentMission.status.replace('_', ' ').toUpperCase()}
+                variant="info"
+                size="sm"
+                pulse
+              />
+            </View>
+
+            <View style={styles.missionStats}>
+              <MissionStat label="ITEMS" value={currentMission.totalItems} />
+              <MissionStat label="STORES" value={currentMission.stores.length} />
+              <MissionStat label="DISTANCE" value={`${currentMission.route.totalDistance} mi`} />
+              <MissionStat label="ETA" value={`${currentMission.route.estimatedTime} min`} />
+              <MissionStat label="PICKUP" value={pickupWindow} />
+            </View>
 
                 <View style={styles.progressTimeline}>
                   <TimelineStep label="ORDERED" status="completed" time="18:10" />
@@ -344,7 +333,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: MetroColors.accent.cyan + '40',
   },
-  topLabel: {
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+  },
+  headerLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
     fontSize: 10,
@@ -366,13 +360,114 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: Spacing[2],
   },
-  liveDot: {
+  utilityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: MetroColors.background.secondary,
+    borderWidth: 1,
+    borderColor: MetroColors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+  },
+  utilityIcon: {
+    fontSize: FontSizes.md,
+  },
+  statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: MetroColors.accent.green,
   },
-  liveText: {
+  statusText: {
+    color: MetroColors.accent.green,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.xs,
+    letterSpacing: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    padding: Spacing[4],
+    paddingBottom: Spacing[10],
+  },
+  centerCard: {
+    marginBottom: Spacing[4],
+  },
+  centerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  centerLabel: {
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.xs,
+    letterSpacing: 1,
+  },
+  centerTitle: {
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  centerCoords: {
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.xs,
+    marginTop: 2,
+  },
+  mapCard: {
+    marginBottom: Spacing[4],
+    padding: 0,
+    overflow: 'hidden',
+  },
+  mapContainer: {
+    height: MAP_HEIGHT,
+    backgroundColor: MetroColors.background.tertiary,
+    position: 'relative',
+  },
+  gridOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  gridLine: {
+    position: 'absolute',
+    backgroundColor: MetroColors.border.muted,
+    opacity: 0.3,
+  },
+  gridHorizontal: {
+    left: 0,
+    right: 0,
+    height: 1,
+  },
+  gridVertical: {
+    top: 0,
+    bottom: 0,
+    width: 1,
+  },
+  mapContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noMissionContainer: {
+    alignItems: 'center',
+    gap: Spacing[4],
+  },
+  noMissionText: {
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.sm,
+    letterSpacing: 1,
+  },
+  dropZone: {
+    position: 'absolute',
+    alignItems: 'center',
+    transform: [{ translateX: -25 }, { translateY: -25 }],
+  },
+  dropZoneLabel: {
     color: MetroColors.accent.cyan,
     fontFamily: Fonts.mono,
     fontSize: 10,

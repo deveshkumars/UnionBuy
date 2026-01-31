@@ -40,7 +40,7 @@ function RootNavigator() {
           }}
         />
       </Stack>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
     </View>
   );
 }

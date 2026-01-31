@@ -16,6 +16,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     market: '◈',
     pledges: '◇',
     operations: '◎',
+    cart: '🛒',
     wallet: '⬡',
     account: '◉',
   };
@@ -59,7 +60,7 @@ export default function CustomerTabLayout() {
       <Tabs.Screen
         name="operations"
         options={{
-          title: 'OPS',
+          title: 'TRACK',
           tabBarIcon: ({ focused }) => <TabIcon name="operations" focused={focused} />,
         }}
       />
@@ -122,4 +123,3 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 });
-
