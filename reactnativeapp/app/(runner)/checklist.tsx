@@ -5,21 +5,21 @@
 
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  MetroCard,
-  MetroButton,
-  StatusBadge,
-  PriceDisplay,
+    MetroButton,
+    MetroCard,
+    PriceDisplay,
+    StatusBadge,
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import { useMission } from '@/context/AppContext';
 
 interface ChecklistItem {
@@ -34,13 +34,16 @@ interface ChecklistItem {
 export default function ChecklistScreen() {
   const { activeMission } = useMission();
 
-  // Mock checklist items
+  // Mock checklist items - aggregated from all neighbors in the bulk order
   const [items, setItems] = useState<ChecklistItem[]>([
     { id: '1', name: 'Jasmine Rice', quantity: 50, unit: 'lbs', store: 'Costco', checked: false },
-    { id: '2', name: 'Chicken Breast', quantity: 40, unit: 'lbs', store: 'Restaurant Depot', checked: false },
-    { id: '3', name: 'Organic Eggs', quantity: 15, unit: 'dozen', store: "BJ's", checked: false },
-    { id: '4', name: 'Olive Oil', quantity: 6, unit: 'bottles', store: 'Costco', checked: false },
-    { id: '5', name: 'Paper Towels', quantity: 30, unit: 'rolls', store: 'Costco', checked: false },
+    { id: '2', name: 'Olive Oil', quantity: 6, unit: 'bottles', store: 'Costco', checked: false },
+    { id: '3', name: 'Paper Towels', quantity: 30, unit: 'rolls', store: 'Costco', checked: false },
+    { id: '4', name: 'Rotisserie Chicken', quantity: 8, unit: 'each', store: 'Costco', checked: false },
+    { id: '5', name: 'Chicken Breast', quantity: 40, unit: 'lbs', store: 'Restaurant Depot', checked: false },
+    { id: '6', name: 'Ground Beef', quantity: 25, unit: 'lbs', store: 'Restaurant Depot', checked: false },
+    { id: '7', name: 'Organic Eggs', quantity: 15, unit: 'dozen', store: "BJ's", checked: false },
+    { id: '8', name: 'Whole Milk', quantity: 10, unit: 'gallons', store: "BJ's", checked: false },
   ]);
 
   const toggleItem = (id: string) => {
@@ -50,23 +53,10 @@ export default function ChecklistScreen() {
   };
 
   const checkedCount = items.filter(i => i.checked).length;
-  const totalEstimate = 187.45; // Mock value
-  const cardLimit = 250.00;
+  const totalEstimate = 247.85; // Mock value for 8 bulk items
+  const cardLimit = 350.00;
 
-  if (!activeMission) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.noMissionContainer}>
-          <Text style={styles.noMissionIcon}>☰</Text>
-          <Text style={styles.noMissionTitle}>NO ACTIVE MISSION</Text>
-          <Text style={styles.noMissionSubtext}>
-            Accept a mission to see your shopping checklist
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
+  // Always show checklist with dummy data for demo
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -228,14 +218,15 @@ const styles = StyleSheet.create({
   noMissionTitle: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '700',
     letterSpacing: 1,
     marginBottom: Spacing[2],
   },
   noMissionSubtext: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     textAlign: 'center',
   },
   header: {
@@ -250,14 +241,15 @@ const styles = StyleSheet.create({
   headerLabel: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
     letterSpacing: 2,
   },
   headerTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
     letterSpacing: 1,
   },
   headerRight: {
@@ -266,13 +258,14 @@ const styles = StyleSheet.create({
   progressText: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
   },
   progressLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   cardSection: {
@@ -291,7 +284,8 @@ const styles = StyleSheet.create({
   cardLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 1,
   },
   cardNumber: {
@@ -300,7 +294,8 @@ const styles = StyleSheet.create({
   cardDigits: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
+    fontSize: FontSizes['3xl'],
+    fontWeight: '700',
     letterSpacing: 4,
   },
   cardDetails: {
@@ -313,7 +308,8 @@ const styles = StyleSheet.create({
   cardDetailLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: 9,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
     marginBottom: 2,
   },
@@ -326,7 +322,8 @@ const styles = StyleSheet.create({
   cardNote: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
     textAlign: 'center',
   },
   scrollView: {
@@ -357,8 +354,8 @@ const styles = StyleSheet.create({
   storeName: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
     letterSpacing: 1,
     flex: 1,
   },
@@ -368,7 +365,8 @@ const styles = StyleSheet.create({
   storeCount: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   checklistItem: {
     flexDirection: 'row',
@@ -409,7 +407,8 @@ const styles = StyleSheet.create({
   itemName: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
     marginBottom: 2,
   },
   itemNameChecked: {
@@ -419,7 +418,8 @@ const styles = StyleSheet.create({
   itemQuantity: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
   },
   receiptCard: {
     marginTop: Spacing[4],
@@ -448,14 +448,14 @@ const styles = StyleSheet.create({
   receiptTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   receiptSubtext: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
   },
   bottomAction: {
     padding: Spacing[4],
@@ -472,13 +472,14 @@ const styles = StyleSheet.create({
   summaryLabel: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
   },
   summaryValue: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
   },
 });
 

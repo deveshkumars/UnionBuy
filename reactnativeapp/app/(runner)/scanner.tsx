@@ -3,8 +3,10 @@
  * QR code scanner for verifying customer pickups
  */
 
-import React, { useState } from 'react';
+import { Camera, CameraView } from 'expo-camera';
+import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Dimensions,
     ScrollView,
     StyleSheet,
@@ -29,7 +31,7 @@ interface DistributionItem {
   id: string;
   name: string;
   qrCode: string;
-  items: { name: string; quantity: number }[];
+  items: { name: string; quantity: number; unit: string }[];
   status: 'pending' | 'arrived' | 'verified' | 'completed';
 }
 
@@ -38,49 +40,131 @@ export default function ScannerScreen() {
   const [scanning, setScanning] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
   const [selectedDistribution, setSelectedDistribution] = useState<string | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [scanned, setScanned] = useState(false);
 
-  // Mock distributions
+  useEffect(() => {
+    const getCameraPermissions = async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === 'granted');
+    };
+    getCameraPermissions();
+  }, []);
+
+  // Mock distributions - 5 neighbors in the bulk order
   const [distributions, setDistributions] = useState<DistributionItem[]>([
     {
       id: '1',
       name: 'Maria Santos',
       qrCode: 'METRO-DIST-001-A7B3',
-      items: [{ name: 'Chicken Breast', quantity: 5 }],
+      items: [
+        { name: 'Chicken Breast', quantity: 5, unit: 'lbs' },
+        { name: 'Jasmine Rice', quantity: 10, unit: 'lbs' },
+      ],
       status: 'pending',
     },
     {
       id: '2',
       name: 'James Chen',
       qrCode: 'METRO-DIST-002-C9D4',
-      items: [{ name: 'Chicken Breast', quantity: 8 }, { name: 'Jasmine Rice', quantity: 10 }],
+      items: [
+        { name: 'Chicken Breast', quantity: 8, unit: 'lbs' },
+        { name: 'Jasmine Rice', quantity: 15, unit: 'lbs' },
+        { name: 'Olive Oil', quantity: 2, unit: 'bottles' },
+      ],
       status: 'pending',
     },
     {
       id: '3',
       name: 'Sarah Williams',
       qrCode: 'METRO-DIST-003-E5F6',
-      items: [{ name: 'Organic Eggs', quantity: 3 }],
+      items: [
+        { name: 'Organic Eggs', quantity: 3, unit: 'dozen' },
+        { name: 'Paper Towels', quantity: 6, unit: 'rolls' },
+      ],
       status: 'arrived',
+    },
+    {
+      id: '4',
+      name: 'David Park',
+      qrCode: 'METRO-DIST-004-G8H2',
+      items: [
+        { name: 'Chicken Breast', quantity: 12, unit: 'lbs' },
+        { name: 'Organic Eggs', quantity: 4, unit: 'dozen' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '5',
+      name: 'Lisa Thompson',
+      qrCode: 'METRO-DIST-005-J4K9',
+      items: [
+        { name: 'Jasmine Rice', quantity: 25, unit: 'lbs' },
+        { name: 'Paper Towels', quantity: 10, unit: 'rolls' },
+        { name: 'Olive Oil', quantity: 4, unit: 'bottles' },
+      ],
+      status: 'pending',
     },
   ]);
 
   const handleScan = (distributionId: string) => {
+    if (hasPermission === null) {
+      Alert.alert('Permission Required', 'Requesting camera permission...');
+      return;
+    }
+    if (hasPermission === false) {
+      Alert.alert('No Camera Access', 'Camera permission is required to scan QR codes. Please enable it in settings.');
+      return;
+    }
+    
     setSelectedDistribution(distributionId);
     setScanning(true);
     setScanSuccess(false);
+    setScanned(false);
+  };
 
-    // Simulate scanning
-    setTimeout(() => {
+  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
+    if (scanned) return;
+    
+    setScanned(true);
+    
+    // Find the distribution we're trying to verify
+    const distribution = distributions.find(d => d.id === selectedDistribution);
+    
+    if (distribution && data === distribution.qrCode) {
+      // QR code matches!
       setScanSuccess(true);
       setTimeout(() => {
         setScanning(false);
         setScanSuccess(false);
         setDistributions(distributions.map(d =>
-          d.id === distributionId ? { ...d, status: 'verified' } : d
+          d.id === selectedDistribution ? { ...d, status: 'verified' } : d
         ));
         setSelectedDistribution(null);
+        setScanned(false);
       }, 1500);
-    }, 2000);
+    } else {
+      // Wrong QR code
+      Alert.alert(
+        'Invalid QR Code',
+        'This QR code does not match the customer. Please scan the correct code.',
+        [
+          {
+            text: 'Try Again',
+            onPress: () => setScanned(false),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setScanning(false);
+              setSelectedDistribution(null);
+              setScanned(false);
+            },
+          },
+        ]
+      );
+    }
   };
 
   const handleComplete = (distributionId: string) => {
@@ -91,39 +175,45 @@ export default function ScannerScreen() {
 
   const completedCount = distributions.filter(d => d.status === 'completed').length;
 
-  if (!activeMission) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.noMissionContainer}>
-          <Text style={styles.noMissionIcon}>⌗</Text>
-          <Text style={styles.noMissionTitle}>NO ACTIVE MISSION</Text>
-          <Text style={styles.noMissionSubtext}>
-            Accept a mission to start distributing items
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
+  // Always show scanner with dummy data for demo
   if (scanning) {
+    const distribution = distributions.find(d => d.id === selectedDistribution);
+    
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.scannerContainer}>
-          <ScanOverlay
-            scanning={!scanSuccess}
-            success={scanSuccess}
-            label={scanSuccess ? 'VERIFIED' : 'SCANNING QR CODE'}
-          />
-          {!scanSuccess && (
-            <TouchableOpacity
-              style={styles.cancelScan}
-              onPress={() => {
-                setScanning(false);
-                setSelectedDistribution(null);
-              }}
-            >
-              <Text style={styles.cancelScanText}>CANCEL</Text>
-            </TouchableOpacity>
+          {!scanSuccess ? (
+            <>
+              <CameraView
+                style={StyleSheet.absoluteFillObject}
+                facing="back"
+                onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                barcodeScannerSettings={{
+                  barcodeTypes: ['qr'],
+                }}
+              />
+              <ScanOverlay
+                scanning={true}
+                success={false}
+                label={`SCANNING FOR ${distribution?.name.toUpperCase()}`}
+              />
+              <TouchableOpacity
+                style={styles.cancelScan}
+                onPress={() => {
+                  setScanning(false);
+                  setSelectedDistribution(null);
+                  setScanned(false);
+                }}
+              >
+                <Text style={styles.cancelScanText}>CANCEL</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <ScanOverlay
+              scanning={false}
+              success={true}
+              label="VERIFIED"
+            />
           )}
         </View>
       </SafeAreaView>
@@ -209,7 +299,7 @@ export default function ScannerScreen() {
               {dist.items.map((item, index) => (
                 <View key={index} style={styles.itemRow}>
                   <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.itemQuantity}>×{item.quantity}</Text>
+                  <Text style={styles.itemQuantity}>{item.quantity} {item.unit}</Text>
                 </View>
               ))}
             </View>
@@ -287,14 +377,15 @@ const styles = StyleSheet.create({
   noMissionTitle: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '700',
     letterSpacing: 1,
     marginBottom: Spacing[2],
   },
   noMissionSubtext: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     textAlign: 'center',
   },
   scannerContainer: {
@@ -332,14 +423,15 @@ const styles = StyleSheet.create({
   headerLabel: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
     letterSpacing: 2,
   },
   headerTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
     letterSpacing: 1,
   },
   headerRight: {
@@ -348,13 +440,14 @@ const styles = StyleSheet.create({
   progressText: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
   },
   progressLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   summaryCard: {
@@ -372,13 +465,14 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
   },
   summaryLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
     letterSpacing: 0.5,
     marginTop: 2,
   },
@@ -400,7 +494,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
     letterSpacing: 1,
   },
   distributionCard: {
@@ -419,14 +514,15 @@ const styles = StyleSheet.create({
   distributionName: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.sans,
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
     marginBottom: 2,
   },
   distributionCode: {
     color: MetroColors.accent.cyan,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
     letterSpacing: 1,
   },
   itemsList: {
@@ -443,13 +539,14 @@ const styles = StyleSheet.create({
   itemName: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
   },
   itemQuantity: {
     color: MetroColors.accent.cyan,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   distributionActions: {},
   completedBadge: {
@@ -461,8 +558,8 @@ const styles = StyleSheet.create({
   completedText: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
+    fontSize: FontSizes.md,
+    fontWeight: '700',
     letterSpacing: 1,
   },
   bottomAction: {

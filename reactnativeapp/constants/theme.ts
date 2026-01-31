@@ -12,42 +12,48 @@ import { Platform } from 'react-native';
 export const MetroColors = {
   // Base backgrounds (light, airy)
   background: {
-    primary: '#F5F7FB',      // Page background
+    primary: '#EEF4FF',      // Page background
     secondary: '#FFFFFF',    // Cards / panels
-    tertiary: '#EFF3FA',     // Sub-panels / chips
-    elevated: '#E6EDF7',     // Modals / overlays
+    tertiary: '#E6EEFF',     // Sub-panels / chips
+    elevated: '#DDE7FF',     // Modals / overlays
   },
 
-  // Accent colors (soft neon on light)
+  // Accent colors (vibrant, modern palette)
   accent: {
-    cyan: '#0FB6D9',         // Primary actions
-    cyanMuted: 'rgba(15, 182, 217, 0.12)',
-    cyanDark: '#0C9EC1',
-    orange: '#FF9150',       // Warnings / cutoff
-    orangeMuted: 'rgba(255, 145, 80, 0.16)',
-    green: '#12B76A',        // Success
-    greenMuted: 'rgba(18, 183, 106, 0.16)',
-    red: '#F43F5E',          // Errors
-    redMuted: 'rgba(244, 63, 94, 0.15)',
-    purple: '#7C3AED',       // Special highlights
-    purpleMuted: 'rgba(124, 58, 237, 0.12)',
+    cyan: '#00D1FF',         // Primary actions
+    cyanMuted: 'rgba(0, 209, 255, 0.16)',
+    cyanDark: '#00A6D1',
+    orange: '#FF7A18',       // Warnings / cutoff - neon orange
+    orangeMuted: 'rgba(255, 122, 24, 0.2)',
+    green: '#00E5A8',        // Success - neon mint
+    greenMuted: 'rgba(0, 229, 168, 0.2)',
+    red: '#FF4D6D',          // Errors - neon coral
+    redMuted: 'rgba(255, 77, 109, 0.2)',
+    purple: '#B14CFF',       // Special highlights - violet
+    purpleMuted: 'rgba(177, 76, 255, 0.18)',
+    yellow: '#FFD400',       // Hot deals - neon amber
+    yellowMuted: 'rgba(255, 212, 0, 0.2)',
+    pink: '#FF4FB0',         // Special offers - hot pink
+    pinkMuted: 'rgba(255, 79, 176, 0.2)',
+    indigo: '#5B7CFF',       // Premium - electric indigo
+    indigoMuted: 'rgba(91, 124, 255, 0.18)',
   },
 
-  // Text colors
+  // Text colors - improved contrast
   text: {
-    primary: '#0F172A',      // Headlines
-    secondary: '#1F2937',    // Body text
-    tertiary: '#475569',     // Labels
-    muted: '#94A3B8',        // Placeholders
+    primary: '#0B1220',      // Headlines - near black
+    secondary: '#1E293B',    // Body text - deep slate
+    tertiary: '#5B6B8C',     // Labels - medium slate
+    muted: '#8A9BBF',        // Placeholders
     inverse: '#FFFFFF',      // On colored surfaces
   },
 
   // Border colors
   border: {
-    default: '#D9E2EC',      // Default borders
-    muted: '#E5EAF2',        // Subtle dividers
-    accent: '#0FB6D9',       // Highlighted borders
-    warning: '#FF9150',      // Warning state borders
+    default: '#C6D3EC',      // Default borders - slightly darker
+    muted: '#DDE6F8',        // Subtle dividers
+    accent: '#00D1FF',       // Highlighted borders
+    warning: '#FF7A18',      // Warning state borders
   },
 
   // Status colors (semantic)
@@ -61,9 +67,9 @@ export const MetroColors = {
 
   // Glassmorphism
   glass: {
-    background: 'rgba(255, 255, 255, 0.86)',
-    border: 'rgba(217, 226, 236, 0.8)',
-    highlight: 'rgba(15, 182, 217, 0.12)',
+    background: 'rgba(255, 255, 255, 0.88)',
+    border: 'rgba(160, 176, 210, 0.55)',
+    highlight: 'rgba(0, 209, 255, 0.12)',
   },
 } as const;
 
@@ -93,42 +99,50 @@ export const Colors = {
 
 export const Fonts = Platform.select({
   ios: {
-    sans: 'system-ui',
-    serif: 'ui-serif',
-    rounded: 'ui-rounded',
-    mono: 'ui-monospace',
+    sans: 'system-ui',           // Clean, readable system font
+    sansBold: 'system-ui',       // Bold variant
+    body: '-apple-system',        // Body text
+    heading: 'system-ui',         // Headings
+    rounded: 'ui-rounded',        // Softer rounded variant
+    mono: 'Menlo',               // Monospace for data
   },
   android: {
     sans: 'Roboto',
-    serif: 'serif',
+    sansBold: 'Roboto',
+    body: 'Roboto',
+    heading: 'Roboto Medium',
     rounded: 'Roboto',
     mono: 'monospace',
   },
   default: {
     sans: 'System',
-    serif: 'serif',
+    sansBold: 'System',
+    body: 'System',
+    heading: 'System',
     rounded: 'System',
     mono: 'monospace',
   },
   web: {
-    sans: "'Rajdhani', 'Exo 2', system-ui, -apple-system, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
+    sans: "'Inter', system-ui, -apple-system, sans-serif",
+    sansBold: "'Inter', system-ui, -apple-system, sans-serif",
+    body: "'Inter', system-ui, sans-serif",
+    heading: "'Inter', -apple-system, sans-serif",
     rounded: "'SF Pro Rounded', system-ui, sans-serif",
-    mono: "'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace",
+    mono: "'SF Mono', Consolas, monospace",
   },
 });
 
 export const FontSizes = {
-  xs: 11,
-  sm: 13,
-  md: 15,
-  base: 17,
-  lg: 19,
-  xl: 22,
-  '2xl': 26,
-  '3xl': 32,
-  '4xl': 38,
-  '5xl': 50,
+  xs: 12,     // Increased from 11 - minimum readable size
+  sm: 14,     // Increased from 13 - body text
+  md: 16,     // Increased from 15 - default body
+  base: 17,   // Standard iOS size
+  lg: 20,     // Increased from 19 - subheadings
+  xl: 24,     // Increased from 22 - headings
+  '2xl': 28,  // Increased from 26 - large headings
+  '3xl': 34,  // Increased from 32 - hero text
+  '4xl': 40,  // Increased from 38 - display
+  '5xl': 52,  // Increased from 50 - extra large
 } as const;
 
 export const FontWeights = {
@@ -184,46 +198,22 @@ export const BorderRadius = {
 
 export const Shadows = {
   sm: {
-    shadowColor: 'rgba(15, 23, 42, 0.14)',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
-    elevation: 2,
+    boxShadow: '0 1px 3px 0 rgba(15, 23, 42, 0.12)',
   },
   md: {
-    shadowColor: 'rgba(15, 23, 42, 0.16)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.9,
-    shadowRadius: 6,
-    elevation: 4,
+    boxShadow: '0 4px 6px -1px rgba(15, 23, 42, 0.14)',
   },
   lg: {
-    shadowColor: 'rgba(15, 23, 42, 0.18)',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 8,
+    boxShadow: '0 6px 12px -2px rgba(15, 23, 42, 0.16)',
   },
   glow: (color: string) => ({
-    shadowColor: color,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 12,
-    elevation: 12,
+    boxShadow: `0 0 14px ${color}`,
   }),
   cyanGlow: {
-    shadowColor: MetroColors.accent.cyan,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 10,
+    boxShadow: `0 0 12px ${MetroColors.accent.cyan}`,
   },
   orangeGlow: {
-    shadowColor: MetroColors.accent.orange,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 10,
+    boxShadow: `0 0 12px ${MetroColors.accent.orange}`,
   },
 } as const;
 
@@ -324,11 +314,11 @@ export const MetroStyles = {
 export const TabBarConfig = {
   style: {
     backgroundColor: MetroColors.background.secondary,
-    borderTopWidth: 1,
-    borderTopColor: MetroColors.border.muted,
-    height: 78,
-    paddingBottom: 18,
-    paddingTop: 10,
+    borderTopWidth: 1.5,
+    borderTopColor: MetroColors.border.accent,
+    height: 80,
+    paddingBottom: 16,
+    paddingTop: 8,
   },
   activeTintColor: MetroColors.accent.cyan,
   inactiveTintColor: MetroColors.text.muted,

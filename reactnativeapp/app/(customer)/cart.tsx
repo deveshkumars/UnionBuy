@@ -128,7 +128,7 @@ export default function CartScreen() {
 
       {cart.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🧺</Text>
+          <Text style={styles.emptyIcon}>[]</Text>
           <Text style={styles.emptyText}>Cart is empty</Text>
           <Text style={styles.emptySubtext}>Add items from the Market to start.</Text>
         </View>
@@ -204,8 +204,8 @@ export default function CartScreen() {
             <Text style={styles.totalValue}>${totals.estimate.toFixed(2)}</Text>
           </View>
           <View style={styles.badges}>
-            <StatusBadge label={`${totals.items} items`} variant="info" size="sm" />
-            <StatusBadge label={`Save $${totals.savings.toFixed(2)}`} variant="success" size="sm" />
+            <StatusBadge label={`${totals.items} items`} variant="info" size="md" />
+            <StatusBadge label={`Save $${totals.savings.toFixed(2)}`} variant="success" size="md" />
           </View>
         </View>
         {pledgingAll ? (
@@ -238,22 +238,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
+    backgroundColor: MetroColors.background.secondary,
   },
   headerLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
-    letterSpacing: 2,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   headerTitle: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
     fontWeight: '700',
-    letterSpacing: 1,
+    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',
@@ -262,9 +265,9 @@ const styles = StyleSheet.create({
   },
   clearAll: {
     color: MetroColors.accent.red,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    letterSpacing: 1,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   content: {
     padding: Spacing[4],
@@ -285,16 +288,16 @@ const styles = StyleSheet.create({
   },
   itemName: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.heading,
     fontSize: FontSizes.lg,
     fontWeight: '700',
+    lineHeight: 24,
   },
   itemMeta: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 0.5,
-    marginTop: 2,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    marginTop: 4,
   },
   row: {
     flexDirection: 'row',
@@ -304,26 +307,28 @@ const styles = StyleSheet.create({
   qtyPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: MetroColors.background.tertiary,
-    borderRadius: Spacing[4],
+    backgroundColor: MetroColors.accent.cyanMuted,
+    borderRadius: 16,
     paddingHorizontal: Spacing[2],
-    borderWidth: 1,
-    borderColor: MetroColors.border.default,
+    borderWidth: 1.5,
+    borderColor: MetroColors.accent.cyan,
   },
   qtyButton: {
     padding: Spacing[2],
+    paddingHorizontal: Spacing[3],
   },
   qtySymbol: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.xl,
+    fontWeight: '600',
   },
   qtyValue: {
-    minWidth: 28,
+    minWidth: 32,
     textAlign: 'center',
     color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.xl,
     fontWeight: '700',
   },
   priceBlock: {
@@ -332,10 +337,10 @@ const styles = StyleSheet.create({
   },
   label: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   itemFooter: {
     flexDirection: 'row',
@@ -349,14 +354,15 @@ const styles = StyleSheet.create({
   },
   savings: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.lg,
+    fontWeight: '800',
   },
   remove: {
     color: MetroColors.accent.red,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    letterSpacing: 0.5,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   disabled: {
     opacity: 0.5,
@@ -375,15 +381,16 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 0.5,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   totalValue: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
   },
   badges: {
     flexDirection: 'row',
@@ -398,19 +405,19 @@ const styles = StyleSheet.create({
     gap: Spacing[2],
   },
   emptyIcon: {
-    fontSize: 42,
+    fontSize: 28,
     color: MetroColors.text.muted,
   },
   emptyText: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.lg,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.xl,
     fontWeight: '700',
   },
   emptySubtext: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
   },
   pledgingContainer: {
     flexDirection: 'row',

@@ -3,9 +3,9 @@
  * Used for prices, quantities, times, and other data points
  */
 
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
+import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 type DataVariant = 'default' | 'highlight' | 'warning' | 'success' | 'muted';
 type DataSize = 'sm' | 'md' | 'lg' | 'xl';
@@ -24,15 +24,16 @@ interface DataDisplayProps {
 const variantColors: Record<DataVariant, string> = {
   default: MetroColors.text.primary,
   highlight: MetroColors.accent.cyan,
-  warning: MetroColors.accent.orange,
+  warning: MetroColors.accent.yellow,
   success: MetroColors.accent.green,
-  muted: MetroColors.text.muted,
+  muted: MetroColors.text.secondary,
 };
 
+// Increased sizes for better visibility
 const sizeMap: Record<DataSize, number> = {
-  sm: FontSizes.sm,
-  md: FontSizes.lg,
-  lg: FontSizes['2xl'],
+  sm: FontSizes.md,
+  md: FontSizes.xl,
+  lg: FontSizes['3xl'],
   xl: FontSizes['4xl'],
 };
 
@@ -129,14 +130,14 @@ export function QuantityDisplay({
     <View style={[styles.container, style]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={styles.quantityRow}>
-        <Text style={[styles.value, { color: variantColors[progressVariant], fontSize: FontSizes.lg }]}>
+        <Text style={[styles.value, { color: variantColors[progressVariant], fontSize: FontSizes.xl, fontWeight: '800' }]}>
           {current}
         </Text>
         <Text style={[styles.separator, { color }]}>/</Text>
-        <Text style={[styles.value, { color: MetroColors.text.tertiary, fontSize: FontSizes.lg }]}>
+        <Text style={[styles.value, { color: MetroColors.text.secondary, fontSize: FontSizes.xl }]}>
           {total}
         </Text>
-        <Text style={[styles.unit, { color: MetroColors.text.muted }]}>{unit}</Text>
+        <Text style={[styles.unit, { color: MetroColors.text.tertiary }]}>{unit}</Text>
       </View>
     </View>
   );
@@ -172,39 +173,42 @@ const styles = StyleSheet.create({
     gap: Spacing[1],
   },
   label: {
-    color: MetroColors.text.tertiary,
-    fontSize: FontSizes.xs,
-    fontFamily: Fonts.mono,
-    letterSpacing: 1,
+    color: MetroColors.text.secondary,
+    fontSize: FontSizes.sm,
+    fontFamily: Fonts.sansBold,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
+    fontWeight: '700',
   },
   valueContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   value: {
-    fontFamily: Fonts.mono,
-    fontWeight: '600',
+    fontFamily: Fonts.sansBold,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
   affix: {
-    fontFamily: Fonts.mono,
-    fontWeight: '500',
+    fontFamily: Fonts.sansBold,
+    fontWeight: '700',
     marginHorizontal: 2,
   },
   quantityRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 2,
+    gap: 4,
   },
   separator: {
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
     marginHorizontal: 2,
   },
   unit: {
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     marginLeft: Spacing[1],
     textTransform: 'lowercase',
   },

@@ -3,28 +3,28 @@
  * Available missions with earnings, cargo, and accept/reject actions
  */
 
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  Alert,
-} from 'react-native';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  MetroCard,
-  MetroButton,
-  PriceDisplay,
-  StatusBadge,
-  InfoBar,
+    InfoBar,
+    MetroButton,
+    MetroCard,
+    PriceDisplay,
+    StatusBadge,
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
-import { useMission, useApp } from '@/context/AppContext';
-import { fetchAvailableMissions, acceptMission } from '@/services/api';
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { useApp, useMission } from '@/context/AppContext';
+import { acceptMission, fetchAvailableMissions } from '@/services/api';
 import { Mission } from '@/types';
 
 export default function JobBoardScreen() {
@@ -70,6 +70,24 @@ export default function JobBoardScreen() {
             } else {
               Alert.alert('Error', result.error || 'Failed to accept mission');
             }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeclineMission = (mission: Mission) => {
+    Alert.alert(
+      'Decline Mission',
+      'Are you sure you want to decline this mission?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: () => {
+            // Remove mission from available list
+            setAvailableMissions(availableMissions.filter(m => m.id !== mission.id));
           },
         },
       ]
@@ -162,6 +180,7 @@ export default function JobBoardScreen() {
               key={mission.id}
               mission={mission}
               onAccept={() => handleAcceptMission(mission)}
+              onDecline={() => handleDeclineMission(mission)}
               accepting={accepting === mission.id}
               disabled={!!activeMission}
             />
@@ -175,12 +194,13 @@ export default function JobBoardScreen() {
 interface MissionCardProps {
   mission: Mission;
   onAccept: () => void;
+  onDecline: () => void;
   accepting: boolean;
   disabled: boolean;
 }
 
-function MissionCard({ mission, onAccept, accepting, disabled }: MissionCardProps) {
-  const storeNames = mission.stores.map((s) => s.name).join(' → ');
+function MissionCard({ mission, onAccept, onDecline, accepting, disabled }: MissionCardProps) {
+  const storeNames = mission.stores.map((s) => s.name).join(' -> ');
 
   return (
     <MetroCard variant="active" style={styles.missionCard}>
@@ -205,7 +225,7 @@ function MissionCard({ mission, onAccept, accepting, disabled }: MissionCardProp
         <MissionStat
           label="ITEMS"
           value={mission.totalItems}
-          icon="◇"
+          icon="[]"
         />
         <MissionStat
           label="WEIGHT"
@@ -215,7 +235,7 @@ function MissionCard({ mission, onAccept, accepting, disabled }: MissionCardProp
         <MissionStat
           label="DISTANCE"
           value={`${mission.route.totalDistance}mi`}
-          icon="◎"
+          icon="O"
         />
         <MissionStat
           label="TIME"
@@ -232,7 +252,7 @@ function MissionCard({ mission, onAccept, accepting, disabled }: MissionCardProp
               <View style={styles.routeStepDot} />
               <Text style={styles.routeStepText}>{store.name}</Text>
               {index < mission.stores.length - 1 && (
-                <Text style={styles.routeArrow}>→</Text>
+                <Text style={styles.routeArrow}>{'\u2192'}</Text>
               )}
             </View>
           ))}
@@ -254,7 +274,7 @@ function MissionCard({ mission, onAccept, accepting, disabled }: MissionCardProp
             title="DECLINE"
             variant="ghost"
             size="sm"
-            onPress={() => {}}
+            onPress={onDecline}
             disabled={disabled}
           />
           <MetroButton
@@ -306,14 +326,15 @@ const styles = StyleSheet.create({
   headerLabel: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
     letterSpacing: 2,
+    fontWeight: '600',
   },
   headerTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
     letterSpacing: 1,
   },
   headerRight: {
@@ -338,14 +359,15 @@ const styles = StyleSheet.create({
   activeMissionTitle: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
     letterSpacing: 1,
   },
   activeMissionInfo: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
     marginBottom: Spacing[3],
   },
   continueButton: {
@@ -360,13 +382,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
     letterSpacing: 1,
   },
   sectionCount: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
@@ -380,14 +404,15 @@ const styles = StyleSheet.create({
   emptyText: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
     letterSpacing: 1,
     marginBottom: Spacing[2],
   },
   emptySubtext: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     textAlign: 'center',
   },
   missionCard: {
@@ -401,15 +426,16 @@ const styles = StyleSheet.create({
   missionTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
     letterSpacing: 1,
     marginBottom: 4,
   },
   missionStores: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
   },
   earningsContainer: {
     alignItems: 'flex-end',
@@ -417,7 +443,8 @@ const styles = StyleSheet.create({
   earningsLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
     marginBottom: 2,
   },
@@ -441,13 +468,14 @@ const styles = StyleSheet.create({
   statValue: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
   },
   statLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: 9,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   missionRoute: {
@@ -456,7 +484,8 @@ const styles = StyleSheet.create({
   routeLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
     letterSpacing: 1,
     marginBottom: Spacing[2],
   },
@@ -483,7 +512,8 @@ const styles = StyleSheet.create({
   routeStepText: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   routeArrow: {
     color: MetroColors.text.muted,
@@ -503,7 +533,8 @@ const styles = StyleSheet.create({
   metaText: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
   missionActions: {
     flexDirection: 'row',

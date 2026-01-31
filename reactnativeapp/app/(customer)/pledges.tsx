@@ -3,30 +3,30 @@
  * Shows locked funds, active orders, and rollover items
  */
 
-import React, { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 
 import {
-  MetroCard,
-  MetroButton,
-  PriceDisplay,
-  ProgressBar,
-  OrderStatusBadge,
-  StatusBadge,
+    MetroButton,
+    MetroCard,
+    OrderStatusBadge,
+    PriceDisplay,
+    ProgressBar,
+    StatusBadge,
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
-import { usePledges, useApp } from '@/context/AppContext';
-import { fetchUserPledges, cancelPledge, fetchBulkOrderForProduct } from '@/services/api';
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { useApp, usePledges } from '@/context/AppContext';
+import { cancelPledge, fetchBulkOrderForProduct, fetchUserPledges } from '@/services/api';
 import { Pledge } from '@/types';
 
 export default function PledgesScreen() {
@@ -121,7 +121,7 @@ export default function PledgesScreen() {
           <Text style={styles.headerTitle}>Pledges</Text>
         </View>
         <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
-          <Text style={styles.utilityIcon}>🛒</Text>
+          <Text style={styles.utilityIcon}>CRT</Text>
         </TouchableOpacity>
       </View>
 
@@ -211,7 +211,7 @@ export default function PledgesScreen() {
 
         {filteredPledges.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>◇</Text>
+            <Text style={styles.emptyIcon}>[]</Text>
             <Text style={styles.emptyText}>NO PLEDGES</Text>
             <Text style={styles.emptySubtext}>
               Join a bulk buy from the Market to see your pledges here
@@ -352,25 +352,28 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
+    backgroundColor: MetroColors.background.secondary,
   },
   headerLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    color: MetroColors.accent.purple,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
-    letterSpacing: 2,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   headerTitle: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
     fontWeight: '700',
-    letterSpacing: 1,
+    marginTop: 2,
   },
   utilityPill: {
     flexDirection: 'row',
@@ -383,10 +386,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[1],
   },
   utilityIcon: {
-    fontSize: FontSizes.md,
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    letterSpacing: 1,
   },
   summaryCard: {
-    margin: Spacing[4],
+    margin: Spacing[3],
     marginBottom: 0,
   },
   summaryRow: {
@@ -398,11 +404,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1,
-    marginBottom: Spacing[1],
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: Spacing[2],
   },
   summaryDivider: {
     width: 1,
@@ -418,53 +425,58 @@ const styles = StyleSheet.create({
   },
   savingsText: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   legendText: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
     marginTop: Spacing[2],
+    lineHeight: 20,
   },
   filterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingHorizontal: Spacing[3],
+    paddingVertical: Spacing[2],
     gap: Spacing[2],
+    backgroundColor: MetroColors.background.primary,
   },
   filterTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing[3],
+    paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[2],
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: MetroColors.border.default,
-    borderRadius: 2,
+    borderRadius: 16,
+    backgroundColor: MetroColors.background.secondary,
   },
   filterTabActive: {
-    borderColor: MetroColors.accent.cyan,
-    backgroundColor: MetroColors.accent.cyanMuted,
+    borderColor: MetroColors.accent.purple,
+    backgroundColor: MetroColors.accent.purple,
   },
   filterText: {
-    color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   filterTextActive: {
-    color: MetroColors.accent.cyan,
+    color: MetroColors.background.secondary,
   },
   filterBadge: {
-    backgroundColor: MetroColors.accent.cyan,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 2,
+    backgroundColor: MetroColors.background.secondary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
     marginLeft: Spacing[2],
   },
   filterBadgeText: {
-    color: MetroColors.background.primary,
-    fontFamily: Fonts.mono,
+    color: MetroColors.accent.purple,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
     fontWeight: '700',
   },
@@ -472,31 +484,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    padding: Spacing[4],
-    paddingBottom: Spacing[10],
+    padding: Spacing[3],
+    paddingBottom: Spacing[9],
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing[16],
   },
   emptyIcon: {
-    fontSize: 48,
+    fontSize: 32,
     color: MetroColors.text.muted,
     marginBottom: Spacing[4],
   },
   emptyText: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    letterSpacing: 1,
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
     marginBottom: Spacing[2],
   },
   emptySubtext: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
     textAlign: 'center',
     paddingHorizontal: Spacing[8],
+    lineHeight: 22,
   },
   rolloverSection: {
     marginBottom: Spacing[4],
@@ -504,35 +517,40 @@ const styles = StyleSheet.create({
   },
   rolloverTitle: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
     letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   rolloverCard: {
     paddingVertical: Spacing[3],
+    paddingHorizontal: Spacing[4],
   },
   rolloverHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing[1],
+    marginBottom: Spacing[2],
   },
   rolloverName: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.md,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.lg,
     fontWeight: '600',
   },
   rolloverMeta: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
   },
   rolloverButton: {
     marginTop: Spacing[2],
   },
   pledgeCard: {
     marginBottom: Spacing[3],
+    paddingVertical: Spacing[4],
+    paddingHorizontal: Spacing[4],
   },
   pledgeCardInactive: {
     opacity: 0.7,
@@ -545,25 +563,27 @@ const styles = StyleSheet.create({
   },
   pledgeInfo: {
     flex: 1,
+    marginRight: Spacing[2],
   },
   pledgeName: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
-    marginBottom: 2,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
+    marginBottom: 6,
+    lineHeight: 30,
   },
   pledgeDetails: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 0.5,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
   },
   pledgePricing: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing[3],
-    paddingVertical: Spacing[2],
+    marginBottom: Spacing[4],
+    paddingVertical: Spacing[4],
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: MetroColors.border.muted,
@@ -572,24 +592,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priceBlockLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    marginBottom: 2,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+    textTransform: 'uppercase',
   },
   savingsAmount: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
   },
   lockInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: MetroColors.accent.purpleMuted,
-    padding: Spacing[2],
-    borderRadius: 2,
+    padding: Spacing[3],
+    borderRadius: 8,
     marginBottom: Spacing[3],
   },
   lockIndicator: {
@@ -601,18 +623,20 @@ const styles = StyleSheet.create({
   },
   lockText: {
     color: MetroColors.accent.purple,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
     flex: 1,
+    fontWeight: '500',
   },
   progressSection: {
-    marginBottom: Spacing[3],
+    marginBottom: Spacing[4],
   },
   progressText: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    marginBottom: Spacing[2],
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    marginBottom: Spacing[3],
+    fontWeight: '600',
   },
   pledgeActions: {
     flexDirection: 'row',
@@ -624,35 +648,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: MetroColors.accent.greenMuted,
-    padding: Spacing[2],
-    borderRadius: 2,
-    marginBottom: Spacing[3],
+    padding: Spacing[4],
+    borderRadius: 12,
+    marginBottom: Spacing[4],
   },
   completedLabel: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    fontWeight: '600',
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '800',
     letterSpacing: 1,
   },
   completedDate: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   pledgeFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: Spacing[2],
+    paddingTop: Spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: MetroColors.border.muted,
   },
   pledgeId: {
-    color: MetroColors.text.muted,
+    color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   pledgeDate: {
-    color: MetroColors.text.muted,
+    color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
 });

@@ -448,7 +448,7 @@ export default function LeafletMap({
     ${runnerPosition ? `
     const runnerIcon = L.divIcon({
       className: 'custom-marker',
-      html: '<div class="runner-marker"><div class="runner-inner">🚗</div></div>',
+      html: '<div class="runner-marker"><div class="runner-inner">CAR</div></div>',
       iconSize: [40, 40],
       iconAnchor: [20, 20]
     });
