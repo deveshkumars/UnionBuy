@@ -1,0 +1,6 @@
+{
+  "_comment": "Replace this file by running: cd amplify && npx ampx sandbox. Copy the generated amplify_outputs.json into reactnativeapp/ (or run from repo root and point output to reactnativeapp/). Until then the app uses mock API.",
+  "version": "1",
+  "auth": null,
+  "data": null
+}

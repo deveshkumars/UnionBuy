@@ -8,8 +8,12 @@ import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 import 'react-native-reanimated';
 
+import { configureAmplify } from '@/lib/amplify';
 import { AppProvider, useRole } from '@/context/AppContext';
 import { MetroColors } from '@/constants/theme';
+
+// Configure AWS (Cognito + DynamoDB) when amplify_outputs.json is present
+configureAmplify();
 
 function RootNavigator() {
   const { role } = useRole();
