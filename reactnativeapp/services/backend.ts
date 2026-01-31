@@ -3,8 +3,11 @@
  * Used by api.ts when amplify_outputs.json is present (after `ampx sandbox`).
  */
 
-import type { Product, Pledge, BulkOrder, User, Location, Store } from '@/types';
-import { configureAmplify, isBackendConfigured, getDataClient, Auth } from '@/lib/amplify';
+import { Auth, configureAmplify, getDataClient, isBackendConfigured } from '@/lib/amplify';
+import type { BulkOrder, Location, Pledge, Product, Store, User } from '@/types';
+
+// Use API key client for everything (no auth required)
+const getClient = getDataClient;
 
 // Ensure Amplify is configured when this module is used
 configureAmplify();
@@ -185,10 +188,13 @@ export async function searchProductsFromBackend(query: string): Promise<Product[
 // ============================================
 
 export async function fetchUserPledgesFromBackend(userId: string): Promise<Pledge[]> {
-  const client = getDataClient();
+  const client = getClient();
   const { data } = await client.models.Pledge.list({ filter: { userId: { eq: userId } } });
   return data.map((r) => pledgeFromRecord(r as never));
 }
+
+// Default user ID for anonymous access (no login required)
+const DEFAULT_USER_ID = 'anonymous-user';
 
 export async function createPledgeInBackend(
   productId: string,
@@ -196,12 +202,11 @@ export async function createPledgeInBackend(
   quantity: number,
   unitPrice: number,
   totalAmount: number,
-  maxAmount: number
+  maxAmount: number,
+  userId: string = DEFAULT_USER_ID
 ): Promise<{ success: boolean; pledge?: Pledge; error?: string }> {
   try {
-    const session = await Auth.fetchAuthSession();
-    const userId = session.userSub ?? (await Auth.getCurrentUser()).userId;
-    const client = getDataClient();
+    const client = getClient();
     const { data: created, errors } = await client.models.Pledge.create({
       userId,
       productId,
@@ -223,7 +228,7 @@ export async function createPledgeInBackend(
 
 export async function cancelPledgeInBackend(pledgeId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const client = getDataClient();
+    const client = getClient();
     const { data: existing } = await client.models.Pledge.get({ id: pledgeId });
     if (!existing || !['pending', 'locked'].includes(existing.status as string))
       return { success: false, error: 'Cannot cancel' };
@@ -253,38 +258,166 @@ export async function fetchActiveBulkOrdersFromBackend(): Promise<BulkOrder[]> {
 // AUTH & USER PROFILE
 // ============================================
 
+function userFromProfileRecord(profile: {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  role: string;
+  locationJson?: string | null;
+  trustScore?: number | null;
+  joinedAt: string;
+  avatar?: string | null;
+}): User {
+  const loc = profile.locationJson ? parseLocation(profile.locationJson) : { latitude: 0, longitude: 0 };
+  return {
+    id: profile.id,
+    name: profile.name,
+    email: profile.email,
+    phone: profile.phone ?? '',
+    role: (profile.role as User['role']) ?? 'customer',
+    location: loc,
+    trustScore: profile.trustScore ?? 5,
+    joinedAt: profile.joinedAt,
+    avatar: profile.avatar ?? undefined,
+  };
+}
+
 export async function getCurrentAuthUserFromBackend(): Promise<User | null> {
   try {
-    const cognitoUser = await Auth.getCurrentUser();
-    const client = getDataClient();
-    const { data: profiles } = await client.models.UserProfile.list();
-    const profile = profiles?.[0];
-    if (!profile) {
-      return {
-        id: cognitoUser.userId,
-        name: cognitoUser.username ?? cognitoUser.userId,
-        email: (cognitoUser.signInDetails?.loginId as string) ?? '',
-        phone: '',
-        role: 'customer',
-        location: { latitude: 0, longitude: 0 },
-        trustScore: 5,
-        joinedAt: new Date().toISOString(),
-      };
+    const client = getClient();
+    // Try to get a profile with the default anonymous user ID first
+    const { data: profile } = await client.models.UserProfile.get({ id: DEFAULT_USER_ID });
+    if (profile) {
+      return userFromProfileRecord(profile as never);
     }
-    const loc = profile.locationJson ? parseLocation(profile.locationJson) : { latitude: 0, longitude: 0 };
+    // Return a default anonymous user
     return {
-      id: profile.id,
-      name: profile.name,
-      email: profile.email,
-      phone: profile.phone ?? '',
-      role: (profile.role as User['role']) ?? 'customer',
-      location: loc,
-      trustScore: profile.trustScore ?? 5,
-      joinedAt: profile.joinedAt,
-      avatar: profile.avatar ?? undefined,
+      id: DEFAULT_USER_ID,
+      name: 'Guest User',
+      email: 'guest@example.com',
+      phone: '',
+      role: 'customer',
+      location: { latitude: 0, longitude: 0 },
+      trustScore: 5,
+      joinedAt: new Date().toISOString(),
     };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Create a new UserProfile in DynamoDB
+ */
+export async function createUserProfileInBackend(
+  userData: Omit<User, 'id'>
+): Promise<{ success: boolean; user?: User; error?: string }> {
+  try {
+    const client = getClient();
+    const { data: created, errors } = await client.models.UserProfile.create({
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone || null,
+      role: userData.role,
+      locationJson: JSON.stringify(userData.location),
+      trustScore: userData.trustScore ?? 5,
+      joinedAt: userData.joinedAt || new Date().toISOString(),
+      avatar: userData.avatar || null,
+    });
+    if (errors?.length) return { success: false, error: errors[0].message };
+    if (!created) return { success: false, error: 'Create failed' };
+    return { success: true, user: userFromProfileRecord(created as never) };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Update an existing UserProfile in DynamoDB
+ */
+export async function updateUserProfileInBackend(
+  userId: string,
+  updates: Partial<Omit<User, 'id'>>
+): Promise<{ success: boolean; user?: User; error?: string }> {
+  try {
+    const client = getClient();
+    
+    // Build the update object with only provided fields
+    const updateData: Record<string, unknown> = { id: userId };
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.email !== undefined) updateData.email = updates.email;
+    if (updates.phone !== undefined) updateData.phone = updates.phone || null;
+    if (updates.role !== undefined) updateData.role = updates.role;
+    if (updates.location !== undefined) updateData.locationJson = JSON.stringify(updates.location);
+    if (updates.trustScore !== undefined) updateData.trustScore = updates.trustScore;
+    if (updates.avatar !== undefined) updateData.avatar = updates.avatar || null;
+    
+    const { data: updated, errors } = await client.models.UserProfile.update(updateData as never);
+    if (errors?.length) return { success: false, error: errors[0].message };
+    if (!updated) return { success: false, error: 'Update failed' };
+    return { success: true, user: userFromProfileRecord(updated as never) };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Fetch a UserProfile by ID from DynamoDB
+ */
+export async function fetchUserProfileByIdFromBackend(userId: string): Promise<User | null> {
+  try {
+    const client = getClient();
+    const { data } = await client.models.UserProfile.get({ id: userId });
+    return data ? userFromProfileRecord(data as never) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get the current user's profile, creating one if it doesn't exist
+ * No auth required - uses anonymous user by default
+ */
+export async function getOrCreateUserProfile(
+  defaultData?: Partial<Omit<User, 'id'>>
+): Promise<{ user: User | null; created: boolean; error?: string }> {
+  try {
+    const client = getClient();
+    
+    // Try to fetch existing profile for anonymous user
+    const { data: existingProfile } = await client.models.UserProfile.get({ id: DEFAULT_USER_ID });
+    
+    if (existingProfile) {
+      return { user: userFromProfileRecord(existingProfile as never), created: false };
+    }
+    
+    // No profile exists, create one for anonymous user
+    const name = defaultData?.name || 'Guest User';
+    const email = defaultData?.email || 'guest@example.com';
+    
+    const { data: created, errors } = await client.models.UserProfile.create({
+      name,
+      email,
+      phone: defaultData?.phone || null,
+      role: defaultData?.role || 'customer',
+      locationJson: defaultData?.location ? JSON.stringify(defaultData.location) : JSON.stringify({ latitude: 0, longitude: 0 }),
+      trustScore: defaultData?.trustScore ?? 5,
+      joinedAt: new Date().toISOString(),
+      avatar: defaultData?.avatar || null,
+    });
+    
+    if (errors?.length) {
+      return { user: null, created: false, error: errors[0].message };
+    }
+    
+    if (!created) {
+      return { user: null, created: false, error: 'Failed to create profile' };
+    }
+    
+    return { user: userFromProfileRecord(created as never), created: true };
+  } catch (e) {
+    return { user: null, created: false, error: e instanceof Error ? e.message : 'Unknown error' };
   }
 }
 
@@ -316,6 +449,18 @@ export async function signUpBackend(
 
 export async function signOutBackend(): Promise<void> {
   await Auth.signOut();
+}
+
+/**
+ * Check if a user is currently signed in
+ */
+export async function isUserAuthenticated(): Promise<boolean> {
+  try {
+    await Auth.getCurrentUser();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export { isBackendConfigured };

@@ -81,9 +81,15 @@ export default function PledgesScreen() {
           text: 'Cancel Pledge',
           style: 'destructive',
           onPress: async () => {
+            console.log('[Pledges] Cancelling pledge:', pledge.id);
             const result = await cancelPledge(pledge.id);
+            console.log('[Pledges] Cancel result:', result);
             if (result.success) {
+              console.log('[Pledges] Updating local state...');
               updatePledge({ ...pledge, status: 'cancelled' });
+              // Reload to reflect changes
+              await loadPledges();
+              Alert.alert('Success', 'Pledge cancelled successfully!');
             } else {
               Alert.alert('Error', result.error || 'Failed to cancel pledge');
             }

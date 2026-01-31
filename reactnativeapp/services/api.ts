@@ -3,40 +3,44 @@
  */
 
 import {
-  Product,
-  BulkOrder,
-  Pledge,
-  Mission,
-  Wallet,
-  TrendingItem,
-  User,
-  Distribution,
-  Cart,
-  CartItem,
+    BulkOrder,
+    Cart,
+    CartItem,
+    Distribution,
+    Mission,
+    Pledge,
+    Product,
+    TrendingItem,
+    User,
+    Wallet,
 } from '@/types';
 import {
-  mockProducts,
-  mockBulkOrders,
-  mockPledges,
-  mockMissions,
-  mockWallet,
-  mockTrendingItems,
-  mockDistributions,
-  currentUser,
-  currentRunner,
-} from './mockData';
-import {
-  isBackendConfigured,
-  fetchProductsFromBackend,
-  fetchProductByIdFromBackend,
-  searchProductsFromBackend,
-  fetchUserPledgesFromBackend,
-  createPledgeInBackend,
-  cancelPledgeInBackend,
-  fetchBulkOrdersFromBackend,
-  fetchActiveBulkOrdersFromBackend,
-  getCurrentAuthUserFromBackend,
+    cancelPledgeInBackend,
+    createPledgeInBackend,
+    createUserProfileInBackend,
+    fetchActiveBulkOrdersFromBackend,
+    fetchBulkOrdersFromBackend,
+    fetchProductByIdFromBackend,
+    fetchProductsFromBackend,
+    fetchUserPledgesFromBackend,
+    fetchUserProfileByIdFromBackend,
+    getCurrentAuthUserFromBackend,
+    getOrCreateUserProfile as getOrCreateUserProfileFromBackend,
+    isBackendConfigured,
+    searchProductsFromBackend,
+    updateUserProfileInBackend,
 } from './backend';
+import {
+    currentRunner,
+    currentUser,
+    mockBulkOrders,
+    mockDistributions,
+    mockMissions,
+    mockPledges,
+    mockProducts,
+    mockTrendingItems,
+    mockWallet,
+} from './mockData';
 
 // Simulate network delay (mock only)
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -109,9 +113,19 @@ export async function fetchBulkOrderForProduct(productId: string): Promise<BulkO
 // ============================================
 
 export async function fetchUserPledges(userId: string): Promise<Pledge[]> {
-  if (isBackendConfigured()) return fetchUserPledgesFromBackend(userId);
+  console.log('[fetchUserPledges] Fetching pledges for user:', userId);
+  
+  if (isBackendConfigured()) {
+    console.log('[fetchUserPledges] 🔥 Using DynamoDB backend');
+    return fetchUserPledgesFromBackend(userId);
+  }
+  
+  console.log('[fetchUserPledges] 📦 Using MOCK data');
   await delay(400);
-  return mockPledges.filter((p) => p.userId === userId);
+  const userPledges = mockPledges.filter((p) => p.userId === userId);
+  console.log('[fetchUserPledges] Found', userPledges.length, 'pledges:');
+  userPledges.forEach(p => console.log(`  - ${p.id}: ${p.status}`));
+  return userPledges;
 }
 
 export async function fetchActivePledges(userId: string): Promise<Pledge[]> {
@@ -125,16 +139,22 @@ export async function createPledge(
   productId: string,
   quantity: number
 ): Promise<{ success: boolean; pledge?: Pledge; error?: string }> {
+  console.log('[createPledge] Backend configured:', isBackendConfigured());
+  
   if (isBackendConfigured()) {
+    console.log('[createPledge] 🔥 Using DynamoDB backend');
     const product = await fetchProductById(productId);
     if (!product) return { success: false, error: 'Product not found' };
     const bulkOrder = await fetchBulkOrderForProduct(productId);
     const unitPrice = bulkOrder?.pricePerUnit ?? product.bulkPrice * 1.1;
     const totalAmount = unitPrice * quantity;
     const maxAmount = product.retailPrice * quantity;
-    return createPledgeInBackend(productId, product, quantity, unitPrice, totalAmount, maxAmount);
+    // Use the mock currentUser.id as the anonymous user ID
+    return createPledgeInBackend(productId, product, quantity, unitPrice, totalAmount, maxAmount, currentUser.id);
   }
 
+  // Fall back to mock data
+  console.log('[createPledge] 📦 Using MOCK data (not saving to DynamoDB)');
   await delay(800);
   const product = mockProducts.find((p) => p.id === productId);
   if (!product) return { success: false, error: 'Product not found' };
@@ -156,16 +176,35 @@ export async function createPledge(
     lockedAt: new Date().toISOString(),
   };
   mockPledges.push(newPledge);
+  console.log('[createPledge] ✅ Created new mock pledge:', newPledge.id);
+  console.log('[createPledge] Total mock pledges now:', mockPledges.length);
   return { success: true, pledge: newPledge };
 }
 
 export async function cancelPledge(pledgeId: string): Promise<{ success: boolean; error?: string }> {
-  if (isBackendConfigured()) return cancelPledgeInBackend(pledgeId);
+  console.log('[cancelPledge] Attempting to cancel pledge:', pledgeId);
+  
+  if (isBackendConfigured()) {
+    console.log('[cancelPledge] 🔥 Using DynamoDB backend');
+    return cancelPledgeInBackend(pledgeId);
+  }
+  
+  console.log('[cancelPledge] 📦 Using MOCK data');
   await delay(600);
   const pledge = mockPledges.find((p) => p.id === pledgeId);
-  if (!pledge) return { success: false, error: 'Pledge not found' };
-  if (!['pending', 'locked'].includes(pledge.status)) return { success: false, error: 'Cannot cancel pledge in current status' };
+  console.log('[cancelPledge] Found pledge:', pledge?.id, 'status:', pledge?.status);
+  
+  if (!pledge) {
+    console.log('[cancelPledge] ❌ Pledge not found!');
+    return { success: false, error: 'Pledge not found' };
+  }
+  if (!['pending', 'locked'].includes(pledge.status)) {
+    console.log('[cancelPledge] ❌ Cannot cancel - status is:', pledge.status);
+    return { success: false, error: 'Cannot cancel pledge in current status' };
+  }
+  
   pledge.status = 'cancelled';
+  console.log('[cancelPledge] ✅ Successfully cancelled. New status:', pledge.status);
   return { success: true };
 }
 
@@ -304,16 +343,73 @@ export async function fetchCurrentUser(): Promise<User> {
       const user = await getCurrentAuthUserFromBackend();
       if (user) return user;
     } catch {
-      /* not signed in — fall back to mock */
+      /* not found — fall back to mock */
     }
   }
   await delay(300);
   return currentUser;
 }
 
-export async function updateUserRole(role: 'customer' | 'runner'): Promise<{ success: boolean }> {
+export async function fetchUserProfile(userId: string): Promise<User | null> {
+  if (isBackendConfigured()) {
+    return fetchUserProfileByIdFromBackend(userId);
+  }
+  await delay(300);
+  return currentUser;
+}
+
+export async function createUserProfile(
+  userData: Omit<User, 'id'>
+): Promise<{ success: boolean; user?: User; error?: string }> {
+  if (isBackendConfigured()) {
+    return createUserProfileInBackend(userData);
+  }
   await delay(400);
-  // In real app, this would update the user's role
+  // Mock: just return the user data with a generated ID
+  return {
+    success: true,
+    user: { ...userData, id: `user-${Date.now()}` },
+  };
+}
+
+export async function updateUserProfile(
+  userId: string,
+  updates: Partial<Omit<User, 'id'>>
+): Promise<{ success: boolean; user?: User; error?: string }> {
+  if (isBackendConfigured()) {
+    return updateUserProfileInBackend(userId, updates);
+  }
+  await delay(400);
+  // Mock: merge updates with current user
+  return {
+    success: true,
+    user: { ...currentUser, ...updates },
+  };
+}
+
+export async function getOrCreateUserProfile(
+  defaultData?: Partial<Omit<User, 'id'>>
+): Promise<{ user: User | null; created: boolean; error?: string }> {
+  if (isBackendConfigured()) {
+    return getOrCreateUserProfileFromBackend(defaultData);
+  }
+  await delay(300);
+  // Mock: return the current user as if it already exists
+  return { user: currentUser, created: false };
+}
+
+export async function updateUserRole(role: 'customer' | 'runner'): Promise<{ success: boolean }> {
+  if (isBackendConfigured()) {
+    try {
+      const user = await getCurrentAuthUserFromBackend();
+      if (user) {
+        return updateUserProfileInBackend(user.id, { role });
+      }
+    } catch {
+      /* error — fall back to mock */
+    }
+  }
+  await delay(400);
   return { success: true };
 }
 

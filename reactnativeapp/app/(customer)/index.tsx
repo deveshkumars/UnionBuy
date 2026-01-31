@@ -3,33 +3,33 @@
  * Trading floor style with trending items and bulk buy opportunities
  */
 
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  RefreshControl,
-  FlatList,
-} from 'react-native';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+    FlatList,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  MetroCard,
-  MetroButton,
-  PriceDisplay,
-  ProgressBar,
-  StatusBadge,
-  DataTicker,
-  InfoBar,
+    DataTicker,
+    InfoBar,
+    MetroButton,
+    MetroCard,
+    PriceDisplay,
+    ProgressBar,
+    StatusBadge,
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
+import { FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useCart } from '@/context/AppContext';
-import { fetchTrendingItems, fetchProducts, searchProducts } from '@/services/api';
-import { TrendingItem, Product } from '@/types';
+import { fetchProducts, fetchTrendingItems, searchProducts } from '@/services/api';
+import { Product, TrendingItem } from '@/types';
 
 export default function MarketScreen() {
   const router = useRouter();

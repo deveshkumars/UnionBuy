@@ -1,9 +1,10 @@
 /**
  * Cart Screen - Light Metro
  * Shows items added from Market with quick adjust controls.
+ * Creates pledges in DynamoDB when user pledges items.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,19 +12,101 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { MetroCard, MetroButton, PriceDisplay, StatusBadge } from '@/components/metro';
 import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
-import { useCart } from '@/context/AppContext';
+import { useCart, usePledges } from '@/context/AppContext';
+import { createPledge } from '@/services/api';
+import { Product } from '@/types';
 
 export default function CartScreen() {
+  const router = useRouter();
   const { cart, updateCartQuantity, removeFromCart, clearCart, getCartTotal } = useCart();
+  const { addPledge } = usePledges();
   const totals = getCartTotal();
+  const [pledgingItem, setPledgingItem] = useState<string | null>(null);
+  const [pledgingAll, setPledgingAll] = useState(false);
 
-  const handleCheckout = () => {
-    Alert.alert('Pledge Checkout', 'This would route to pledge/hold flow in production.');
+  // Pledge a single item
+  const handlePledgeItem = async (product: Product, quantity: number) => {
+    setPledgingItem(product.id);
+    try {
+      const result = await createPledge(product.id, quantity);
+      if (result.success && result.pledge) {
+        addPledge(result.pledge);
+        removeFromCart(product.id);
+        Alert.alert(
+          'Pledge Created!',
+          `Successfully pledged ${quantity} ${product.unit} of ${product.name}.\n\nEstimated: $${result.pledge.totalAmount.toFixed(2)}\nMax Hold: $${result.pledge.maxAmount.toFixed(2)}`,
+          [{ text: 'View Pledges', onPress: () => router.push('/(customer)/pledges') }, { text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Pledge Failed', result.error || 'Could not create pledge. Please try again.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'An unexpected error occurred while creating the pledge.');
+      console.error('[Cart] Pledge error:', e);
+    } finally {
+      setPledgingItem(null);
+    }
+  };
+
+  // Pledge all items in cart
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+
+    Alert.alert(
+      'Pledge All Items',
+      `This will create pledges for ${totals.items} items totaling ~$${totals.estimate.toFixed(2)}.\n\nYour funds will be held until the bulk order completes.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Pledge All',
+          onPress: async () => {
+            setPledgingAll(true);
+            let successCount = 0;
+            let failCount = 0;
+            const pledgedItems: string[] = [];
+
+            for (const { product, quantity } of cart) {
+              try {
+                const result = await createPledge(product.id, quantity);
+                if (result.success && result.pledge) {
+                  addPledge(result.pledge);
+                  pledgedItems.push(product.id);
+                  successCount++;
+                } else {
+                  failCount++;
+                }
+              } catch {
+                failCount++;
+              }
+            }
+
+            // Remove pledged items from cart
+            pledgedItems.forEach((id) => removeFromCart(id));
+            setPledgingAll(false);
+
+            if (failCount === 0) {
+              Alert.alert(
+                'All Pledges Created!',
+                `Successfully created ${successCount} pledges.`,
+                [{ text: 'View Pledges', onPress: () => router.push('/(customer)/pledges') }, { text: 'OK' }]
+              );
+            } else {
+              Alert.alert(
+                'Partial Success',
+                `Created ${successCount} pledges, ${failCount} failed.\nFailed items remain in cart.`
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -92,14 +175,19 @@ export default function CartScreen() {
               <View style={styles.itemFooter}>
                 <Text style={styles.savings}>Save ~${((product.retailPrice - product.bulkPrice) * quantity).toFixed(2)}</Text>
                 <View style={styles.itemActions}>
-                  <MetroButton
-                    title="Pledge"
-                    variant="secondary"
-                    size="sm"
-                    onPress={() => Alert.alert('Pledge', 'Would start pledge flow for this item.')}
-                  />
-                  <TouchableOpacity onPress={() => removeFromCart(product.id)}>
-                    <Text style={styles.remove}>Remove</Text>
+                  {pledgingItem === product.id ? (
+                    <ActivityIndicator size="small" color={MetroColors.accent.cyan} />
+                  ) : (
+                    <MetroButton
+                      title="Pledge"
+                      variant="secondary"
+                      size="sm"
+                      onPress={() => handlePledgeItem(product, quantity)}
+                      disabled={pledgingAll}
+                    />
+                  )}
+                  <TouchableOpacity onPress={() => removeFromCart(product.id)} disabled={pledgingItem === product.id || pledgingAll}>
+                    <Text style={[styles.remove, (pledgingItem === product.id || pledgingAll) && styles.disabled]}>Remove</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -119,7 +207,21 @@ export default function CartScreen() {
             <StatusBadge label={`Save $${totals.savings.toFixed(2)}`} variant="success" size="sm" />
           </View>
         </View>
-        <MetroButton title="Pledge All (Hold Funds)" variant="primary" size="lg" fullWidth onPress={handleCheckout} />
+        {pledgingAll ? (
+          <View style={styles.pledgingContainer}>
+            <ActivityIndicator size="small" color={MetroColors.accent.cyan} />
+            <Text style={styles.pledgingText}>Creating pledges...</Text>
+          </View>
+        ) : (
+          <MetroButton
+            title="Pledge All (Hold Funds)"
+            variant="primary"
+            size="lg"
+            fullWidth
+            onPress={handleCheckout}
+            disabled={cart.length === 0 || pledgingItem !== null}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -255,6 +357,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     letterSpacing: 0.5,
   },
+  disabled: {
+    opacity: 0.5,
+  },
   footer: {
     padding: Spacing[4],
     borderTopWidth: 1,
@@ -305,5 +410,18 @@ const styles = StyleSheet.create({
     color: MetroColors.text.tertiary,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.sm,
+  },
+  pledgingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing[4],
+    gap: Spacing[3],
+  },
+  pledgingText: {
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.sm,
+    letterSpacing: 1,
   },
 });

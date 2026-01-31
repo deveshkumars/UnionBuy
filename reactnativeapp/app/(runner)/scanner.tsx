@@ -5,24 +5,23 @@
 
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  MetroCard,
-  MetroButton,
-  StatusBadge,
-  ScanOverlay,
+    MetroButton,
+    MetroCard,
+    ScanOverlay,
+    StatusBadge,
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import { useMission } from '@/context/AppContext';
-import { mockDistributions } from '@/services/mockData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
