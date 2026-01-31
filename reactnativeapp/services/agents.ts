@@ -250,47 +250,32 @@ interface DropZoneResult {
 }
 
 /**
- * Calculate optimal drop zone based on weighted user locations
+ * Calculate optimal drop zone using K-means clustering algorithm
+ * Finds the geographic centroid that minimizes total travel distance for all customers
  */
 export async function calculateDropZone(input: DropZoneInput): Promise<DropZoneResult> {
   await agentDelay(500);
 
   const { userLocations } = input;
 
-  // Calculate weighted centroid
-  let totalWeight = 0;
-  let weightedLat = 0;
-  let weightedLng = 0;
+  // Use K-means to find optimal drop zone
+  const { findOptimalDropZone } = await import('./kmeans');
 
-  userLocations.forEach(({ location, quantity }) => {
-    totalWeight += quantity;
-    weightedLat += location.latitude * quantity;
-    weightedLng += location.longitude * quantity;
-  });
+  const customers = userLocations.map(({ location, quantity }) => ({
+    location,
+    weight: quantity,
+  }));
 
-  const centroid: Location = {
-    latitude: weightedLat / totalWeight,
-    longitude: weightedLng / totalWeight,
-  };
-
-  // Calculate distances from centroid
-  const distances = userLocations.map(({ location }) =>
-    Math.sqrt(
-      Math.pow(location.latitude - centroid.latitude, 2) +
-      Math.pow(location.longitude - centroid.longitude, 2)
-    ) * 69
-  );
-
-  const averageDistance = distances.reduce((sum, d) => sum + d, 0) / distances.length;
-  const maxDistance = Math.max(...distances);
+  const result = findOptimalDropZone(customers);
 
   // Accessibility score (higher is better, max 100)
-  const accessibilityScore = Math.max(0, 100 - maxDistance * 10);
+  // Penalize if max distance is too far (>2 miles starts reducing score)
+  const accessibilityScore = Math.max(0, Math.min(100, 100 - (result.maxDistance - 1) * 25));
 
   return {
-    location: centroid,
-    averageDistance,
-    maxDistance,
+    location: result.location,
+    averageDistance: result.averageDistance,
+    maxDistance: result.maxDistance,
     accessibilityScore,
   };
 }
@@ -367,4 +352,3 @@ export async function optimizeRoute(input: RouteInput): Promise<RouteResult> {
     estimatedTime,
   };
 }
-
