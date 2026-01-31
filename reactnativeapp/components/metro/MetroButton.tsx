@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.lg,
   },
   fullWidth: {
     width: '100%',
@@ -146,4 +146,3 @@ const styles = StyleSheet.create({
     marginLeft: Spacing[2],
   },
 });
-

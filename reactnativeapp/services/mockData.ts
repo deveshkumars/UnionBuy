@@ -283,6 +283,18 @@ export const mockBulkOrders: BulkOrder[] = [
     executedAt: '2026-01-30T18:05:00Z',
     runnerId: 'user-3',
   },
+  {
+    id: 'order-4',
+    productId: 'prod-5',
+    product: mockProducts[4],
+    pledges: [],
+    totalQuantity: 28,
+    targetQuantity: 50,
+    pricePerUnit: 0.48,
+    status: 'rolled_over',
+    cutoffTime: '2026-01-30T18:00:00Z',
+    createdAt: '2026-01-29T08:00:00Z',
+  },
 ];
 
 // ============================================
@@ -332,6 +344,20 @@ export const mockPledges: Pledge[] = [
     lockedAt: '2026-01-30T11:00:00Z',
     completedAt: '2026-01-30T20:30:00Z',
     orderId: 'order-3',
+  },
+  {
+    id: 'pledge-4',
+    userId: 'user-1',
+    productId: 'prod-5',
+    product: mockProducts[4],
+    quantity: 8,
+    unitPrice: 0.50,
+    totalAmount: 4.0,
+    maxAmount: 7.12,
+    status: 'rollover',
+    createdAt: '2026-01-30T08:30:00Z',
+    lockedAt: '2026-01-30T08:30:00Z',
+    orderId: 'order-4',
   },
 ];
 
@@ -545,4 +571,3 @@ export const mockNeighborhoodStats = {
   topCategories: ['grains', 'pantry', 'dairy'] as const,
   averageTrustScore: 4.6,
 };
-

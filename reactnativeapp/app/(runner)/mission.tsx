@@ -50,7 +50,7 @@ const statusLabels: Record<MissionStatus, string> = {
   completed: 'COMPLETED',
 };
 
-const statusActions: Record<MissionStatus, string> = {
+  const statusActions: Record<MissionStatus, string> = {
   available: 'Accept Mission',
   accepted: 'Start Navigation',
   en_route_to_store: 'Arrived at Store',
@@ -71,7 +71,7 @@ export default function MissionScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.noMissionContainer}>
           <Text style={styles.noMissionIcon}>◉</Text>
-          <Text style={styles.noMissionTitle}>NO ACTIVE MISSION</Text>
+          <Text style={styles.noMissionTitle}>NO ACTIVE ORDER</Text>
           <Text style={styles.noMissionSubtext}>
             Accept a mission from the Job Board to begin
           </Text>
@@ -130,7 +130,7 @@ export default function MissionScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.missionId}>
-            MISSION #{activeMission.id.slice(-4).toUpperCase()}
+            ORDER #{activeMission.id.slice(-4).toUpperCase()}
           </Text>
           <StatusBadge
             label={statusLabels[activeMission.status]}
@@ -564,4 +564,3 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
 });
-

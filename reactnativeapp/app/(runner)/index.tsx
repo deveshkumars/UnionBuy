@@ -81,8 +81,8 @@ export default function JobBoardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerLabel}>RUNNER</Text>
-          <Text style={styles.headerTitle}>JOB BOARD</Text>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Runner Board</Text>
         </View>
         <View style={styles.headerRight}>
           <StatusBadge
@@ -141,7 +141,7 @@ export default function JobBoardScreen() {
 
         {/* Section Header */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>AVAILABLE MISSIONS</Text>
+          <Text style={styles.sectionTitle}>AVAILABLE ORDERS</Text>
           <Text style={styles.sectionCount}>
             {availableMissions.length} available
           </Text>
@@ -151,7 +151,7 @@ export default function JobBoardScreen() {
         {availableMissions.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>▣</Text>
-            <Text style={styles.emptyText}>NO MISSIONS AVAILABLE</Text>
+            <Text style={styles.emptyText}>NO ORDERS AVAILABLE</Text>
             <Text style={styles.emptySubtext}>
               Check back after the next cutoff time
             </Text>
@@ -187,7 +187,7 @@ function MissionCard({ mission, onAccept, accepting, disabled }: MissionCardProp
       <View style={styles.missionHeader}>
         <View>
           <Text style={styles.missionTitle}>
-            MISSION #{mission.id.slice(-4).toUpperCase()}
+            ORDER #{mission.id.slice(-4).toUpperCase()}
           </Text>
           <Text style={styles.missionStores}>{storeNames}</Text>
         </View>
@@ -510,4 +510,3 @@ const styles = StyleSheet.create({
     gap: Spacing[2],
   },
 });
-

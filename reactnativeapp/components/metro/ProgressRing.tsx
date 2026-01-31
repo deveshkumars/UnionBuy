@@ -140,7 +140,7 @@ interface ProgressBarProps {
 
 export function ProgressBar({
   progress,
-  height = 6,
+  height = 10,
   showLabel = false,
   variant = 'default',
 }: ProgressBarProps) {
@@ -224,18 +224,17 @@ const styles = StyleSheet.create({
   barBackground: {
     flex: 1,
     backgroundColor: MetroColors.border.muted,
-    borderRadius: 3,
+    borderRadius: 6,
     overflow: 'hidden',
   },
   barFill: {
-    borderRadius: 3,
+    borderRadius: 6,
   },
   barLabel: {
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
     fontWeight: '600',
     minWidth: 36,
     textAlign: 'right',
   },
 });
-

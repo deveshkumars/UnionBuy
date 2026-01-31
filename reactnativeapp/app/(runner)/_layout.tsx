@@ -35,7 +35,7 @@ export default function RunnerTabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: MetroColors.accent.green,
+        tabBarActiveTintColor: MetroColors.accent.cyan,
         tabBarInactiveTintColor: MetroColors.text.muted,
         tabBarLabelStyle: styles.tabLabel,
         tabBarButton: HapticTab,
@@ -114,4 +114,3 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 });
-

@@ -141,19 +141,27 @@ export function TrustScore({ score, maxScore = 5, style }: TrustScoreProps) {
   return (
     <View style={[styles.trustContainer, style]}>
       <Text style={styles.trustLabel}>TRUST SCORE</Text>
-      <View style={styles.trustDotsContainer}>
-        {Array.from({ length: maxScore }, (_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.trustDot,
-              {
-                backgroundColor: i < score ? getColor() : MetroColors.border.muted,
-              },
-            ]}
-          />
-        ))}
-      </View>
+      {(() => {
+        const starSize = 20;
+        const starGap = 4;
+        const totalWidth = maxScore * starSize + (maxScore - 1) * starGap;
+        return (
+          <View style={[styles.trustStarsContainer, { width: totalWidth, columnGap: starGap }]}>
+        {Array.from({ length: maxScore }, (_, i) => {
+          const fill = Math.max(0, Math.min(1, score - i));
+          const fillWidth = starSize * fill;
+          return (
+            <View key={i} style={[styles.starCell, { width: starSize, height: starSize }]}>
+              <Text style={[styles.starText, styles.starEmpty]}>★</Text>
+              <View style={[styles.starFillMask, { width: fillWidth }]}>
+                <Text style={[styles.starText, styles.starFill]}>★</Text>
+              </View>
+            </View>
+          );
+        })}
+          </View>
+        );
+      })()}
       <Text style={[styles.trustValue, { color: getColor() }]}>
         {score.toFixed(1)}/{maxScore}
       </Text>
@@ -240,14 +248,32 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     letterSpacing: 1,
   },
-  trustDotsContainer: {
+  trustStarsContainer: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    flexWrap: 'nowrap',
   },
-  trustDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 2,
+  starCell: {
+    width: 20,
+    height: 20,
+  },
+  starText: {
+    fontSize: 18,
+    lineHeight: 20,
+    fontFamily: Fonts.sans,
+  },
+  starEmpty: {
+    color: MetroColors.border.muted,
+  },
+  starFill: {
+    color: MetroColors.accent.orange,
+  },
+  starFillMask: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: 20,
+    overflow: 'hidden',
   },
   trustValue: {
     fontFamily: Fonts.mono,
@@ -255,4 +281,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

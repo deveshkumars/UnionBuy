@@ -80,36 +80,48 @@ export default function MarketScreen() {
   const cartTotals = getCartTotal();
 
   // Ticker data
-  const tickerData = trendingItems.map((item) => ({
-    id: item.product.id,
-    name: item.product.name,
-    value: `$${item.product.bulkPrice.toFixed(2)}`,
-    change: item.trending === 'up' ? 12.5 : item.trending === 'down' ? -8.3 : 0,
-    suffix: `/${item.product.unit}`,
-  }));
+  const tickerData = trendingItems
+    .slice(0, 10)
+    .map((item) => ({
+      id: item.product.id,
+      name: `🔥 ${item.product.name}`,
+      value: `$${item.product.bulkPrice.toFixed(2)}`,
+      change: undefined,
+      suffix: `/${item.product.unit}`,
+    }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerLabel}>METROPOLIS</Text>
-          <Text style={styles.headerTitle}>BULK MARKET</Text>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Market</Text>
         </View>
         <View style={styles.headerRight}>
-          <Text style={styles.timeLabel}>CUTOFF</Text>
-          <Text style={styles.timeValue}>18:00</Text>
+          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/wallet')}>
+            <Text style={styles.utilityIcon}>⬡</Text>
+            <Text style={styles.utilityText}>$</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+            <Text style={styles.utilityIcon}>🛒</Text>
+            <Text style={styles.utilityText}>{cartTotals.items}</Text>
+          </TouchableOpacity>
+          <View style={styles.cutoffBox}>
+            <Text style={styles.timeLabel}>CUTOFF</Text>
+            <Text style={styles.timeValue}>18:00</Text>
+          </View>
         </View>
       </View>
 
-      {/* Trending Ticker */}
-      <DataTicker items={tickerData} speed={40} height={44} />
+      {/* Trending Ticker (simplified text) */}
+      <DataTicker items={tickerData} speed={36} height={46} showChange={false} />
 
       {/* Info Bar */}
       <InfoBar
         items={[
-          { label: 'ACTIVE', value: trendingItems.length, highlight: true },
-          { label: 'NEIGHBORS', value: 127 },
+          { label: 'HOT', value: trendingItems.length, highlight: true },
+          { label: 'ACTIVE ORDERS', value: 5 },
           { label: 'SAVED', value: '$2.8K' },
         ]}
       />
@@ -181,6 +193,7 @@ export default function MarketScreen() {
         keyExtractor={(item) => item.id}
         numColumns={1}
         contentContainerStyle={styles.productsContainer}
+        ListHeaderComponent={<View style={styles.listSpacer} />}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -248,7 +261,7 @@ export default function MarketScreen() {
                         {trending.pledgeCount} neighbors
                       </Text>
                     </View>
-                    <ProgressBar progress={progress} height={8} showLabel />
+                    <ProgressBar progress={progress} height={10} showLabel />
                   </View>
                 )}
 
@@ -281,7 +294,11 @@ export default function MarketScreen() {
 
       {/* Cart FAB */}
       {cartTotals.items > 0 && (
-        <TouchableOpacity style={styles.cartFab} activeOpacity={0.9}>
+        <TouchableOpacity
+          style={styles.cartFab}
+          activeOpacity={0.9}
+          onPress={() => router.push('/(customer)/cart')}
+        >
           <View style={styles.cartFabContent}>
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>{cartTotals.items}</Text>
@@ -325,7 +342,32 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+  },
+  utilityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: MetroColors.background.secondary,
+    borderWidth: 1,
+    borderColor: MetroColors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+  },
+  utilityIcon: {
+    fontSize: FontSizes.md,
+    marginRight: Spacing[1],
+  },
+  utilityText: {
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.sm,
+  },
+  cutoffBox: {
     alignItems: 'flex-end',
+    marginLeft: Spacing[2],
   },
   timeLabel: {
     color: MetroColors.text.muted,
@@ -349,7 +391,7 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.background.secondary,
     borderWidth: 1,
     borderColor: MetroColors.border.default,
-    borderRadius: 4,
+    borderRadius: 14,
     paddingHorizontal: Spacing[3],
   },
   searchIcon: {
@@ -374,6 +416,12 @@ const styles = StyleSheet.create({
     maxHeight: 44,
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
+    marginBottom: Spacing[5],
+    paddingTop: Spacing[1],
+    zIndex: 2,
+    position: 'relative',
+    backgroundColor: MetroColors.background.primary,
+    paddingBottom: Spacing[1],
   },
   categoriesContent: {
     paddingHorizontal: Spacing[4],
@@ -385,8 +433,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[1],
     borderWidth: 1,
     borderColor: MetroColors.border.default,
-    borderRadius: 2,
+    borderRadius: 999,
     marginRight: Spacing[2],
+    backgroundColor: MetroColors.background.tertiary,
   },
   categoryChipActive: {
     borderColor: MetroColors.accent.cyan,
@@ -404,6 +453,11 @@ const styles = StyleSheet.create({
   productsContainer: {
     padding: Spacing[4],
     paddingBottom: 100,
+    paddingTop: Spacing[10],
+    marginTop: Spacing[1],
+  },
+  listSpacer: {
+    height: Spacing[4],
   },
   productCard: {
     marginBottom: Spacing[3],
@@ -512,11 +566,11 @@ const styles = StyleSheet.create({
   },
   cartFab: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 24,
     left: Spacing[4],
     right: Spacing[4],
     backgroundColor: MetroColors.accent.cyan,
-    borderRadius: 4,
+    borderRadius: 16,
     ...Shadows.cyanGlow,
   },
   cartFabContent: {
@@ -554,4 +608,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-

@@ -10,8 +10,10 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import {
   MetroCard,
@@ -28,23 +30,32 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAP_HEIGHT = 300;
 
 export default function OperationsScreen() {
+  const router = useRouter();
   const [activeMissions, setActiveMissions] = useState(mockMissions.filter(
     m => !['completed', 'available'].includes(m.status)
   ));
 
   const currentMission = activeMissions[0];
 
+  // Dummy pickup window
+  const pickupWindow = '18:30–19:00';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerLabel}>LIVE</Text>
-          <Text style={styles.headerTitle}>OPERATIONS</Text>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Track Order</Text>
         </View>
-        <View style={styles.statusIndicator}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>TRACKING</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+            <Text style={styles.utilityIcon}>🛒</Text>
+          </TouchableOpacity>
+          <View style={styles.statusIndicator}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>LIVE</Text>
+          </View>
         </View>
       </View>
 
@@ -92,8 +103,20 @@ export default function OperationsScreen() {
             {/* Map labels */}
             <View style={styles.mapLabels}>
               <Text style={styles.mapLabel}>PROVIDENCE METRO AREA</Text>
-              <Text style={styles.mapCoords}>41.8236° N, 71.4222° W</Text>
+              <Text style={styles.mapCoords}>Pickup window {pickupWindow}</Text>
             </View>
+          </View>
+        </MetroCard>
+
+        {/* Pickup Summary */}
+        <MetroCard style={styles.centerCard}>
+          <View style={styles.centerRow}>
+            <View>
+              <Text style={styles.centerLabel}>PICKUP WINDOW</Text>
+              <Text style={styles.centerTitle}>{pickupWindow}</Text>
+              <Text style={styles.centerCoords}>Drop zone: Providence Community Center</Text>
+            </View>
+            <StatusBadge label="ETA" variant="info" size="sm" />
           </View>
         </MetroCard>
 
@@ -115,6 +138,7 @@ export default function OperationsScreen() {
               <MissionStat label="STORES" value={currentMission.stores.length} />
               <MissionStat label="DISTANCE" value={`${currentMission.route.totalDistance} mi`} />
               <MissionStat label="ETA" value={`${currentMission.route.estimatedTime} min`} />
+              <MissionStat label="PICKUP" value={pickupWindow} />
             </View>
 
             <View style={styles.progressTimeline}>
@@ -251,6 +275,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+  },
   headerLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
@@ -268,6 +297,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing[2],
+  },
+  utilityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: MetroColors.background.secondary,
+    borderWidth: 1,
+    borderColor: MetroColors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+  },
+  utilityIcon: {
+    fontSize: FontSizes.md,
   },
   statusDot: {
     width: 8,
@@ -287,6 +329,33 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing[4],
     paddingBottom: Spacing[10],
+  },
+  centerCard: {
+    marginBottom: Spacing[4],
+  },
+  centerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  centerLabel: {
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.xs,
+    letterSpacing: 1,
+  },
+  centerTitle: {
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  centerCoords: {
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.xs,
+    marginTop: 2,
   },
   mapCard: {
     marginBottom: Spacing[4],
@@ -520,4 +589,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
