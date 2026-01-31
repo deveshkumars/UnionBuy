@@ -24,8 +24,6 @@ import {
     ProgressBar,
     StatusBadge,
 } from '@/components/metro';
-import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
-import { useCart, usePledges } from '@/context/AppContext';
 import { comparePrices, evaluateBulkBuy } from '@/services/agents';
 import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
 import { useCart, usePledges, useApp } from '@/context/AppContext';
