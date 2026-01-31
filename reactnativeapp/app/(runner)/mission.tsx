@@ -1,3 +1,4 @@
+
 /**
  * Mission HUD Screen
  * Full-screen map with route, status indicator, and action buttons
@@ -22,12 +23,28 @@ import {
   LocationIndicator,
   TargetReticle,
 } from '@/components/metro';
+import LeafletMap from '@/components/LeafletMap';
 import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
+import { Location } from '@/types';
 import { useMission } from '@/context/AppContext';
 import { updateMissionStatus } from '@/services/api';
 import { MissionStatus } from '@/types';
+import { mockUsers } from '@/services/mockData';
+import { findOptimalDropZone } from '@/services/kmeans';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Customer locations for the order (runner can see all to understand drop zone)
+const orderCustomers = [
+  { location: mockUsers[0].location, weight: 10 },
+  { location: mockUsers[1].location, weight: 8 },
+  { location: { latitude: 41.8276, longitude: -71.4103 }, weight: 5 },
+  { location: { latitude: 41.8145, longitude: -71.4256 }, weight: 7 },
+  { location: { latitude: 41.8312, longitude: -71.4089 }, weight: 12 },
+];
+
+// Calculate optimal drop zone using K-means
+const kmeansResult = findOptimalDropZone(orderCustomers);
 
 const statusFlow: MissionStatus[] = [
   'accepted',
@@ -149,59 +166,18 @@ export default function MissionScreen() {
 
       {/* Map Area */}
       <View style={styles.mapContainer}>
-        {/* Grid overlay */}
-        <View style={styles.gridOverlay}>
-          {Array.from({ length: 12 }, (_, i) => (
-            <View key={`h-${i}`} style={[styles.gridLine, styles.gridHorizontal, { top: `${(i + 1) * 8.33}%` }]} />
-          ))}
-          {Array.from({ length: 12 }, (_, i) => (
-            <View key={`v-${i}`} style={[styles.gridLine, styles.gridVertical, { left: `${(i + 1) * 8.33}%` }]} />
-          ))}
-        </View>
-
-        {/* Route visualization */}
-        <View style={styles.routeContainer}>
-          {/* Store markers */}
-          {activeMission.stores.map((store, index) => (
-            <View
-              key={store.id}
-              style={[
-                styles.storeMarker,
-                { top: `${30 + index * 15}%`, left: `${20 + index * 25}%` },
-              ]}
-            >
-              <View style={[
-                styles.markerDot,
-                currentStatusIndex >= 2 + index && styles.markerDotVisited
-              ]} />
-              <Text style={styles.markerLabel}>{store.name.split(' ')[0]}</Text>
-            </View>
-          ))}
-
-          {/* Drop zone */}
-          <View style={styles.dropZoneMarker}>
-            <TargetReticle
-              size={60}
-              color={currentStatusIndex >= 5 ? MetroColors.accent.green : MetroColors.accent.cyan}
-              animated={currentStatusIndex === 5}
-            />
-            <Text style={styles.dropZoneLabel}>DROP ZONE</Text>
-          </View>
-
-          {/* Runner position */}
-          <View style={[styles.runnerMarker, getRunnerPosition(activeMission.status)]}>
-            <LocationIndicator size={40} color={MetroColors.accent.green} />
-            <Text style={styles.runnerLabel}>YOU</Text>
-          </View>
-
-          {/* Route lines (simplified) */}
-          <View style={styles.routeLine} />
-        </View>
+        <LeafletMap
+          stores={activeMission.stores}
+          dropZone={kmeansResult.location} // K-means optimized drop zone
+          runnerPosition={getRunnerLocation(activeMission.status, activeMission.stores, activeMission.dropZone)}
+          customerLocations={orderCustomers.map(c => c.location)} // Show all customers to runner
+          missionStatus={activeMission.status}
+        />
 
         {/* Map info overlay */}
         <View style={styles.mapInfo}>
           <Text style={styles.mapInfoText}>
-            {activeMission.route.totalDistance} mi • {activeMission.route.estimatedTime} min
+            {activeMission.route.totalDistance} mi • {activeMission.route.estimatedTime} min • {orderCustomers.length} customers
           </Text>
         </View>
       </View>
@@ -283,22 +259,45 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function getRunnerPosition(status: MissionStatus): { top: string; left: string } {
+function getRunnerLocation(
+  status: MissionStatus,
+  stores: { location: Location }[],
+  dropZone: Location
+): Location | undefined {
+  if (stores.length === 0) return undefined;
+
+  const firstStore = stores[0].location;
+  const lastStore = stores[stores.length - 1].location;
+
   switch (status) {
     case 'accepted':
-      return { top: '70%', left: '10%' };
+      // Runner is at starting position (slightly offset from first store)
+      return {
+        latitude: firstStore.latitude - 0.01,
+        longitude: firstStore.longitude - 0.01,
+      };
     case 'en_route_to_store':
-      return { top: '50%', left: '25%' };
+      // Runner is between start and first store
+      return {
+        latitude: firstStore.latitude - 0.005,
+        longitude: firstStore.longitude - 0.005,
+      };
     case 'shopping':
     case 'checkout':
-      return { top: '30%', left: '45%' };
+      // Runner is at the store
+      return lastStore;
     case 'en_route_to_dropzone':
-      return { top: '50%', left: '60%' };
+      // Runner is between store and drop zone
+      return {
+        latitude: (lastStore.latitude + dropZone.latitude) / 2,
+        longitude: (lastStore.longitude + dropZone.longitude) / 2,
+      };
     case 'distributing':
     case 'completed':
-      return { top: '60%', left: '75%' };
+      // Runner is at drop zone
+      return dropZone;
     default:
-      return { top: '70%', left: '10%' };
+      return undefined;
   }
 }
 
@@ -373,85 +372,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: MetroColors.background.tertiary,
     position: 'relative',
-  },
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  gridLine: {
-    position: 'absolute',
-    backgroundColor: MetroColors.border.muted,
-    opacity: 0.2,
-  },
-  gridHorizontal: {
-    left: 0,
-    right: 0,
-    height: 1,
-  },
-  gridVertical: {
-    top: 0,
-    bottom: 0,
-    width: 1,
-  },
-  routeContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  storeMarker: {
-    position: 'absolute',
-    alignItems: 'center',
-    transform: [{ translateX: -20 }, { translateY: -20 }],
-  },
-  markerDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: MetroColors.accent.cyan,
-    borderWidth: 2,
-    borderColor: MetroColors.background.primary,
-  },
-  markerDotVisited: {
-    backgroundColor: MetroColors.accent.green,
-  },
-  markerLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    marginTop: 4,
-  },
-  dropZoneMarker: {
-    position: 'absolute',
-    top: '55%',
-    left: '70%',
-    alignItems: 'center',
-    transform: [{ translateX: -30 }, { translateY: -30 }],
-  },
-  dropZoneLabel: {
-    color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    marginTop: 4,
-  },
-  runnerMarker: {
-    position: 'absolute',
-    alignItems: 'center',
-    transform: [{ translateX: -20 }, { translateY: -20 }],
-  },
-  runnerLabel: {
-    color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  routeLine: {
-    position: 'absolute',
-    top: '40%',
-    left: '15%',
-    width: '60%',
-    height: 2,
-    backgroundColor: MetroColors.accent.cyan,
-    opacity: 0.4,
   },
   mapInfo: {
     position: 'absolute',
