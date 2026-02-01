@@ -88,8 +88,29 @@ export default function MissionScreen() {
   const { activeMission, setActiveMission } = useMission();
   const [updating, setUpdating] = useState(false);
 
-  // Use demo mission if no active mission for demo purposes
-  const displayMission = activeMission || demoMission;
+  // If no active mission, show empty state (user needs to accept a mission first)
+  if (!activeMission) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.noMissionContainer}>
+          <Text style={styles.noMissionIcon}>▣</Text>
+          <Text style={styles.noMissionTitle}>NO ACTIVE MISSION</Text>
+          <Text style={styles.noMissionSubtext}>
+            Accept a mission from the Job Board to get started
+          </Text>
+          <MetroButton
+            title="VIEW JOB BOARD"
+            variant="primary"
+            size="lg"
+            onPress={() => router.push('/(runner)')}
+            style={styles.viewJobsButton}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const displayMission = activeMission;
 
   const currentStatusIndex = statusFlow.indexOf(displayMission.status);
   const nextStatus = statusFlow[currentStatusIndex + 1];

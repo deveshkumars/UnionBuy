@@ -51,6 +51,8 @@ export default function JobBoardScreen() {
   };
 
   const handleAcceptMission = async (mission: Mission) => {
+    console.log('[JobBoard] Accept button clicked for mission:', mission.id);
+    
     Alert.alert(
       'Accept Mission',
       `Accept this mission for estimated $${mission.estimatedEarnings.toFixed(2)}?`,
@@ -59,12 +61,16 @@ export default function JobBoardScreen() {
         {
           text: 'Accept',
           onPress: async () => {
+            console.log('[JobBoard] Confirming accept for mission:', mission.id, 'runner:', user.id);
             setAccepting(mission.id);
-            const result = await acceptMission(mission.id);
+            const result = await acceptMission(mission.id, user.id);
             setAccepting(null);
             
+            console.log('[JobBoard] Accept result:', result);
             if (result.success && result.mission) {
               setActiveMission(result.mission);
+              // Remove from available list
+              setAvailableMissions(prev => prev.filter(m => m.id !== mission.id));
               Alert.alert('Mission Accepted', 'Navigate to the Mission tab to begin.');
               router.push('/(runner)/mission');
             } else {

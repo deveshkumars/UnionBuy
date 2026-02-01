@@ -252,13 +252,13 @@ export const currentRunner: User = mockUsers[2];
 // ============================================
 
 export const mockBulkOrders: BulkOrder[] = [
-  // ⚡ DEMO TRIGGER ORDER - 1 jar away from activating!
+  // ⚡ DEMO ORDER - half full (10/20) for testing add-to-existing flow
   {
     id: 'order-demo',
     productId: 'prod-demo',
     product: mockProducts[0], // Local Honey (index 0)
     pledges: [],
-    totalQuantity: 19,
+    totalQuantity: 10,
     targetQuantity: 20,
     pricePerUnit: 7.99,
     status: 'collecting',
@@ -576,13 +576,13 @@ export const mockWallet: Wallet = {
 // ============================================
 
 export const mockTrendingItems: TrendingItem[] = [
-  // ⚡ DEMO TRIGGER - This item is 1 jar away from activating!
+  // ⚡ DEMO - Half full (10/20) for testing add-to-existing flow
   {
     product: mockProducts[0], // Local Honey (index 0)
-    pledgeCount: 7,
-    totalQuantity: 19,
-    percentToGoal: 95,
-    savings: 109.90,
+    pledgeCount: 4,
+    totalQuantity: 10,
+    percentToGoal: 50,
+    savings: 54.95,
     trending: 'up',
   },
   {

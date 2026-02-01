@@ -270,128 +270,211 @@ interface PledgeCardProps {
   onCancel: () => void;
 }
 
+// Helper to generate batch info for display
+interface BatchInfo {
+  batchNumber: number;
+  totalBatches: number;
+  batchTotal: number;
+  batchTarget: number;
+  isFilled: boolean;
+}
+
+function getBatches(total: number, target: number): BatchInfo[] {
+  if (target <= 0) return [{ batchNumber: 1, totalBatches: 1, batchTotal: total, batchTarget: target, isFilled: false }];
+  
+  const completeBatches = Math.floor(total / target);
+  const remainder = total % target;
+  const batches: BatchInfo[] = [];
+  const totalBatches = completeBatches + (remainder > 0 ? 1 : 0);
+  
+  // Add complete (filled) batches
+  for (let i = 0; i < completeBatches; i++) {
+    batches.push({
+      batchNumber: i + 1,
+      totalBatches,
+      batchTotal: target,
+      batchTarget: target,
+      isFilled: true,
+    });
+  }
+  
+  // Add remainder batch if any (or if no batches at all)
+  if (remainder > 0 || batches.length === 0) {
+    batches.push({
+      batchNumber: batches.length + 1,
+      totalBatches: Math.max(totalBatches, 1),
+      batchTotal: remainder > 0 ? remainder : total,
+      batchTarget: target,
+      isFilled: false,
+    });
+  }
+  
+  return batches;
+}
+
 function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
   const isActive = ['pending', 'locked', 'active'].includes(pledge.status);
   const isCompleted = pledge.status === 'completed';
   const isCancelled = pledge.status === 'cancelled';
   const target = progress?.target || pledge.product.bulkMinimum;
   const total = progress?.total ?? pledge.quantity;
-  const remaining = Math.max(target - total, 0);
-  const pct = Math.min(total / target, 1);
   
   // Check if the order has been triggered/activated
   const orderStatus = progress?.status;
   const isOrderActivated = orderStatus && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(orderStatus);
 
-  const variant = isCompleted
-    ? 'success'
-    : isCancelled
-    ? 'default'
-    : isOrderActivated
-    ? 'success'  // Show green when order is activated!
-    : pledge.status === 'locked'
-    ? 'locked'
-    : 'warning';
+  // Calculate batches for display
+  const batches = getBatches(total, target);
+  const showMultipleBatches = batches.length > 1 || total > target;
+
+  // Render a single batch card
+  const renderBatchCard = (batch: BatchInfo, isLastBatch: boolean) => {
+    const batchRemaining = Math.max(batch.batchTarget - batch.batchTotal, 0);
+    const batchPct = batch.batchTarget > 0 ? Math.min(batch.batchTotal / batch.batchTarget, 1) : 0;
+    
+    const variant = isCompleted
+      ? 'success'
+      : isCancelled
+      ? 'default'
+      : batch.isFilled
+      ? 'success'  // Filled batches show green
+      : isOrderActivated
+      ? 'success'
+      : pledge.status === 'locked'
+      ? 'locked'
+      : 'warning';
+
+    return (
+      <MetroCard
+        key={`${pledge.id}-batch-${batch.batchNumber}`}
+        variant={variant}
+        style={[styles.pledgeCard, (isCompleted || isCancelled) && styles.pledgeCardInactive]}
+      >
+        <View style={styles.pledgeHeader}>
+          <View style={styles.pledgeInfo}>
+            <Text style={styles.pledgeName}>
+              {pledge.product.name}
+              {showMultipleBatches && (
+                <Text style={styles.batchLabel}> #{batch.batchNumber}</Text>
+              )}
+            </Text>
+            <Text style={styles.pledgeDetails}>
+              {pledge.quantity} {pledge.product.unit} • {pledge.product.store.name}
+            </Text>
+          </View>
+          <OrderStatusBadge status={batch.isFilled ? 'completed' : pledge.status as any} />
+        </View>
+
+        {/* Only show pricing on first/main batch */}
+        {batch.batchNumber === 1 && (
+          <View style={styles.pledgePricing}>
+            <View style={styles.priceBlock}>
+              <Text style={styles.priceBlockLabel}>ESTIMATED</Text>
+              <PriceDisplay
+                amount={pledge.totalAmount}
+                size="lg"
+                variant={isActive ? 'highlight' : 'muted'}
+              />
+            </View>
+            <View style={styles.priceBlock}>
+              <Text style={styles.priceBlockLabel}>MAX HOLD</Text>
+              <PriceDisplay
+                amount={pledge.maxAmount}
+                size="md"
+                variant="muted"
+              />
+            </View>
+            <View style={styles.priceBlock}>
+              <Text style={styles.priceBlockLabel}>SAVINGS</Text>
+              <Text style={styles.savingsAmount}>
+                ${(pledge.maxAmount - pledge.totalAmount).toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Show filled banner for completed batches */}
+        {batch.isFilled && (
+          <View style={[styles.lockInfo, { backgroundColor: MetroColors.accent.greenMuted }]}>
+            <View style={[styles.lockIndicator, { backgroundColor: MetroColors.accent.green }]} />
+            <Text style={[styles.lockText, { color: MetroColors.accent.green }]}>
+              ✅ Order filled at {batch.batchTotal}/{batch.batchTarget}
+            </Text>
+          </View>
+        )}
+
+        {/* Show processing banner for non-filled batches when order is activated */}
+        {!batch.isFilled && isOrderActivated && (
+          <View style={[styles.lockInfo, { backgroundColor: MetroColors.accent.greenMuted }]}>
+            <View style={[styles.lockIndicator, { backgroundColor: MetroColors.accent.green }]} />
+            <Text style={[styles.lockText, { color: MetroColors.accent.green }]}>
+              Order will be processed soon
+            </Text>
+          </View>
+        )}
+
+        {pledge.status === 'locked' && !isOrderActivated && !batch.isFilled && (
+          <View style={styles.lockInfo}>
+            <View style={styles.lockIndicator} />
+            <Text style={styles.lockText}>
+              Funds locked • Waiting for bulk order completion
+            </Text>
+          </View>
+        )}
+
+        {['pending', 'locked', 'active'].includes(pledge.status) && (
+          <View style={styles.progressSection}>
+            <Text style={styles.progressText}>
+              {batch.isFilled
+                ? `✅ Batch filled! ${batch.batchTotal}/${batch.batchTarget} ${pledge.product.unit}`
+                : isOrderActivated
+                ? `✅ Bulk minimum reached! ${batch.batchTotal}/${batch.batchTarget} ${pledge.product.unit} pledged`
+                : batchRemaining === 0
+                ? 'Bulk ready • executing at cutoff'
+                : `Need ${batchRemaining} more ${pledge.product.unit} to reach bulk (${batch.batchTotal}/${batch.batchTarget})`}
+            </Text>
+            <ProgressBar progress={batchPct} height={10} showLabel />
+          </View>
+        )}
+
+        {/* Only show cancel on last batch and if cancellable */}
+        {isLastBatch && isActive && !['active'].includes(pledge.status) && !isOrderActivated && !batch.isFilled && (
+          <View style={styles.pledgeActions}>
+            <MetroButton
+              title="CANCEL"
+              variant="danger"
+              size="sm"
+              onPress={onCancel}
+            />
+          </View>
+        )}
+
+        {isCompleted && batch.batchNumber === 1 && (
+          <View style={styles.completedInfo}>
+            <Text style={styles.completedLabel}>COMPLETED</Text>
+            <Text style={styles.completedDate}>
+              {new Date(pledge.completedAt!).toLocaleDateString()}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.pledgeFooter}>
+          <Text style={styles.pledgeId}>
+            ID: {pledge.id.slice(-8).toUpperCase()}
+            {showMultipleBatches && `-B${batch.batchNumber}`}
+          </Text>
+          <Text style={styles.pledgeDate}>
+            {new Date(pledge.createdAt).toLocaleString()}
+          </Text>
+        </View>
+      </MetroCard>
+    );
+  };
 
   return (
-    <MetroCard
-      variant={variant}
-      style={[styles.pledgeCard, (isCompleted || isCancelled) && styles.pledgeCardInactive]}
-    >
-      <View style={styles.pledgeHeader}>
-        <View style={styles.pledgeInfo}>
-          <Text style={styles.pledgeName}>{pledge.product.name}</Text>
-          <Text style={styles.pledgeDetails}>
-            {pledge.quantity} {pledge.product.unit} • {pledge.product.store.name}
-          </Text>
-        </View>
-        <OrderStatusBadge status={pledge.status as any} />
-      </View>
-
-      <View style={styles.pledgePricing}>
-        <View style={styles.priceBlock}>
-          <Text style={styles.priceBlockLabel}>ESTIMATED</Text>
-          <PriceDisplay
-            amount={pledge.totalAmount}
-            size="lg"
-            variant={isActive ? 'highlight' : 'muted'}
-          />
-        </View>
-        <View style={styles.priceBlock}>
-          <Text style={styles.priceBlockLabel}>MAX HOLD</Text>
-          <PriceDisplay
-            amount={pledge.maxAmount}
-            size="md"
-            variant="muted"
-          />
-        </View>
-        <View style={styles.priceBlock}>
-          <Text style={styles.priceBlockLabel}>SAVINGS</Text>
-          <Text style={styles.savingsAmount}>
-            ${(pledge.maxAmount - pledge.totalAmount).toFixed(2)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Show activated banner when order is in progress */}
-      {isOrderActivated && (
-        <View style={[styles.lockInfo, { backgroundColor: MetroColors.accent.greenMuted }]}>
-          <View style={[styles.lockIndicator, { backgroundColor: MetroColors.accent.green }]} />
-          <Text style={[styles.lockText, { color: MetroColors.accent.green }]}>
-            🚀 ORDER ACTIVATED • Runner is on the way!
-          </Text>
-        </View>
-      )}
-
-      {pledge.status === 'locked' && !isOrderActivated && (
-        <View style={styles.lockInfo}>
-          <View style={styles.lockIndicator} />
-          <Text style={styles.lockText}>
-            Funds locked • Waiting for bulk order completion
-          </Text>
-        </View>
-      )}
-
-      {['pending', 'locked', 'active'].includes(pledge.status) && (
-        <View style={styles.progressSection}>
-          <Text style={styles.progressText}>
-            {isOrderActivated
-              ? `✅ Bulk minimum reached! ${total}/${target} ${pledge.product.unit} pledged`
-              : remaining === 0
-              ? 'Bulk ready • executing at cutoff'
-              : `Need ${remaining} more ${pledge.product.unit} to reach bulk (${total}/${target})`}
-          </Text>
-          <ProgressBar progress={pct} height={10} showLabel />
-        </View>
-      )}
-
-      {isActive && !['active'].includes(pledge.status) && !isOrderActivated && (
-        <View style={styles.pledgeActions}>
-          <MetroButton
-            title="CANCEL"
-            variant="danger"
-            size="sm"
-            onPress={onCancel}
-          />
-        </View>
-      )}
-
-      {isCompleted && (
-        <View style={styles.completedInfo}>
-          <Text style={styles.completedLabel}>COMPLETED</Text>
-          <Text style={styles.completedDate}>
-            {new Date(pledge.completedAt!).toLocaleDateString()}
-          </Text>
-        </View>
-      )}
-
-      <View style={styles.pledgeFooter}>
-        <Text style={styles.pledgeId}>ID: {pledge.id.slice(-8).toUpperCase()}</Text>
-        <Text style={styles.pledgeDate}>
-          {new Date(pledge.createdAt).toLocaleString()}
-        </Text>
-      </View>
-    </MetroCard>
+    <>
+      {batches.map((batch, index) => renderBatchCard(batch, index === batches.length - 1))}
+    </>
   );
 }
 
@@ -622,6 +705,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 6,
     lineHeight: 30,
+  },
+  batchLabel: {
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
   },
   pledgeDetails: {
     color: MetroColors.text.secondary,

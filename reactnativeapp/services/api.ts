@@ -18,21 +18,27 @@ import {
     acceptMissionInBackend,
     cancelPledgeInBackend,
     createDistributionInBackend,
+    createMissionInBackend,
     createPledgeInBackend,
     createUserProfileInBackend,
     fetchActiveBulkOrdersFromBackend,
     fetchAvailableMissionsFromBackend,
+    fetchBulkOrderByIdFromBackend,
+    fetchBulkOrderForProductFromBackend,
     fetchBulkOrdersFromBackend,
     fetchDistributionForUserFromBackend,
     fetchDistributionsForMissionFromBackend,
+    fetchPledgeByIdFromBackend,
     fetchProductByIdFromBackend,
     fetchProductsFromBackend,
     fetchUserPledgesFromBackend,
     fetchUserProfileByIdFromBackend,
     getCurrentAuthUserFromBackend,
+    getOrCreateBulkOrderForProductFromBackend,
     getOrCreateUserProfile as getOrCreateUserProfileFromBackend,
     isBackendConfigured,
     searchProductsFromBackend,
+    updateBulkOrderInBackend,
     updateDistributionStatusInBackend,
     updateMissionStatusInBackend,
     updateUserProfileInBackend,
@@ -46,10 +52,9 @@ import {
     mockMissions,
     mockPledges,
     mockProducts,
-    mockStores,
     mockTrendingItems,
     mockUsers,
-    mockWallet,
+    mockWallet
 } from './mockData';
 
 // Simulate network delay (mock only)
@@ -109,23 +114,90 @@ export async function fetchActiveBulkOrders(): Promise<BulkOrder[]> {
 }
 
 export async function fetchBulkOrderById(id: string): Promise<BulkOrder | null> {
+  if (isBackendConfigured()) return fetchBulkOrderByIdFromBackend(id);
   await delay(300);
   return mockBulkOrders.find((o) => o.id === id) || null;
 }
 
 export async function fetchBulkOrderForProduct(productId: string): Promise<BulkOrder | null> {
+  if (isBackendConfigured()) return fetchBulkOrderForProductFromBackend(productId, 'collecting');
   await delay(300);
   return mockBulkOrders.find((o) => o.productId === productId && o.status === 'collecting') || null;
 }
 
 // Fetch bulk order for product regardless of status (for pledges page progress tracking)
 export async function fetchBulkOrderForProductAnyStatus(productId: string): Promise<BulkOrder | null> {
+  if (isBackendConfigured()) return fetchBulkOrderForProductFromBackend(productId);
   await delay(300);
   // Return most recent order for this product, prioritizing active statuses
   const orders = mockBulkOrders.filter((o) => o.productId === productId);
   // Prefer active orders over rolled_over/cancelled
   const activeOrder = orders.find(o => ['collecting', 'assigned', 'shopping', 'in_transit', 'distributing'].includes(o.status));
   return activeOrder || orders[0] || null;
+}
+
+// Get or create a bulk order for a product (used when creating pledges)
+export async function getOrCreateBulkOrderForProduct(
+  product: Product,
+  cutoffHoursFromNow: number = 24
+): Promise<{ bulkOrder: BulkOrder | null; created: boolean; error?: string }> {
+  if (isBackendConfigured()) {
+    return getOrCreateBulkOrderForProductFromBackend(product, cutoffHoursFromNow);
+  }
+  
+  // Mock implementation
+  await delay(300);
+  let bulkOrder = mockBulkOrders.find(o => o.productId === product.id && o.status === 'collecting');
+  
+  if (bulkOrder) {
+    return { bulkOrder, created: false };
+  }
+  
+  // Create a new mock bulk order
+  const cutoffTime = new Date(Date.now() + cutoffHoursFromNow * 60 * 60 * 1000).toISOString();
+  bulkOrder = {
+    id: `order-${Date.now()}`,
+    productId: product.id,
+    product,
+    pledges: [],
+    totalQuantity: 0,
+    targetQuantity: product.bulkMinimum,
+    pricePerUnit: product.bulkPrice,
+    status: 'collecting',
+    cutoffTime,
+    createdAt: new Date().toISOString(),
+  };
+  mockBulkOrders.push(bulkOrder);
+  return { bulkOrder, created: true };
+}
+
+// Update a bulk order's quantity and status
+export async function updateBulkOrder(
+  orderId: string,
+  updates: {
+    totalQuantity?: number;
+    status?: BulkOrder['status'];
+    runnerId?: string;
+    executedAt?: string;
+  }
+): Promise<{ success: boolean; bulkOrder?: BulkOrder; error?: string }> {
+  if (isBackendConfigured()) {
+    return updateBulkOrderInBackend(orderId, updates);
+  }
+  
+  // Mock implementation
+  await delay(300);
+  const order = mockBulkOrders.find(o => o.id === orderId);
+  if (!order) {
+    return { success: false, error: 'Bulk order not found' };
+  }
+  
+  if (updates.totalQuantity !== undefined) order.totalQuantity = updates.totalQuantity;
+  if (updates.status !== undefined) order.status = updates.status;
+  if (updates.runnerId !== undefined) order.runnerId = updates.runnerId;
+  if (updates.executedAt !== undefined) order.executedAt = updates.executedAt;
+  
+  return { success: true, bulkOrder: order };
 }
 
 // ============================================
@@ -155,6 +227,12 @@ export async function fetchActivePledges(userId: string): Promise<Pledge[]> {
   return pledges.filter((p) => ['pending', 'locked', 'active'].includes(p.status));
 }
 
+export async function fetchPledgeById(pledgeId: string): Promise<Pledge | null> {
+  if (isBackendConfigured()) return fetchPledgeByIdFromBackend(pledgeId);
+  await delay(300);
+  return mockPledges.find((p) => p.id === pledgeId) || null;
+}
+
 export async function createPledge(
   productId: string,
   quantity: number,
@@ -166,13 +244,61 @@ export async function createPledge(
   
   if (isBackendConfigured()) {
     console.log('[createPledge] 🔥 Using DynamoDB backend');
+    
+    // 1. Get the product
     const product = await fetchProductById(productId);
     if (!product) return { success: false, error: 'Product not found' };
-    const bulkOrder = await fetchBulkOrderForProduct(productId);
-    const unitPrice = bulkOrder?.pricePerUnit ?? product.bulkPrice * 1.1;
+    
+    // 2. Get or create a bulk order for this product
+    const { bulkOrder, created: orderCreated, error: orderError } = await getOrCreateBulkOrderForProduct(product);
+    if (!bulkOrder) {
+      return { success: false, error: orderError || 'Failed to get/create bulk order' };
+    }
+    console.log('[createPledge] Bulk order:', bulkOrder.id, 'created:', orderCreated, 'current qty:', bulkOrder.totalQuantity);
+    
+    // 3. Calculate pricing
+    const unitPrice = bulkOrder.pricePerUnit;
     const totalAmount = unitPrice * quantity;
     const maxAmount = product.retailPrice * quantity;
-    return createPledgeInBackend(productId, product, quantity, unitPrice, totalAmount, maxAmount, effectiveUserId);
+    
+    // 4. Create the pledge
+    const pledgeResult = await createPledgeInBackend(productId, product, quantity, unitPrice, totalAmount, maxAmount, effectiveUserId);
+    if (!pledgeResult.success) {
+      return pledgeResult;
+    }
+    
+    // 5. Update bulk order quantity
+    const newTotal = bulkOrder.totalQuantity + quantity;
+    const willTrigger = newTotal >= product.bulkMinimum;
+    
+    const orderUpdates: { totalQuantity: number; status?: BulkOrder['status']; executedAt?: string; runnerId?: string } = {
+      totalQuantity: newTotal,
+    };
+    
+    // If bulk minimum reached, activate the order and create a mission
+    if (willTrigger && bulkOrder.status === 'collecting') {
+      console.log('[createPledge] ⚡ BULK MINIMUM REACHED! Activating order...');
+      orderUpdates.status = 'pending_execution';
+      orderUpdates.executedAt = new Date().toISOString();
+      
+      // Create a mission for runners to pick up
+      const updatedBulkOrder = { ...bulkOrder, totalQuantity: newTotal };
+      const missionResult = await createMissionInBackend(updatedBulkOrder, product);
+      if (missionResult.success && missionResult.mission) {
+        console.log('[createPledge] ✅ Mission created:', missionResult.mission.id);
+      } else {
+        console.warn('[createPledge] Failed to create mission:', missionResult.error);
+      }
+    }
+    
+    const updateResult = await updateBulkOrderInBackend(bulkOrder.id, orderUpdates);
+    if (!updateResult.success) {
+      console.warn('[createPledge] Failed to update bulk order:', updateResult.error);
+    } else {
+      console.log('[createPledge] ✅ Bulk order updated. New qty:', newTotal, 'Status:', updateResult.bulkOrder?.status);
+    }
+    
+    return { ...pledgeResult, triggered: willTrigger };
   }
 
   // Fall back to mock data
@@ -211,9 +337,8 @@ export async function createPledge(
     
     // 1. Update bulk order status
     bulkOrder.totalQuantity = newTotal;
-    bulkOrder.status = 'assigned';
+    bulkOrder.status = 'pending_execution';
     bulkOrder.executedAt = new Date().toISOString();
-    bulkOrder.runnerId = 'user-3'; // Aisha the runner
     console.log('[createPledge] ✅ Bulk order activated:', bulkOrder.id);
     
     // 2. Update all pledges for this order to 'active'
@@ -223,20 +348,42 @@ export async function createPledge(
       }
     });
     
-    // 3. Find and activate the demo mission (or create one)
-    const demoMission = mockMissions.find(m => m.id === 'mission-demo');
-    if (demoMission) {
-      demoMission.status = 'available';
-      demoMission.orders = [bulkOrder];
-      demoMission.totalItems = newTotal;
-      console.log('[createPledge] ✅ Mission activated:', demoMission.id);
-    }
+    // 3. Create a new mission for this order
+    const store = product.store;
+    const dropZone = bulkOrder.dropZone || {
+      latitude: store.location.latitude + 0.01,
+      longitude: store.location.longitude + 0.01,
+      address: 'Community Drop Zone',
+    };
+    
+    const missionId = `mission-${Date.now()}`;
+    const newMission: Mission = {
+      id: missionId,
+      orders: [bulkOrder],
+      status: 'available',
+      estimatedEarnings: 10.00 + (newTotal * 0.25), // Base pay + per-item bonus
+      tips: 0,
+      totalItems: newTotal,
+      totalWeight: newTotal * 0.5,
+      stores: [store],
+      route: {
+        stores: [store.location],
+        dropZone,
+        totalDistance: 5.0,
+        estimatedTime: 30,
+        optimizedOrder: [0],
+      },
+      dropZone,
+      createdAt: new Date().toISOString(),
+    };
+    mockMissions.push(newMission);
+    console.log('[createPledge] ✅ Mission created:', newMission.id);
     
     // 4. Create a distribution for this user with 4-digit PIN
     const pickupPin = Math.floor(1000 + Math.random() * 9000).toString();
     const newDistribution: Distribution = {
-      id: `dist-demo-${Date.now()}`,
-      missionId: 'mission-demo',
+      id: `dist-${Date.now()}`,
+      missionId,
       userId: effectiveUserId,
       user: mockUsers.find(u => u.id === effectiveUserId) || mockUsers[0],
       items: [
@@ -272,7 +419,9 @@ export async function cancelPledge(pledgeId: string): Promise<{ success: boolean
   
   if (isBackendConfigured()) {
     console.log('[cancelPledge] 🔥 Using DynamoDB backend');
-    return cancelPledgeInBackend(pledgeId);
+    // cancelPledgeInBackend now handles updating the bulk order quantity too
+    const result = await cancelPledgeInBackend(pledgeId);
+    return { success: result.success, error: result.error };
   }
   
   console.log('[cancelPledge] 📦 Using MOCK data');
@@ -287,6 +436,13 @@ export async function cancelPledge(pledgeId: string): Promise<{ success: boolean
   if (!['pending', 'locked'].includes(pledge.status)) {
     console.log('[cancelPledge] ❌ Cannot cancel - status is:', pledge.status);
     return { success: false, error: 'Cannot cancel pledge in current status' };
+  }
+  
+  // Update bulk order quantity
+  const bulkOrder = mockBulkOrders.find(o => o.productId === pledge.productId && o.status === 'collecting');
+  if (bulkOrder) {
+    bulkOrder.totalQuantity = Math.max(0, bulkOrder.totalQuantity - pledge.quantity);
+    console.log('[cancelPledge] Updated bulk order quantity:', bulkOrder.totalQuantity);
   }
   
   pledge.status = 'cancelled';

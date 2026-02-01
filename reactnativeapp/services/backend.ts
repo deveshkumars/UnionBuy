@@ -226,14 +226,36 @@ export async function createPledgeInBackend(
   }
 }
 
-export async function cancelPledgeInBackend(pledgeId: string): Promise<{ success: boolean; error?: string }> {
+export async function fetchPledgeByIdFromBackend(pledgeId: string): Promise<Pledge | null> {
+  try {
+    const client = getClient();
+    const { data } = await client.models.Pledge.get({ id: pledgeId });
+    return data ? pledgeFromRecord({ ...data, createdAt: data.createdAt ?? new Date().toISOString() } as never) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function cancelPledgeInBackend(pledgeId: string): Promise<{ success: boolean; pledge?: Pledge; error?: string }> {
   try {
     const client = getClient();
     const { data: existing } = await client.models.Pledge.get({ id: pledgeId });
     if (!existing || !['pending', 'locked'].includes(existing.status as string))
       return { success: false, error: 'Cannot cancel' };
+    
+    // Update pledge status to cancelled
     await client.models.Pledge.update({ id: pledgeId, status: 'cancelled' });
-    return { success: true };
+    
+    // Update bulk order quantity (subtract cancelled pledge quantity)
+    const bulkOrder = await fetchBulkOrderForProductFromBackend(existing.productId, 'collecting');
+    if (bulkOrder) {
+      const newTotal = Math.max(0, bulkOrder.totalQuantity - existing.quantity);
+      await updateBulkOrderInBackend(bulkOrder.id, { totalQuantity: newTotal });
+      console.log('[cancelPledgeInBackend] Updated bulk order qty:', newTotal);
+    }
+    
+    const pledge = pledgeFromRecord({ ...existing, status: 'cancelled', createdAt: existing.createdAt ?? new Date().toISOString() } as never);
+    return { success: true, pledge };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -252,6 +274,110 @@ export async function fetchBulkOrdersFromBackend(): Promise<BulkOrder[]> {
 export async function fetchActiveBulkOrdersFromBackend(): Promise<BulkOrder[]> {
   const all = await fetchBulkOrdersFromBackend();
   return all.filter((o) => o.status === 'collecting');
+}
+
+export async function fetchBulkOrderByIdFromBackend(id: string): Promise<BulkOrder | null> {
+  try {
+    const client = getClient();
+    const { data } = await client.models.BulkOrder.get({ id });
+    return data ? bulkOrderFromRecord(data as never) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchBulkOrderForProductFromBackend(productId: string, status?: string): Promise<BulkOrder | null> {
+  try {
+    const client = getClient();
+    const filter: Record<string, unknown> = { productId: { eq: productId } };
+    if (status) {
+      filter.status = { eq: status };
+    }
+    const { data } = await client.models.BulkOrder.list({ filter });
+    if (data.length === 0) return null;
+    // If no specific status, prioritize 'collecting' orders
+    if (!status) {
+      const collecting = data.find(o => o.status === 'collecting');
+      if (collecting) return bulkOrderFromRecord(collecting as never);
+    }
+    return bulkOrderFromRecord(data[0] as never);
+  } catch {
+    return null;
+  }
+}
+
+export async function createBulkOrderInBackend(
+  product: Product,
+  cutoffTime: string
+): Promise<{ success: boolean; bulkOrder?: BulkOrder; error?: string }> {
+  try {
+    const client = getClient();
+    const { data: created, errors } = await client.models.BulkOrder.create({
+      productId: product.id,
+      productSnapshotJson: JSON.stringify(product),
+      totalQuantity: 0,
+      targetQuantity: product.bulkMinimum,
+      pricePerUnit: product.bulkPrice,
+      status: 'collecting',
+      cutoffTime,
+    });
+    if (errors?.length) return { success: false, error: errors[0].message };
+    if (!created) return { success: false, error: 'Create failed' };
+    return { success: true, bulkOrder: bulkOrderFromRecord({ ...created, createdAt: created.createdAt ?? new Date().toISOString() } as never) };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+export async function updateBulkOrderInBackend(
+  orderId: string,
+  updates: {
+    totalQuantity?: number;
+    status?: BulkOrder['status'];
+    runnerId?: string;
+    executedAt?: string;
+    dropZoneJson?: string;
+  }
+): Promise<{ success: boolean; bulkOrder?: BulkOrder; error?: string }> {
+  try {
+    const client = getClient();
+    const updateData: Record<string, unknown> = { id: orderId };
+    if (updates.totalQuantity !== undefined) updateData.totalQuantity = updates.totalQuantity;
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.runnerId !== undefined) updateData.runnerId = updates.runnerId;
+    if (updates.executedAt !== undefined) updateData.executedAt = updates.executedAt;
+    if (updates.dropZoneJson !== undefined) updateData.dropZoneJson = updates.dropZoneJson;
+    
+    const { data: updated, errors } = await client.models.BulkOrder.update(updateData as never);
+    if (errors?.length) return { success: false, error: errors[0].message };
+    if (!updated) return { success: false, error: 'Update failed' };
+    return { success: true, bulkOrder: bulkOrderFromRecord(updated as never) };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+export async function getOrCreateBulkOrderForProductFromBackend(
+  product: Product,
+  cutoffHoursFromNow: number = 24
+): Promise<{ bulkOrder: BulkOrder | null; created: boolean; error?: string }> {
+  try {
+    // First try to find an existing collecting order for this product
+    const existing = await fetchBulkOrderForProductFromBackend(product.id, 'collecting');
+    if (existing) {
+      return { bulkOrder: existing, created: false };
+    }
+    
+    // No existing order, create a new one
+    const cutoffTime = new Date(Date.now() + cutoffHoursFromNow * 60 * 60 * 1000).toISOString();
+    const result = await createBulkOrderInBackend(product, cutoffTime);
+    if (result.success && result.bulkOrder) {
+      return { bulkOrder: result.bulkOrder, created: true };
+    }
+    return { bulkOrder: null, created: false, error: result.error };
+  } catch (e) {
+    return { bulkOrder: null, created: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
 }
 
 // ============================================
@@ -330,9 +456,14 @@ function missionFromRecord(r: {
 export async function fetchAvailableMissionsFromBackend(): Promise<Mission[]> {
   try {
     const client = getClient();
+    if (!client.models.Mission) {
+      console.warn('[fetchAvailableMissionsFromBackend] Mission model not available - redeploy sandbox with `npx ampx sandbox`');
+      return [];
+    }
     const { data } = await client.models.Mission.list({ filter: { status: { eq: 'available' } } });
     return data.map((r) => missionFromRecord(r as never));
-  } catch {
+  } catch (e) {
+    console.error('[fetchAvailableMissionsFromBackend] Error:', e instanceof Error ? e.message : e);
     return [];
   }
 }
@@ -377,13 +508,82 @@ export async function updateMissionStatusInBackend(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const client = getClient();
+    if (!client.models.Mission) {
+      console.error('[updateMissionStatusInBackend] Mission model not available');
+      return { success: false, error: 'Mission model not available' };
+    }
+    
+    console.log('[updateMissionStatusInBackend] Updating mission:', missionId, 'to status:', status);
     const updateData: Record<string, unknown> = { id: missionId, status };
     if (status === 'completed') {
       updateData.completedAt = new Date().toISOString();
     }
     const { errors } = await client.models.Mission.update(updateData as never);
-    if (errors?.length) return { success: false, error: errors[0].message };
+    if (errors?.length) {
+      console.error('[updateMissionStatusInBackend] Error:', errors[0].message);
+      return { success: false, error: errors[0].message };
+    }
+    console.log('[updateMissionStatusInBackend] ✅ Status updated successfully');
     return { success: true };
+  } catch (e) {
+    console.error('[updateMissionStatusInBackend] Exception:', e);
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Create a new mission when a bulk order is ready to be executed
+ */
+export async function createMissionInBackend(
+  bulkOrder: BulkOrder,
+  product: Product
+): Promise<{ success: boolean; mission?: Mission; error?: string }> {
+  try {
+    const client = getClient();
+    
+    // Check if Mission model is available (needs sandbox redeployment if not)
+    if (!client.models.Mission) {
+      console.error('[createMissionInBackend] Mission model not available - redeploy sandbox with `npx ampx sandbox`');
+      return { success: false, error: 'Mission model not available - please redeploy the Amplify sandbox' };
+    }
+    
+    // Build route info from the store
+    const store = product.store;
+    const dropZone: Location = bulkOrder.dropZone || {
+      latitude: store.location.latitude + 0.01, // Nearby drop zone
+      longitude: store.location.longitude + 0.01,
+      address: 'Community Drop Zone',
+    };
+    
+    const routeInfo: RouteInfo = {
+      stores: [store.location],
+      dropZone,
+      totalDistance: 5.0, // Estimated distance
+      estimatedTime: 30, // Estimated 30 minutes
+      optimizedOrder: [0],
+    };
+    
+    // Calculate estimated earnings (base pay + per-item bonus)
+    const basePay = 10.00;
+    const perItemBonus = 0.25;
+    const estimatedEarnings = basePay + (bulkOrder.totalQuantity * perItemBonus);
+    
+    const { data: created, errors } = await client.models.Mission.create({
+      status: 'available',
+      estimatedEarnings,
+      tips: 0,
+      totalItems: bulkOrder.totalQuantity,
+      totalWeight: bulkOrder.totalQuantity * 0.5, // Rough estimate
+      storesJson: JSON.stringify([store]),
+      routeJson: JSON.stringify(routeInfo),
+      dropZoneJson: JSON.stringify(dropZone),
+    });
+    
+    if (errors?.length) return { success: false, error: errors[0].message };
+    if (!created) return { success: false, error: 'Failed to create mission' };
+    
+    console.log('[createMissionInBackend] ✅ Mission created:', created.id);
+    return { success: true, mission: missionFromRecord(created as never) };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
   }
