@@ -6,16 +6,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-<<<<<<< Updated upstream
-    FlatList,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-=======
   FlatList,
   RefreshControl,
   ScrollView,
@@ -24,25 +14,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
->>>>>>> Stashed changes
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-    DataTicker,
-    InfoBar,
-    MetroButton,
-  <<<<<<< Updated upstream
-  MetroCard,
-    PriceDisplay,
-    ProgressBar,
-    StatusBadge,
-} from '@/components/metro';
-import { FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
-import { useCart } from '@/context/AppContext';
-import { fetchTrendingItems, fetchProducts, searchProducts } from '@/services/api';
-import { TrendingItem, Product } from '@/types';
-=======
   DataTicker,
   InfoBar,
   MetroButton,
@@ -61,7 +36,6 @@ import {
   SplittableItem,
 } from '@/services/splittableItems';
 import { Product, TrendingItem } from '@/types';
->>>>>>> Stashed changes
 
 export default function MarketScreen() {
   const router = useRouter();
@@ -150,7 +124,7 @@ export default function MarketScreen() {
     : splittableItems;
 
   // Combine both product types into one unified list for Bulk Orders
-  const allBulkItems: Array<Product | SplittableItem> = [
+  const allBulkItems: (Product | SplittableItem)[] = [
     ...filteredProducts,
     ...filteredSplittableItems
   ];
@@ -209,50 +183,6 @@ export default function MarketScreen() {
         <InfoBar
           items={[
             { label: 'HOT', value: trendingItems.length, highlight: true },
-            { label: 'ACTIVE ORDERS', value: 5 },
-            { label: 'SAVED', value: '$2.8K' },
-          ]}
-        />
-
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputWrapper}>
-            <Text style={styles.searchIcon}>FND</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search products..."
-              placeholderTextColor={MetroColors.text.tertiary}
-              value={searchQuery}
-              onChangeText={handleSearch}
-              autoCapitalize="none"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearch('')}>
-                <Text style={styles.clearIcon}>X</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-<<<<<<< Updated upstream
-      {/* Categories */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        <TouchableOpacity
-          style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
-          onPress={() => setSelectedCategory(null)}
-=======
-        {/* Trending Ticker (simplified text) */}
-        <DataTicker items={tickerData} speed={36} height={46} showChange={false} />
-
-        {/* Info Bar */}
-        <InfoBar
-          items={[
-            { label: 'HOT', value: trendingItems.length, highlight: true },
             { label: 'ACTIVE ORDERS', value: allBulkItems.length },
             { label: 'SAVED', value: '$2.8K' },
           ]}
@@ -284,37 +214,41 @@ export default function MarketScreen() {
           showsHorizontalScrollIndicator={false}
           style={styles.categoriesContainer}
           contentContainerStyle={styles.categoriesContent}
->>>>>>> Stashed changes
         >
-          <Text
-            style={[
-              styles.categoryText,
-              !selectedCategory && styles.categoryTextActive,
-            ]}
-          >
-            ALL
-          </Text>
-        </TouchableOpacity>
-        {categories.map((cat) => (
           <TouchableOpacity
-            key={cat}
-            style={[
-              styles.categoryChip,
-              selectedCategory === cat && styles.categoryChipActive,
-            ]}
-            onPress={() => setSelectedCategory(cat)}
+            style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
+            onPress={() => setSelectedCategory(null)}
           >
             <Text
               style={[
                 styles.categoryText,
-                selectedCategory === cat && styles.categoryTextActive,
+                !selectedCategory && styles.categoryTextActive,
               ]}
             >
-              {cat.toUpperCase()}
+              ALL
             </Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          {categories.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[
+                styles.categoryChip,
+                selectedCategory === cat && styles.categoryChipActive,
+              ]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === cat && styles.categoryTextActive,
+                ]}
+              >
+                {cat.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Products List */}
       <FlatList
@@ -322,15 +256,11 @@ export default function MarketScreen() {
         keyExtractor={(item) => item.id}
         numColumns={1}
         contentContainerStyle={styles.productsContainer}
-<<<<<<< Updated upstream
-=======
         ListHeaderComponent={<View style={styles.listSpacer} />}
         initialNumToRender={20}
         maxToRenderPerBatch={20}
         windowSize={10}
         removeClippedSubviews={true}
->>>>>>> Stashed changes
-        ListHeaderComponent={<View style={styles.listSpacer} />}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -427,7 +357,7 @@ export default function MarketScreen() {
                           retailPrice: splitItem.total_price,
                           bulkPrice: splitItem.price_per_unit,
                           bulkMinimum: splitItem.pack_quantity,
-                          store: { id: 'split-store', name: 'Split Order', location: { latitude: 0, longitude: 0 } },
+                          store: { id: 'split-store', name: 'Split Order', type: 'wholesale', location: { latitude: 0, longitude: 0 } },
                           available: true,
                         };
                         addToCart(productForCart, 1);
@@ -457,9 +387,9 @@ export default function MarketScreen() {
               >
                 <View style={styles.productHeader}>
                   <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{item.name}</Text>
+                    <Text style={styles.productName}>{product.name}</Text>
                     <Text style={styles.productCategory}>
-                      {item.category.toUpperCase()} • {item.store.name}
+                      {product.category.toUpperCase()} • {product.store.name}
                     </Text>
                   </View>
                   <StatusBadge
@@ -474,27 +404,27 @@ export default function MarketScreen() {
                     <View style={styles.priceItem}>
                       <Text style={styles.priceLabel}>RETAIL</Text>
                       <Text style={styles.retailPrice}>
-                        ${item.retailPrice.toFixed(2)}
+                        ${product.retailPrice.toFixed(2)}
                       </Text>
                     </View>
                     <Text style={styles.priceArrow}>{'→'}</Text>
                     <View style={styles.priceItem}>
                       <Text style={styles.priceLabel}>BULK</Text>
                       <PriceDisplay
-                        amount={item.bulkPrice}
+                        amount={product.bulkPrice}
                         size="lg"
                         variant="highlight"
                       />
                     </View>
                   </View>
-                  <Text style={styles.unitText}>/{item.unit}</Text>
+                  <Text style={styles.unitText}>/{product.unit}</Text>
                 </View>
 
                 {trending && (
                   <View style={styles.progressSection}>
                     <View style={styles.progressHeader}>
                       <Text style={styles.progressLabel}>
-                        {trending.totalQuantity}/{item.bulkMinimum} {item.unit} pledged
+                        {trending.totalQuantity}/{product.bulkMinimum} {product.unit} pledged
                       </Text>
                       <Text style={styles.pledgeCount}>
                         {trending.pledgeCount} neighbors
@@ -509,13 +439,13 @@ export default function MarketScreen() {
                     title="VIEW DETAILS"
                     variant="ghost"
                     size="sm"
-                    onPress={() => router.push(`/item/${item.id}`)}
+                    onPress={() => router.push(`/item/${product.id}`)}
                   />
                   <MetroButton
                     title="+ ADD"
                     variant="primary"
                     size="sm"
-                    onPress={() => addToCart(item, 1)}
+                    onPress={() => addToCart(product, 1)}
                   />
                 </View>
               </MetroCard>

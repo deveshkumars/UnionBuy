@@ -4,46 +4,39 @@
  */
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-    ConfidenceBadge,
-    MetroButton,
-    MetroCard,
-    PriceDisplay,
-    ProgressBar,
-    StatusBadge,
+  ConfidenceBadge,
+  MetroButton,
+  MetroCard,
+  PriceDisplay,
+  ProgressBar,
+  StatusBadge,
 } from '@/components/metro';
+import { Fonts, FontSizes, MetroColors, Spacing } from '@/constants/theme';
+import { useApp, useCart, usePledges } from '@/context/AppContext';
 import { comparePrices, evaluateBulkBuy } from '@/services/agents';
-import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
-import { useCart, usePledges, useApp } from '@/context/AppContext';
 import {
-    createPledge,
-    fetchBulkOrderForProduct,
-    fetchProductById,
+  createPledge,
+  fetchBulkOrderForProduct,
+  fetchProductById,
 } from '@/services/api';
-<<<<<<< Updated upstream
-import { AgentDecision, BulkOrder, PriceComparison, Product } from '@/types';
-=======
 import {
-    getSplittableItemById,
-    getSplitProgress as getSplittableProgress,
-    SplittableItem,
+  getSplittableItemById,
+  getSplitProgress as getSplittableProgress,
+  SplittableItem,
 } from '@/services/splittableItems';
 import { AgentDecision, BulkOrder, PriceComparison, Product } from '@/types';
->>>>>>> Stashed changes
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ItemDetailModal() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -61,17 +54,7 @@ export default function ItemDetailModal() {
   const [loading, setLoading] = useState(true);
   const [pledging, setPledging] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [id]);
-
-  useEffect(() => {
-    if (product && quantity) {
-      runAgentAnalysis();
-    }
-  }, [product, quantity]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
 
@@ -97,9 +80,9 @@ export default function ItemDetailModal() {
     }
 
     setLoading(false);
-  };
+  }, [id]);
 
-  const runAgentAnalysis = async () => {
+  const runAgentAnalysis = useCallback(async () => {
     if (!product) return;
     
     const qty = parseInt(quantity) || 1;
@@ -124,7 +107,17 @@ export default function ItemDetailModal() {
     
     setPriceComparison(comparison);
     setAgentDecision(decision);
-  };
+  }, [product, quantity, bulkOrder?.totalQuantity]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    if (product && quantity) {
+      runAgentAnalysis();
+    }
+  }, [product, quantity, runAgentAnalysis]);
 
   const handlePledge = async () => {
     if (!product) return;
@@ -406,7 +399,7 @@ export default function ItemDetailModal() {
                 retailPrice: splittableItem.total_price,
                 bulkPrice: splittableItem.price_per_unit,
                 bulkMinimum: splittableItem.pack_quantity,
-                store: { id: 'split-store', name: 'Split Order', location: { latitude: 0, longitude: 0 } },
+                store: { id: 'split-store', name: 'Split Order', type: 'wholesale', location: { latitude: 0, longitude: 0 } },
                 available: true,
               };
               addToCart(productForCart, qty);
@@ -473,11 +466,7 @@ export default function ItemDetailModal() {
             <View style={styles.vsContainer}>
               <Text style={styles.vsText}>VS</Text>
               <View style={styles.savingsArrow}>
-<<<<<<< Updated upstream
-                <Text style={styles.arrowText}>-></Text>
-=======
                 <Text style={styles.arrowText}>{'->'}</Text>
->>>>>>> Stashed changes
               </View>
             </View>
             
