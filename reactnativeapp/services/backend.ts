@@ -183,6 +183,30 @@ export async function searchProductsFromBackend(query: string): Promise<Product[
   );
 }
 
+export async function createProductInBackend(product: Product): Promise<{ success: boolean; product?: Product; error?: string }> {
+  try {
+    const client = getDataClient();
+    const { data: created, errors } = await client.models.Product.create({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      description: product.description || '',
+      unit: product.unit,
+      retailPrice: product.retailPrice,
+      bulkPrice: product.bulkPrice,
+      bulkMinimum: product.bulkMinimum,
+      storeJson: JSON.stringify(product.store),
+      available: product.available ?? true,
+      image: product.image,
+    });
+    if (errors?.length) return { success: false, error: errors[0].message };
+    if (!created) return { success: false, error: 'Create failed' };
+    return { success: true, product: productFromRecord(created as never) };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
 // ============================================
 // PLEDGES (owner = current user)
 // ============================================
@@ -615,6 +639,47 @@ export async function updateMissionStatusInBackend(
       return { success: false, error: errors[0].message };
     }
     console.log('[updateMissionStatusInBackend] ✅ Status updated successfully');
+    
+    // When mission is completed, mark all related pledges and bulk orders as completed
+    if (status === 'completed') {
+      console.log('[updateMissionStatusInBackend] Marking related pledges and orders as completed...');
+      
+      // Get the mission to find related bulk orders
+      const { data: mission } = await client.models.Mission.get({ id: missionId });
+      if (mission && mission.bulkOrderIdsJson) {
+        const bulkOrderIds = JSON.parse(mission.bulkOrderIdsJson as string) as string[];
+        
+        for (const orderId of bulkOrderIds) {
+          // Update bulk order status
+          await client.models.BulkOrder.update({
+            id: orderId,
+            status: 'completed',
+          });
+          console.log('[updateMissionStatusInBackend] ✅ Bulk order completed:', orderId);
+          
+          // Get the bulk order to find its productId
+          const { data: bulkOrder } = await client.models.BulkOrder.get({ id: orderId });
+          if (bulkOrder) {
+            // Find all pledges for this product and mark as completed
+            const { data: pledges } = await client.models.Pledge.list({
+              filter: { productId: { eq: bulkOrder.productId } }
+            });
+            
+            for (const pledge of pledges || []) {
+              if (pledge.status === 'active' || pledge.status === 'locked') {
+                await client.models.Pledge.update({
+                  id: pledge.id,
+                  status: 'completed',
+                  completedAt: new Date().toISOString(),
+                });
+                console.log('[updateMissionStatusInBackend] ✅ Pledge completed:', pledge.id);
+              }
+            }
+          }
+        }
+      }
+    }
+    
     return { success: true };
   } catch (e) {
     console.error('[updateMissionStatusInBackend] Exception:', e);
@@ -1019,6 +1084,54 @@ export async function signUpBackend(
 
 export async function signOutBackend(): Promise<void> {
   await Auth.signOut();
+}
+
+/**
+ * Clear all backend data (pledges, distributions, missions, bulk orders)
+ * Call this on app startup for clean testing
+ */
+export async function clearAllBackendData(): Promise<void> {
+  if (!isBackendConfigured()) {
+    console.log('[clearAllBackendData] Backend not configured, skipping');
+    return;
+  }
+  
+  console.log('[clearAllBackendData] 🧹 Clearing all backend data...');
+  const client = getDataClient();
+  
+  try {
+    // Clear distributions
+    const { data: distributions } = await client.models.Distribution.list();
+    for (const dist of distributions || []) {
+      await client.models.Distribution.delete({ id: dist.id });
+    }
+    console.log('[clearAllBackendData] ✅ Cleared', distributions?.length || 0, 'distributions');
+    
+    // Clear pledges
+    const { data: pledges } = await client.models.Pledge.list();
+    for (const pledge of pledges || []) {
+      await client.models.Pledge.delete({ id: pledge.id });
+    }
+    console.log('[clearAllBackendData] ✅ Cleared', pledges?.length || 0, 'pledges');
+    
+    // Clear missions
+    const { data: missions } = await client.models.Mission.list();
+    for (const mission of missions || []) {
+      await client.models.Mission.delete({ id: mission.id });
+    }
+    console.log('[clearAllBackendData] ✅ Cleared', missions?.length || 0, 'missions');
+    
+    // Clear bulk orders
+    const { data: bulkOrders } = await client.models.BulkOrder.list();
+    for (const order of bulkOrders || []) {
+      await client.models.BulkOrder.delete({ id: order.id });
+    }
+    console.log('[clearAllBackendData] ✅ Cleared', bulkOrders?.length || 0, 'bulk orders');
+    
+    console.log('[clearAllBackendData] ✅ All backend data cleared!');
+  } catch (e) {
+    console.error('[clearAllBackendData] Error:', e);
+  }
 }
 
 /**

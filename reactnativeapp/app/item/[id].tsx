@@ -268,11 +268,19 @@ export default function ItemDetailModal() {
                   ${((regionalRetailPrice || splittableItem.price_per_unit * 1.35) - splittableItem.price_per_unit).toFixed(2)}
                 </Text>
                 <StatusBadge
-                  label={`-${((((regionalRetailPrice || splittableItem.price_per_unit * 1.35) - splittableItem.price_per_unit) / (regionalRetailPrice || splittableItem.price_per_unit * 1.35)) * 100).toFixed(0)}% OFF`}
+                  label={`${((((regionalRetailPrice || splittableItem.price_per_unit * 1.35) - splittableItem.price_per_unit) / (regionalRetailPrice || splittableItem.price_per_unit * 1.35)) * 100).toFixed(0)}% OFF`}
                   variant="success"
                   size="md"
                 />
               </View>
+            </View>
+            
+            {/* Total savings for selected quantity */}
+            <View style={styles.agentStat}>
+              <Text style={styles.agentStatLabel}>ESTIMATED BULK SAVINGS</Text>
+              <Text style={styles.agentStatValue}>
+                ${(((regionalRetailPrice || splittableItem.price_per_unit * 1.35) - splittableItem.price_per_unit) * qty).toFixed(2)}
+              </Text>
             </View>
           </MetroCard>
 
@@ -324,7 +332,9 @@ export default function ItemDetailModal() {
 
             <Text style={styles.progressNote}>
               {progress >= 1
-                ? 'Split complete! Order will execute at cutoff.'
+                ? qty > splittableItem.pack_quantity
+                  ? `Bulk minimum reached! Your order of ${qty} will create ${Math.ceil(qty / splittableItem.pack_quantity)} bulk orders.`
+                  : 'Bulk minimum reached! Order will execute at cutoff.'
                 : `Need ${Math.ceil(splittableItem.pack_quantity - (splitProgress?.pledgedQuantity || 0) - qty)} more units to complete split.`
               }
             </Text>
@@ -361,7 +371,8 @@ export default function ItemDetailModal() {
                 title="+"
                 variant="secondary"
                 size="md"
-                onPress={() => setQuantity(String(Math.min(qty + 1, splittableItem.pack_quantity)))}
+                onPress={() => setQuantity(String(qty + 1))}
+              />
               />
             </View>
 
@@ -588,7 +599,9 @@ export default function ItemDetailModal() {
           
           <Text style={styles.progressNote}>
             {progress >= 1
-              ? 'Bulk minimum reached! Order will execute at cutoff.'
+              ? qty > product.bulkMinimum
+                ? `Bulk minimum reached! Your order of ${qty} ${product.unit} will create ${Math.ceil(qty / product.bulkMinimum)} bulk orders.`
+                : 'Bulk minimum reached! Order will execute at cutoff.'
               : `Need ${Math.ceil(product.bulkMinimum - (bulkOrder?.totalQuantity || 0) - qty)} more ${product.unit} to reach bulk pricing.`
             }
           </Text>
