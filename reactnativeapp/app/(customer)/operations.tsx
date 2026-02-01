@@ -7,24 +7,26 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as ExpoLocation from 'expo-location';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  View
+    Dimensions,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import LeafletMap from '@/components/LeafletMap';
 import {
-  MetroButton,
-  PulseRadar,
-  StatusBadge
+    MetroButton,
+    PulseRadar,
+    StatusBadge
 } from '@/components/metro';
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { useApp } from '@/context/AppContext';
+import { fetchUserDistribution } from '@/services/api';
 import { findOptimalDropZone } from '@/services/kmeans';
-import { currentUser, mockDistributions, mockMissions, mockUsers } from '@/services/mockData';
-import { Location } from '@/types';
+import { currentUser, mockMissions, mockUsers } from '@/services/mockData';
+import { Distribution, Location } from '@/types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -41,14 +43,25 @@ const orderCustomers = [
 const kmeansResult = findOptimalDropZone(orderCustomers);
 
 export default function OperationsScreen() {
+  const { user } = useApp();
   const [activeMissions] = useState(mockMissions.filter(
     m => !['completed', 'available'].includes(m.status)
   ));
   const [userLocation, setUserLocation] = useState<Location | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [userDistribution, setUserDistribution] = useState<Distribution | null>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
 
   const currentMission = activeMissions[0];
+
+  // Fetch user's active distribution
+  useEffect(() => {
+    const loadDistribution = async () => {
+      const dist = await fetchUserDistribution(user.id);
+      setUserDistribution(dist);
+    };
+    loadDistribution();
+  }, [user.id]);
 
   // Get user's real GPS location
   useEffect(() => {
@@ -181,25 +194,31 @@ export default function OperationsScreen() {
               {/* Your Items */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>YOUR ITEMS</Text>
-                {mockDistributions.slice(0, 2).map((dist) => (
-                  <View key={dist.id} style={styles.itemCard}>
-                    <View style={styles.itemRow}>
-                      <View>
-                        <Text style={styles.itemName}>{dist.items[0].productName}</Text>
-                        <Text style={styles.itemQuantity}>{dist.items[0].quantity} units</Text>
+                {userDistribution ? (
+                  userDistribution.items.map((item, index) => (
+                    <View key={index} style={styles.itemCard}>
+                      <View style={styles.itemRow}>
+                        <View>
+                          <Text style={styles.itemName}>{item.productName}</Text>
+                          <Text style={styles.itemQuantity}>{item.quantity} units</Text>
+                        </View>
+                        <StatusBadge label={userDistribution.status.toUpperCase()} variant="warning" size="sm" />
                       </View>
-                      <StatusBadge label={dist.status.toUpperCase()} variant="warning" size="sm" />
                     </View>
+                  ))
+                ) : (
+                  <View style={styles.itemCard}>
+                    <Text style={styles.itemQuantity}>No items to pick up</Text>
                   </View>
-                ))}
+                )}
               </View>
 
-              {/* Pickup Code */}
+              {/* Pickup PIN */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>PICKUP CODE</Text>
+                <Text style={styles.sectionTitle}>PICKUP PIN</Text>
                 <View style={styles.codeCard}>
-                  <Text style={styles.codeLabel}>Show this to your runner</Text>
-                  <Text style={styles.codeValue}>{mockDistributions[0]?.qrCode || 'N/A'}</Text>
+                  <Text style={styles.codeLabel}>Show this PIN to your runner</Text>
+                  <Text style={styles.codeValue}>{userDistribution?.pickupPin || '----'}</Text>
                 </View>
               </View>
 

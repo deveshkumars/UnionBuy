@@ -4,7 +4,7 @@
  */
 
 import { Auth, configureAmplify, getDataClient, isBackendConfigured } from '@/lib/amplify';
-import type { BulkOrder, Location, Pledge, Product, Store, User } from '@/types';
+import type { BulkOrder, Distribution, Location, Mission, Pledge, Product, RouteInfo, Store, User } from '@/types';
 
 // Use API key client for everything (no auth required)
 const getClient = getDataClient;
@@ -252,6 +252,285 @@ export async function fetchBulkOrdersFromBackend(): Promise<BulkOrder[]> {
 export async function fetchActiveBulkOrdersFromBackend(): Promise<BulkOrder[]> {
   const all = await fetchBulkOrdersFromBackend();
   return all.filter((o) => o.status === 'collecting');
+}
+
+// ============================================
+// MISSIONS
+// ============================================
+
+function parseStoresJson(json: string): Store[] {
+  try {
+    const stores = JSON.parse(json) as Store[];
+    return stores.map(s => ({
+      id: s.id ?? '',
+      name: s.name ?? '',
+      type: s.type ?? 'retail',
+      location: s.location ?? { latitude: 0, longitude: 0 },
+      logo: s.logo,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function parseRouteJson(json: string): RouteInfo {
+  try {
+    const route = JSON.parse(json) as RouteInfo;
+    return {
+      stores: route.stores ?? [],
+      dropZone: route.dropZone ?? { latitude: 0, longitude: 0 },
+      totalDistance: route.totalDistance ?? 0,
+      estimatedTime: route.estimatedTime ?? 0,
+      optimizedOrder: route.optimizedOrder ?? [],
+    };
+  } catch {
+    return {
+      stores: [],
+      dropZone: { latitude: 0, longitude: 0 },
+      totalDistance: 0,
+      estimatedTime: 0,
+      optimizedOrder: [],
+    };
+  }
+}
+
+function missionFromRecord(r: {
+  id: string;
+  runnerId?: string | null;
+  status: string;
+  estimatedEarnings: number;
+  tips?: number | null;
+  totalItems: number;
+  totalWeight?: number | null;
+  storesJson: string;
+  routeJson: string;
+  dropZoneJson: string;
+  createdAt: string;
+  acceptedAt?: string | null;
+  completedAt?: string | null;
+}): Mission {
+  return {
+    id: r.id,
+    orders: [], // Orders are fetched separately if needed
+    runnerId: r.runnerId ?? undefined,
+    status: r.status as Mission['status'],
+    estimatedEarnings: r.estimatedEarnings,
+    tips: r.tips ?? 0,
+    totalItems: r.totalItems,
+    totalWeight: r.totalWeight ?? undefined,
+    stores: parseStoresJson(r.storesJson),
+    route: parseRouteJson(r.routeJson),
+    dropZone: parseLocation(r.dropZoneJson),
+    createdAt: r.createdAt,
+    acceptedAt: r.acceptedAt ?? undefined,
+    completedAt: r.completedAt ?? undefined,
+  };
+}
+
+export async function fetchAvailableMissionsFromBackend(): Promise<Mission[]> {
+  try {
+    const client = getClient();
+    const { data } = await client.models.Mission.list({ filter: { status: { eq: 'available' } } });
+    return data.map((r) => missionFromRecord(r as never));
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchMissionByIdFromBackend(missionId: string): Promise<Mission | null> {
+  try {
+    const client = getClient();
+    const { data } = await client.models.Mission.get({ id: missionId });
+    return data ? missionFromRecord(data as never) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function acceptMissionInBackend(
+  missionId: string,
+  runnerId: string
+): Promise<{ success: boolean; mission?: Mission; error?: string }> {
+  try {
+    const client = getClient();
+    const { data: existing } = await client.models.Mission.get({ id: missionId });
+    if (!existing || existing.status !== 'available') {
+      return { success: false, error: 'Mission not available' };
+    }
+    const { data: updated, errors } = await client.models.Mission.update({
+      id: missionId,
+      runnerId,
+      status: 'accepted',
+      acceptedAt: new Date().toISOString(),
+    });
+    if (errors?.length) return { success: false, error: errors[0].message };
+    if (!updated) return { success: false, error: 'Update failed' };
+    return { success: true, mission: missionFromRecord(updated as never) };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+export async function updateMissionStatusInBackend(
+  missionId: string,
+  status: Mission['status']
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getClient();
+    const updateData: Record<string, unknown> = { id: missionId, status };
+    if (status === 'completed') {
+      updateData.completedAt = new Date().toISOString();
+    }
+    const { errors } = await client.models.Mission.update(updateData as never);
+    if (errors?.length) return { success: false, error: errors[0].message };
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+// ============================================
+// DISTRIBUTIONS
+// ============================================
+
+function parseDistributionItems(json: string): Distribution['items'] {
+  try {
+    return JSON.parse(json) as Distribution['items'];
+  } catch {
+    return [];
+  }
+}
+
+function distributionFromRecord(r: {
+  id: string;
+  missionId: string;
+  userId: string;
+  itemsJson: string;
+  pickupPin: string;
+  status: string;
+  createdAt: string;
+  scheduledTime?: string | null;
+  completedAt?: string | null;
+}): Omit<Distribution, 'user'> & { visitorUserId: string } {
+  return {
+    id: r.id,
+    missionId: r.missionId,
+    userId: r.userId,
+    visitorUserId: r.userId, // For fetching user separately
+    items: parseDistributionItems(r.itemsJson),
+    pickupPin: r.pickupPin,
+    status: r.status as Distribution['status'],
+    scheduledTime: r.scheduledTime ?? undefined,
+    completedAt: r.completedAt ?? undefined,
+  };
+}
+
+export async function fetchDistributionsForMissionFromBackend(missionId: string): Promise<Distribution[]> {
+  try {
+    const client = getClient();
+    const { data } = await client.models.Distribution.list({ filter: { missionId: { eq: missionId } } });
+    // Note: We don't have the full User object here, would need to fetch separately
+    return data.map((r) => {
+      const dist = distributionFromRecord(r as never);
+      return {
+        ...dist,
+        user: { id: dist.userId, name: 'Customer', email: '', phone: '', role: 'customer' as const, location: { latitude: 0, longitude: 0 }, trustScore: 5, joinedAt: '' },
+      } as Distribution;
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchDistributionForUserFromBackend(userId: string): Promise<Distribution | null> {
+  try {
+    const client = getClient();
+    const { data } = await client.models.Distribution.list({ 
+      filter: { 
+        userId: { eq: userId },
+        status: { ne: 'completed' } // Get active distribution
+      } 
+    });
+    if (data.length === 0) return null;
+    const dist = distributionFromRecord(data[0] as never);
+    return {
+      ...dist,
+      user: { id: dist.userId, name: 'Customer', email: '', phone: '', role: 'customer' as const, location: { latitude: 0, longitude: 0 }, trustScore: 5, joinedAt: '' },
+    } as Distribution;
+  } catch {
+    return null;
+  }
+}
+
+export async function verifyDistributionPinInBackend(
+  distributionId: string,
+  pin: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getClient();
+    const { data: existing } = await client.models.Distribution.get({ id: distributionId });
+    if (!existing) return { success: false, error: 'Distribution not found' };
+    if (existing.pickupPin !== pin) return { success: false, error: 'Invalid PIN' };
+    
+    const { errors } = await client.models.Distribution.update({
+      id: distributionId,
+      status: 'verified',
+    });
+    if (errors?.length) return { success: false, error: errors[0].message };
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+export async function updateDistributionStatusInBackend(
+  distributionId: string,
+  status: Distribution['status']
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getClient();
+    const updateData: Record<string, unknown> = { id: distributionId, status };
+    if (status === 'completed') {
+      updateData.completedAt = new Date().toISOString();
+    }
+    const { errors } = await client.models.Distribution.update(updateData as never);
+    if (errors?.length) return { success: false, error: errors[0].message };
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+export async function createDistributionInBackend(
+  missionId: string,
+  userId: string,
+  items: Distribution['items'],
+  pickupPin: string,
+  scheduledTime?: string
+): Promise<{ success: boolean; distribution?: Distribution; error?: string }> {
+  try {
+    const client = getClient();
+    const { data: created, errors } = await client.models.Distribution.create({
+      missionId,
+      userId,
+      itemsJson: JSON.stringify(items),
+      pickupPin,
+      status: 'pending',
+      scheduledTime: scheduledTime || null,
+    });
+    if (errors?.length) return { success: false, error: errors[0].message };
+    if (!created) return { success: false, error: 'Create failed' };
+    const dist = distributionFromRecord({ ...created, createdAt: created.createdAt ?? new Date().toISOString() } as never);
+    return {
+      success: true,
+      distribution: {
+        ...dist,
+        user: { id: dist.userId, name: 'Customer', email: '', phone: '', role: 'customer' as const, location: { latitude: 0, longitude: 0 }, trustScore: 5, joinedAt: '' },
+      } as Distribution,
+    };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
 }
 
 // ============================================

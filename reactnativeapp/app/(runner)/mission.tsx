@@ -111,11 +111,12 @@ export default function MissionScreen() {
 
             if (result.success) {
               if (nextStatus === 'completed') {
-                Alert.alert(
-                  'Mission Complete!',
-                  `You earned $${(displayMission.estimatedEarnings + displayMission.tips).toFixed(2)}`,
-                  [{ text: 'OK', onPress: () => setActiveMission(null) }]
-                );
+                // Keep mission in state with completed status to show earnings summary
+                setActiveMission({ 
+                  ...displayMission, 
+                  status: 'completed', 
+                  completedAt: new Date().toISOString() 
+                });
               } else {
                 setActiveMission({ ...displayMission, status: nextStatus });
               }
@@ -228,8 +229,45 @@ export default function MissionScreen() {
             onPress={handleAdvanceStatus}
           />
         ) : (
-          <View style={styles.completedBanner}>
-            <Text style={styles.completedText}>MISSION COMPLETE</Text>
+          <View style={styles.completedContainer}>
+            {/* Earnings Summary */}
+            <View style={styles.earningsSummary}>
+              <Text style={styles.completedTitle}>🎉 MISSION COMPLETE!</Text>
+              <View style={styles.earningsRow}>
+                <View style={styles.earningsItem}>
+                  <Text style={styles.earningsLabel}>BASE EARNINGS</Text>
+                  <Text style={styles.earningsValue}>
+                    ${displayMission.estimatedEarnings.toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.earningsDivider} />
+                <View style={styles.earningsItem}>
+                  <Text style={styles.earningsLabel}>TIPS</Text>
+                  <Text style={styles.earningsValue}>
+                    ${(displayMission.tips || 0).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.earningsDivider} />
+                <View style={styles.earningsItem}>
+                  <Text style={styles.earningsLabel}>TOTAL</Text>
+                  <Text style={[styles.earningsValue, styles.earningsTotal]}>
+                    ${(displayMission.estimatedEarnings + (displayMission.tips || 0)).toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            
+            {/* Return to Job Board Button */}
+            <MetroButton
+              title="START NEW MISSION"
+              variant="primary"
+              size="lg"
+              fullWidth
+              onPress={() => {
+                setActiveMission(null);
+                router.replace('/(runner)');
+              }}
+            />
           </View>
         )}
       </View>
@@ -461,18 +499,42 @@ const styles = StyleSheet.create({
     padding: Spacing[4],
     paddingBottom: Spacing[6],
   },
-  completedBanner: {
-    backgroundColor: MetroColors.accent.green,
-    paddingVertical: Spacing[4],
+  completedContainer: {
+    gap: Spacing[4],
+  },
+  earningsSummary: {
+    backgroundColor: MetroColors.background.secondary,
     borderRadius: 4,
-    alignItems: 'center',
+    padding: Spacing[4],
+    borderWidth: 2,
+    borderColor: MetroColors.accent.green,
     ...Shadows.glow(MetroColors.accent.green),
   },
-  completedText: {
-    color: MetroColors.background.primary,
+  completedTitle: {
+    color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
-    letterSpacing: 2,
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: Spacing[3],
+    letterSpacing: 1,
+  },
+  earningsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  earningsItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  earningsDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: MetroColors.border.default,
+  },
+  earningsTotal: {
+    color: MetroColors.accent.green,
+    fontSize: FontSizes['2xl'],
   },
 });

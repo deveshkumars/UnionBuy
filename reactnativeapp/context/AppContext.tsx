@@ -4,11 +4,11 @@
  * Integrates with DynamoDB UserProfile when backend is configured
  */
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
-import { User, UserRole, CartItem, Product, Pledge, Mission } from '@/types';
-import { currentUser, currentRunner } from '@/services/mockData';
 import { getOrCreateUserProfile, updateUserProfile as updateUserProfileApi } from '@/services/api';
 import { isBackendConfigured } from '@/services/backend';
+import { currentRunner, currentUser } from '@/services/mockData';
+import { CartItem, Mission, Pledge, Product, User, UserRole } from '@/types';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useReducer } from 'react';
 
 // ============================================
 // STATE TYPES

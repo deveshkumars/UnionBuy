@@ -153,26 +153,6 @@ export default function ChecklistScreen() {
           );
         })}
 
-        {/* Receipt Scan Option */}
-        <MetroCard style={styles.receiptCard}>
-          <View style={styles.receiptContent}>
-            <View style={styles.receiptIcon}>
-              <Text style={styles.receiptIconText}>⌗</Text>
-            </View>
-            <View style={styles.receiptInfo}>
-              <Text style={styles.receiptTitle}>VERIFY RECEIPT</Text>
-              <Text style={styles.receiptSubtext}>
-                Scan your receipt to verify purchase
-              </Text>
-            </View>
-          </View>
-          <MetroButton
-            title="SCAN RECEIPT"
-            variant="secondary"
-            size="sm"
-            onPress={() => {}}
-          />
-        </MetroCard>
       </ScrollView>
 
       {/* Bottom Action */}
@@ -420,42 +400,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.mono,
     fontSize: FontSizes.md,
     fontWeight: '500',
-  },
-  receiptCard: {
-    marginTop: Spacing[4],
-  },
-  receiptContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing[3],
-  },
-  receiptIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 4,
-    backgroundColor: MetroColors.background.tertiary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing[3],
-  },
-  receiptIconText: {
-    color: MetroColors.accent.cyan,
-    fontSize: 24,
-  },
-  receiptInfo: {
-    flex: 1,
-  },
-  receiptTitle: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  receiptSubtext: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
   },
   bottomAction: {
     padding: Spacing[4],

@@ -15,11 +15,16 @@ import {
     Wallet,
 } from '@/types';
 import {
+    acceptMissionInBackend,
     cancelPledgeInBackend,
+    createDistributionInBackend,
     createPledgeInBackend,
     createUserProfileInBackend,
     fetchActiveBulkOrdersFromBackend,
+    fetchAvailableMissionsFromBackend,
     fetchBulkOrdersFromBackend,
+    fetchDistributionForUserFromBackend,
+    fetchDistributionsForMissionFromBackend,
     fetchProductByIdFromBackend,
     fetchProductsFromBackend,
     fetchUserPledgesFromBackend,
@@ -28,7 +33,10 @@ import {
     getOrCreateUserProfile as getOrCreateUserProfileFromBackend,
     isBackendConfigured,
     searchProductsFromBackend,
+    updateDistributionStatusInBackend,
+    updateMissionStatusInBackend,
     updateUserProfileInBackend,
+    verifyDistributionPinInBackend,
 } from './backend';
 import {
     currentRunner,
@@ -224,8 +232,9 @@ export async function createPledge(
       console.log('[createPledge] ✅ Mission activated:', demoMission.id);
     }
     
-    // 4. Create a distribution for this user
-    const newDistribution = {
+    // 4. Create a distribution for this user with 4-digit PIN
+    const pickupPin = Math.floor(1000 + Math.random() * 9000).toString();
+    const newDistribution: Distribution = {
       id: `dist-demo-${Date.now()}`,
       missionId: 'mission-demo',
       userId: effectiveUserId,
@@ -233,12 +242,12 @@ export async function createPledge(
       items: [
         { productId, productName: product.name, quantity, verified: false },
       ],
-      qrCode: `METRO-${productId.toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      pickupPin,
       status: 'pending' as const,
       scheduledTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
     };
     mockDistributions.push(newDistribution);
-    console.log('[createPledge] ✅ Distribution created:', newDistribution.id, 'QR:', newDistribution.qrCode);
+    console.log('[createPledge] ✅ Distribution created:', newDistribution.id, 'PIN:', newDistribution.pickupPin);
     
     // 5. Update trending item
     const trendingItem = mockTrendingItems.find(t => t.product.id === productId);
@@ -285,6 +294,66 @@ export async function cancelPledge(pledgeId: string): Promise<{ success: boolean
   return { success: true };
 }
 
+export async function repledgePledge(
+  pledgeId: string,
+  userId?: string
+): Promise<{ success: boolean; pledge?: Pledge; error?: string }> {
+  console.log('[repledgePledge] Re-pledging rollover pledge:', pledgeId);
+  const effectiveUserId = userId || currentUser.id;
+  
+  await delay(600);
+  
+  const oldPledge = mockPledges.find((p) => p.id === pledgeId);
+  if (!oldPledge) {
+    return { success: false, error: 'Pledge not found' };
+  }
+  
+  if (oldPledge.status !== 'rollover') {
+    return { success: false, error: 'Can only re-pledge rollover items' };
+  }
+  
+  // Find or create a current bulk order for this product
+  let bulkOrder = mockBulkOrders.find(
+    (o) => o.productId === oldPledge.productId && o.status === 'collecting'
+  );
+  
+  // If no collecting order exists, we could create one or return error
+  // For now, we'll just create a new pledge with locked status
+  const product = oldPledge.product;
+  const unitPrice = bulkOrder?.pricePerUnit || product.bulkPrice * 1.1;
+  const totalAmount = unitPrice * oldPledge.quantity;
+  const maxAmount = product.retailPrice * oldPledge.quantity;
+  
+  // Mark old pledge as cancelled
+  oldPledge.status = 'cancelled';
+  
+  // Create new pledge for current batch
+  const newPledge: Pledge = {
+    id: `pledge-${Date.now()}`,
+    userId: effectiveUserId,
+    productId: oldPledge.productId,
+    product,
+    quantity: oldPledge.quantity,
+    unitPrice,
+    totalAmount,
+    maxAmount,
+    status: 'locked',
+    createdAt: new Date().toISOString(),
+    lockedAt: new Date().toISOString(),
+    orderId: bulkOrder?.id,
+  };
+  
+  mockPledges.push(newPledge);
+  
+  // Update bulk order if exists
+  if (bulkOrder) {
+    bulkOrder.totalQuantity += oldPledge.quantity;
+  }
+  
+  console.log('[repledgePledge] ✅ Created new pledge from rollover:', newPledge.id);
+  return { success: true, pledge: newPledge };
+}
+
 // ============================================
 // TRENDING API
 // ============================================
@@ -308,6 +377,9 @@ export async function fetchWallet(userId: string): Promise<Wallet> {
 // ============================================
 
 export async function fetchAvailableMissions(): Promise<Mission[]> {
+  if (isBackendConfigured()) {
+    return fetchAvailableMissionsFromBackend();
+  }
   await delay(500);
   return mockMissions.filter((m) => m.status === 'available');
 }
@@ -324,8 +396,15 @@ export async function fetchActiveMission(runnerId: string): Promise<Mission | nu
 }
 
 export async function acceptMission(
-  missionId: string
+  missionId: string,
+  runnerId?: string
 ): Promise<{ success: boolean; mission?: Mission; error?: string }> {
+  const effectiveRunnerId = runnerId || currentRunner.id;
+  
+  if (isBackendConfigured()) {
+    return acceptMissionInBackend(missionId, effectiveRunnerId);
+  }
+  
   await delay(800);
   
   const mission = mockMissions.find((m) => m.id === missionId);
@@ -338,7 +417,7 @@ export async function acceptMission(
   }
 
   mission.status = 'accepted';
-  mission.runnerId = currentRunner.id;
+  mission.runnerId = effectiveRunnerId;
   mission.acceptedAt = new Date().toISOString();
   
   return { success: true, mission };
@@ -348,6 +427,10 @@ export async function updateMissionStatus(
   missionId: string,
   status: Mission['status']
 ): Promise<{ success: boolean; error?: string }> {
+  if (isBackendConfigured()) {
+    return updateMissionStatusInBackend(missionId, status);
+  }
+  
   await delay(500);
   
   const mission = mockMissions.find((m) => m.id === missionId);
@@ -367,15 +450,43 @@ export async function updateMissionStatus(
 // DISTRIBUTION API (Runner)
 // ============================================
 
+// Generate random 4-digit PIN for pickup verification
+export function generatePickupPin(): string {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
 export async function fetchDistributions(missionId: string): Promise<Distribution[]> {
+  if (isBackendConfigured()) {
+    return fetchDistributionsForMissionFromBackend(missionId);
+  }
   await delay(400);
   return mockDistributions.filter((d) => d.missionId === missionId);
 }
 
-export async function verifyDistribution(
+export async function fetchUserDistribution(userId: string): Promise<Distribution | null> {
+  if (isBackendConfigured()) {
+    return fetchDistributionForUserFromBackend(userId);
+  }
+  await delay(400);
+  // Find active distribution for user (not completed)
+  return mockDistributions.find((d) => d.userId === userId && d.status !== 'completed') || null;
+}
+
+export async function verifyDistributionPin(
   distributionId: string,
-  qrCode: string
+  pin: string
 ): Promise<{ success: boolean; distribution?: Distribution; error?: string }> {
+  if (isBackendConfigured()) {
+    const result = await verifyDistributionPinInBackend(distributionId, pin);
+    if (result.success) {
+      // Fetch updated distribution
+      const distributions = await fetchDistributionsForMissionFromBackend('');
+      const distribution = distributions.find(d => d.id === distributionId);
+      return { success: true, distribution };
+    }
+    return result;
+  }
+  
   await delay(600);
   
   const distribution = mockDistributions.find((d) => d.id === distributionId);
@@ -383,8 +494,8 @@ export async function verifyDistribution(
     return { success: false, error: 'Distribution not found' };
   }
 
-  if (distribution.qrCode !== qrCode) {
-    return { success: false, error: 'Invalid QR code' };
+  if (distribution.pickupPin !== pin) {
+    return { success: false, error: 'Invalid PIN' };
   }
 
   distribution.status = 'verified';
@@ -394,6 +505,10 @@ export async function verifyDistribution(
 export async function completeDistribution(
   distributionId: string
 ): Promise<{ success: boolean; error?: string }> {
+  if (isBackendConfigured()) {
+    return updateDistributionStatusInBackend(distributionId, 'completed');
+  }
+  
   await delay(500);
   
   const distribution = mockDistributions.find((d) => d.id === distributionId);
@@ -408,6 +523,36 @@ export async function completeDistribution(
   });
   
   return { success: true };
+}
+
+export async function createDistribution(
+  missionId: string,
+  userId: string,
+  items: Distribution['items'],
+  scheduledTime?: string
+): Promise<{ success: boolean; distribution?: Distribution; error?: string }> {
+  const pickupPin = generatePickupPin();
+  
+  if (isBackendConfigured()) {
+    return createDistributionInBackend(missionId, userId, items, pickupPin, scheduledTime);
+  }
+  
+  await delay(500);
+  
+  const user = mockUsers.find(u => u.id === userId) || mockUsers[0];
+  const newDistribution: Distribution = {
+    id: `dist-${Date.now()}`,
+    missionId,
+    userId,
+    user,
+    items,
+    pickupPin,
+    status: 'pending',
+    scheduledTime,
+  };
+  
+  mockDistributions.push(newDistribution);
+  return { success: true, distribution: newDistribution };
 }
 
 // ============================================

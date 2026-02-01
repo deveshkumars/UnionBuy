@@ -495,7 +495,7 @@ export const mockDistributions: Distribution[] = [
     items: [
       { productId: 'prod-4', productName: 'Chicken Breast', quantity: 5, verified: false },
     ],
-    qrCode: 'METRO-DIST-001-A7B3',
+    pickupPin: '4829',
     status: 'pending',
     scheduledTime: '2026-01-30T19:30:00Z',
   },
@@ -507,7 +507,7 @@ export const mockDistributions: Distribution[] = [
     items: [
       { productId: 'prod-4', productName: 'Chicken Breast', quantity: 8, verified: false },
     ],
-    qrCode: 'METRO-DIST-002-C9D4',
+    pickupPin: '7156',
     status: 'pending',
     scheduledTime: '2026-01-30T19:45:00Z',
   },

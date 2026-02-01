@@ -26,7 +26,7 @@ import {
 } from '@/components/metro';
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import { useApp, usePledges } from '@/context/AppContext';
-import { cancelPledge, fetchBulkOrderForProductAnyStatus, fetchUserPledges } from '@/services/api';
+import { cancelPledge, fetchBulkOrderForProductAnyStatus, fetchUserPledges, repledgePledge } from '@/services/api';
 import { Pledge } from '@/types';
 
 export default function PledgesScreen() {
@@ -73,6 +73,13 @@ export default function PledgesScreen() {
   };
 
   const handleCancelPledge = async (pledge: Pledge) => {
+    // Check if order is activated - don't allow cancel
+    const progress = orderProgress[pledge.productId];
+    if (progress?.status && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(progress.status)) {
+      Alert.alert('Cannot Cancel', 'This order has been activated and is in progress. Cancellation is no longer available.');
+      return;
+    }
+    
     Alert.alert(
       'Cancel Pledge',
       `Are you sure you want to cancel your pledge for ${pledge.product.name}? Your funds will be released.`,
@@ -93,6 +100,30 @@ export default function PledgesScreen() {
               Alert.alert('Success', 'Pledge cancelled successfully!');
             } else {
               Alert.alert('Error', result.error || 'Failed to cancel pledge');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRepledge = async (pledge: Pledge) => {
+    Alert.alert(
+      'Re-pledge Item',
+      `Re-pledge ${pledge.quantity} ${pledge.product.unit} of ${pledge.product.name} to today's batch?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Re-pledge',
+          onPress: async () => {
+            console.log('[Pledges] Re-pledging:', pledge.id);
+            const result = await repledgePledge(pledge.id, user.id);
+            if (result.success && result.pledge) {
+              // Reload pledges to show updated state
+              await loadPledges();
+              Alert.alert('Success', `Re-pledged ${pledge.product.name} to today's batch!`);
+            } else {
+              Alert.alert('Error', result.error || 'Failed to re-pledge');
             }
           },
         },
@@ -202,7 +233,7 @@ export default function PledgesScreen() {
                   title="Re-pledge"
                   variant="primary"
                   size="sm"
-                  onPress={() => Alert.alert('Re-pledge', 'Would move this into today’s batch.')}
+                  onPress={() => handleRepledge(pledge)}
                   style={styles.rolloverButton}
                 />
               </MetroCard>
@@ -334,7 +365,7 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
         </View>
       )}
 
-      {isActive && !['active'].includes(pledge.status) && (
+      {isActive && !['active'].includes(pledge.status) && !isOrderActivated && (
         <View style={styles.pledgeActions}>
           <MetroButton
             title="CANCEL"
