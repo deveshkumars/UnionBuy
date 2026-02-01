@@ -15,12 +15,20 @@ from models.schemas import (
     SecurityCheckOutput,
     EvaluateBulkBuyInput,
     EvaluateBulkBuyOutput,
+    RetailPriceInput,
+    RetailPriceOutput,
+    BulkPriceInput,
+    BulkPriceOutput,
+    SimpleBulkEvaluationInput,
+    SimpleBulkEvaluationOutput,
     Location,
     UserLocation,
 )
 from agents.price_comparison_agent import PriceComparisonAgent
 from agents.bulk_approval_agent import BulkApprovalAgent
 from agents.security_agent import SecurityAgent
+from agents.retail_price_agent import RetailPriceAgent
+from agents.bulk_price_agent import BulkPriceAgent
 from handlers.orchestrator import Orchestrator
 
 
@@ -28,19 +36,19 @@ router = APIRouter()
 
 
 # ============================================
-# ORCHESTRATOR ENDPOINT
+# ORCHESTRATOR ENDPOINTS
 # ============================================
 
 @router.post(
     "/evaluate-bulk-buy",
     response_model=EvaluateBulkBuyOutput,
-    summary="Evaluate a complete bulk buy",
+    summary="Evaluate a complete bulk buy (LEGACY)",
     description="Runs all three agents to evaluate a bulk buy opportunity"
 )
 async def evaluate_bulk_buy(input_data: EvaluateBulkBuyInput):
     """
-    Full orchestration flow for bulk buy evaluation.
-    
+    Full orchestration flow for bulk buy evaluation (legacy flow).
+
     This endpoint:
     1. Calls Agent 2 to get price comparison
     2. Calls Agent 1 to evaluate bulk approval
@@ -50,6 +58,32 @@ async def evaluate_bulk_buy(input_data: EvaluateBulkBuyInput):
     try:
         orchestrator = Orchestrator()
         result = orchestrator.evaluate(input_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/evaluate-bulk-buy-simple",
+    response_model=SimpleBulkEvaluationOutput,
+    summary="Evaluate bulk buy (NEW: CSV-based)",
+    description="Uses Agent 1 (retail price) + Agent 2 (CSV bulk price) for simplified evaluation"
+)
+async def evaluate_bulk_buy_simple(input_data: SimpleBulkEvaluationInput):
+    """
+    NEW simplified bulk evaluation flow using CSV dataset.
+
+    This endpoint:
+    1. Agent 1: Finds retail price with 25% markup (worst case)
+    2. Agent 2: Finds bulk price from GroceryDataset.csv
+    3. Calculates breakeven quantity and progress
+    4. Returns savings vs retail and progress toward bulk minimum
+
+    This is the recommended endpoint for the new flow.
+    """
+    try:
+        orchestrator = Orchestrator()
+        result = orchestrator.evaluate_simple(input_data)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -108,12 +142,52 @@ async def bulk_approval(input_data: BulkApprovalInput):
 async def security_check(input_data: SecurityCheckInput):
     """
     Perform security check on a user.
-    
     Verifies location proximity and trust score.
     """
     try:
         agent = SecurityAgent()
         result = agent.check(input_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/agents/retail-price",
+    response_model=RetailPriceOutput,
+    summary="Find retail price (NEW Agent 1)",
+    description="Agent 1: Find retail price with 25% markup"
+)
+async def retail_price(input_data: RetailPriceInput):
+    """
+    Get retail price with 25% markup (worst case scenario).
+
+    Returns average retail price and worst-case price for comparison.
+    """
+    try:
+        agent = RetailPriceAgent()
+        result = agent.find_retail_price(input_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/agents/bulk-price",
+    response_model=BulkPriceOutput,
+    summary="Analyze bulk price (NEW Agent 2)",
+    description="Agent 2: Find bulk price from CSV and calculate breakeven"
+)
+async def bulk_price(input_data: BulkPriceInput):
+    """
+    Analyze bulk pricing from CSV dataset.
+
+    Searches GroceryDataset.csv for product, calculates unit price,
+    adds fees, and computes breakeven quantity vs retail.
+    """
+    try:
+        agent = BulkPriceAgent()
+        result = agent.analyze(input_data)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

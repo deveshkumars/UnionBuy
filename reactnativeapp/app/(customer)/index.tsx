@@ -6,6 +6,7 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+<<<<<<< Updated upstream
     FlatList,
     RefreshControl,
     ScrollView,
@@ -14,6 +15,16 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+=======
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+>>>>>>> Stashed changes
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,15 +32,36 @@ import {
     DataTicker,
     InfoBar,
     MetroButton,
-    MetroCard,
+  <<<<<<< Updated upstream
+  MetroCard,
     PriceDisplay,
     ProgressBar,
     StatusBadge,
 } from '@/components/metro';
 import { FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useCart } from '@/context/AppContext';
+import { fetchTrendingItems, fetchProducts, searchProducts } from '@/services/api';
+import { TrendingItem, Product } from '@/types';
+=======
+  DataTicker,
+  InfoBar,
+  MetroButton,
+  MetroCard,
+  PriceDisplay,
+  ProgressBar,
+  StatusBadge,
+} from '@/components/metro';
+import { Fonts, FontSizes, MetroColors, Shadows, Spacing } from '@/constants/theme';
+import { useCart } from '@/context/AppContext';
 import { fetchProducts, fetchTrendingItems, searchProducts } from '@/services/api';
+import {
+  getAllSplittableItems,
+  getSplitProgress,
+  searchSplittableItems,
+  SplittableItem,
+} from '@/services/splittableItems';
 import { Product, TrendingItem } from '@/types';
+>>>>>>> Stashed changes
 
 export default function MarketScreen() {
   const router = useRouter();
@@ -37,6 +69,7 @@ export default function MarketScreen() {
   
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [splittableItems, setSplittableItems] = useState<SplittableItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -80,6 +113,7 @@ export default function MarketScreen() {
     ]);
     setTrendingItems(trending);
     setProducts(allProducts);
+    setSplittableItems(getAllSplittableItems());
   };
 
   const onRefresh = async () => {
@@ -91,17 +125,35 @@ export default function MarketScreen() {
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     if (query.length > 2) {
-      const results = await searchProducts(query);
-      setProducts(results);
+      const [productResults, splittableResults] = await Promise.all([
+        searchProducts(query),
+        Promise.resolve(searchSplittableItems(query))
+      ]);
+      setProducts(productResults);
+      setSplittableItems(splittableResults);
     } else if (query.length === 0) {
-      const allProducts = await fetchProducts();
+      const [allProducts, allSplittable] = await Promise.all([
+        fetchProducts(),
+        Promise.resolve(getAllSplittableItems())
+      ]);
       setProducts(allProducts);
+      setSplittableItems(allSplittable);
     }
   };
 
   const filteredProducts = selectedCategory
     ? products.filter((p) => p.category === selectedCategory)
     : products;
+
+  const filteredSplittableItems = selectedCategory
+    ? splittableItems.filter((item) => item.category.toLowerCase().includes(selectedCategory.toLowerCase()))
+    : splittableItems;
+
+  // Combine both product types into one unified list for Bulk Orders
+  const allBulkItems: Array<Product | SplittableItem> = [
+    ...filteredProducts,
+    ...filteredSplittableItems
+  ];
 
   const cartTotals = getCartTotal();
 
@@ -182,54 +234,102 @@ export default function MarketScreen() {
           </View>
         </View>
 
+<<<<<<< Updated upstream
+      {/* Categories */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoriesContainer}
+        contentContainerStyle={styles.categoriesContent}
+      >
+        <TouchableOpacity
+          style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
+          onPress={() => setSelectedCategory(null)}
+=======
+        {/* Trending Ticker (simplified text) */}
+        <DataTicker items={tickerData} speed={36} height={46} showChange={false} />
+
+        {/* Info Bar */}
+        <InfoBar
+          items={[
+            { label: 'HOT', value: trendingItems.length, highlight: true },
+            { label: 'ACTIVE ORDERS', value: allBulkItems.length },
+            { label: 'SAVED', value: '$2.8K' },
+          ]}
+        />
+
+        {/* Search */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputWrapper}>
+            <Text style={styles.searchIcon}>FND</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search products..."
+              placeholderTextColor={MetroColors.text.tertiary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoCapitalize="none"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <Text style={styles.clearIcon}>X</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         {/* Categories */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.categoriesContainer}
           contentContainerStyle={styles.categoriesContent}
+>>>>>>> Stashed changes
         >
+          <Text
+            style={[
+              styles.categoryText,
+              !selectedCategory && styles.categoryTextActive,
+            ]}
+          >
+            ALL
+          </Text>
+        </TouchableOpacity>
+        {categories.map((cat) => (
           <TouchableOpacity
-            style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
-            onPress={() => setSelectedCategory(null)}
+            key={cat}
+            style={[
+              styles.categoryChip,
+              selectedCategory === cat && styles.categoryChipActive,
+            ]}
+            onPress={() => setSelectedCategory(cat)}
           >
             <Text
               style={[
                 styles.categoryText,
-                !selectedCategory && styles.categoryTextActive,
+                selectedCategory === cat && styles.categoryTextActive,
               ]}
             >
-              ALL
+              {cat.toUpperCase()}
             </Text>
           </TouchableOpacity>
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[
-                styles.categoryChip,
-                selectedCategory === cat && styles.categoryChipActive,
-              ]}
-              onPress={() => setSelectedCategory(cat)}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === cat && styles.categoryTextActive,
-                ]}
-              >
-                {cat.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+        ))}
+      </ScrollView>
 
       {/* Products List */}
       <FlatList
-        data={filteredProducts}
+        data={allBulkItems}
         keyExtractor={(item) => item.id}
         numColumns={1}
         contentContainerStyle={styles.productsContainer}
+<<<<<<< Updated upstream
+=======
+        ListHeaderComponent={<View style={styles.listSpacer} />}
+        initialNumToRender={20}
+        maxToRenderPerBatch={20}
+        windowSize={10}
+        removeClippedSubviews={true}
+>>>>>>> Stashed changes
         ListHeaderComponent={<View style={styles.listSpacer} />}
         refreshControl={
           <RefreshControl
@@ -239,9 +339,111 @@ export default function MarketScreen() {
           />
         }
         renderItem={({ item }) => {
-          const trending = trendingItems.find((t) => t.product.id === item.id);
+          // Check if this is a splittable item (has title instead of name)
+          const isSplittableItem = 'title' in item;
+
+          if (isSplittableItem) {
+            const splitItem = item as SplittableItem;
+            const progress = getSplitProgress(splitItem.id);
+            const splitProgress = progress ? progress.progress : 0;
+
+            return (
+              <TouchableOpacity
+                activeOpacity={0.8}
+              >
+                <MetroCard
+                  variant={splitProgress >= 0.8 ? 'active' : 'default'}
+                  label={splitProgress >= 1 ? 'READY' : splitProgress >= 0.8 ? 'ALMOST' : undefined}
+                  style={styles.productCard}
+                >
+                  <View style={styles.productHeader}>
+                    <View style={styles.productInfo}>
+                      <Text style={styles.productName}>{splitItem.title}</Text>
+                      <Text style={styles.productCategory}>
+                        {splitItem.category.toUpperCase()} • {splitItem.pack_quantity}-PACK SPLIT
+                      </Text>
+                    </View>
+                    <StatusBadge
+                      label={`${splitItem.pack_quantity}x`}
+                      variant="info"
+                      size="md"
+                    />
+                  </View>
+
+                  <View style={styles.priceRow}>
+                    <View style={styles.priceCompare}>
+                      <View style={styles.priceItem}>
+                        <Text style={styles.priceLabel}>TOTAL</Text>
+                        <Text style={styles.retailPrice}>
+                          ${splitItem.total_price.toFixed(2)}
+                        </Text>
+                      </View>
+                      <Text style={styles.priceArrow}>{'→'}</Text>
+                      <View style={styles.priceItem}>
+                        <Text style={styles.priceLabel}>PER UNIT</Text>
+                        <PriceDisplay
+                          amount={splitItem.price_per_unit}
+                          size="lg"
+                          variant="highlight"
+                        />
+                      </View>
+                    </View>
+                    <Text style={styles.unitText}>/each</Text>
+                  </View>
+
+                  {progress && (
+                    <View style={styles.progressSection}>
+                      <View style={styles.progressHeader}>
+                        <Text style={styles.progressLabel}>
+                          {progress.pledgedQuantity}/{splitItem.pack_quantity} units pledged
+                        </Text>
+                        <Text style={styles.pledgeCount}>
+                          {progress.participantCount} neighbors
+                        </Text>
+                      </View>
+                      <ProgressBar progress={splitProgress} height={10} showLabel />
+                    </View>
+                  )}
+
+                  <View style={styles.cardActions}>
+                    <MetroButton
+                      title="VIEW DETAILS"
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => router.push(`/item/${splitItem.id}`)}
+                    />
+                    <MetroButton
+                      title="+ ADD"
+                      variant="primary"
+                      size="sm"
+                      onPress={() => {
+                        // Convert splittable item to Product format for cart
+                        const productForCart: Product = {
+                          id: splitItem.id,
+                          name: splitItem.title,
+                          category: splitItem.category.toLowerCase() as any,
+                          description: splitItem.description || splitItem.feature,
+                          unit: 'unit',
+                          retailPrice: splitItem.total_price,
+                          bulkPrice: splitItem.price_per_unit,
+                          bulkMinimum: splitItem.pack_quantity,
+                          store: { id: 'split-store', name: 'Split Order', location: { latitude: 0, longitude: 0 } },
+                          available: true,
+                        };
+                        addToCart(productForCart, 1);
+                      }}
+                    />
+                  </View>
+                </MetroCard>
+              </TouchableOpacity>
+            );
+          }
+
+          // Regular bulk order item
+          const product = item as Product;
+          const trending = trendingItems.find((t) => t.product.id === product.id);
           const progress = trending ? trending.percentToGoal / 100 : 0;
-          const savings = ((item.retailPrice - item.bulkPrice) / item.retailPrice) * 100;
+          const savings = ((product.retailPrice - product.bulkPrice) / product.retailPrice) * 100;
 
           return (
             <TouchableOpacity

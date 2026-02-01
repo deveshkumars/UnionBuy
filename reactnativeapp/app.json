@@ -8,6 +8,10 @@
     "scheme": "metropolis",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*",
+      "assets/**/*"
+    ],
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",

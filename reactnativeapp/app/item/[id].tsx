@@ -32,7 +32,16 @@ import {
     fetchBulkOrderForProduct,
     fetchProductById,
 } from '@/services/api';
+<<<<<<< Updated upstream
 import { AgentDecision, BulkOrder, PriceComparison, Product } from '@/types';
+=======
+import {
+    getSplittableItemById,
+    getSplitProgress as getSplittableProgress,
+    SplittableItem,
+} from '@/services/splittableItems';
+import { AgentDecision, BulkOrder, PriceComparison, Product } from '@/types';
+>>>>>>> Stashed changes
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,8 +53,9 @@ export default function ItemDetailModal() {
   const { user } = useApp();
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [splittableItem, setSplittableItem] = useState<SplittableItem | null>(null);
   const [bulkOrder, setBulkOrder] = useState<BulkOrder | null>(null);
-  const [quantity, setQuantity] = useState('5');
+  const [quantity, setQuantity] = useState('1');
   const [priceComparison, setPriceComparison] = useState<PriceComparison | null>(null);
   const [agentDecision, setAgentDecision] = useState<AgentDecision | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,14 +74,28 @@ export default function ItemDetailModal() {
   const loadData = async () => {
     if (!id) return;
     setLoading(true);
-    
-    const [productData, orderData] = await Promise.all([
-      fetchProductById(id),
-      fetchBulkOrderForProduct(id),
-    ]);
-    
-    setProduct(productData);
-    setBulkOrder(orderData);
+
+    // Check if this is a splittable item (ID starts with "split_")
+    const isSplittable = typeof id === 'string' && id.startsWith('split_');
+
+    if (isSplittable) {
+      // Load splittable item
+      const splittable = getSplittableItemById(id);
+      setSplittableItem(splittable);
+      setProduct(null);
+      setBulkOrder(null);
+    } else {
+      // Load regular product
+      const [productData, orderData] = await Promise.all([
+        fetchProductById(id),
+        fetchBulkOrderForProduct(id),
+      ]);
+
+      setProduct(productData);
+      setSplittableItem(null);
+      setBulkOrder(orderData);
+    }
+
     setLoading(false);
   };
 
@@ -149,7 +173,7 @@ export default function ItemDetailModal() {
     );
   };
 
-  if (loading || !product) {
+  if (loading || (!product && !splittableItem)) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -160,6 +184,253 @@ export default function ItemDetailModal() {
   }
 
   const qty = parseInt(quantity) || 1;
+
+  // If this is a splittable item, render different UI
+  if (splittableItem) {
+    const splitProgress = getSplittableProgress(splittableItem.id);
+    const progress = splitProgress
+      ? (splitProgress.pledgedQuantity + qty) / splittableItem.pack_quantity
+      : qty / splittableItem.pack_quantity;
+
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerLabel}>{splittableItem.category.toUpperCase()} • SPLIT ORDER</Text>
+            <Text style={styles.headerTitle}>{splittableItem.title}</Text>
+            <Text style={styles.headerSubtitle}>{splittableItem.pack_quantity}-Pack Split</Text>
+          </View>
+          <MetroButton
+            title="X"
+            variant="ghost"
+            size="sm"
+            onPress={() => router.back()}
+          />
+        </View>
+
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+          {/* Price Comparison Card */}
+          <MetroCard variant="active" style={styles.priceCard}>
+            <Text style={styles.sectionLabel}>PRICING</Text>
+
+            <View style={styles.priceComparison}>
+              <View style={styles.priceColumn}>
+                <Text style={styles.priceType}>TOTAL PACK</Text>
+                <PriceDisplay
+                  amount={splittableItem.total_price}
+                  size="xl"
+                  variant="muted"
+                />
+                <Text style={styles.unitPrice}>
+                  {splittableItem.pack_quantity} units
+                </Text>
+              </View>
+
+              <View style={styles.vsContainer}>
+                <Text style={styles.vsText}>÷</Text>
+                <View style={styles.savingsArrow}>
+                  <Text style={styles.arrowText}>{'->'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.priceColumn}>
+                <Text style={styles.priceType}>PER UNIT</Text>
+                <PriceDisplay
+                  amount={splittableItem.price_per_unit}
+                  size="xl"
+                  variant="highlight"
+                />
+                <Text style={styles.unitPrice}>
+                  per item
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.savingsBox}>
+              <Text style={styles.savingsLabel}>YOUR COST ({qty} {qty === 1 ? 'UNIT' : 'UNITS'})</Text>
+              <View style={styles.savingsRow}>
+                <Text style={styles.savingsAmount}>
+                  ${(splittableItem.price_per_unit * qty).toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          </MetroCard>
+
+          {/* Description */}
+          <MetroCard style={styles.progressCard}>
+            <Text style={styles.sectionLabel}>ABOUT</Text>
+            <Text style={styles.agentReasoning}>{splittableItem.description}</Text>
+            {splittableItem.feature && (
+              <View style={styles.agentStat}>
+                <Text style={styles.agentStatLabel}>FEATURES</Text>
+                <Text style={styles.progressNote}>{splittableItem.feature}</Text>
+              </View>
+            )}
+            {splittableItem.rating && (
+              <View style={styles.agentStat}>
+                <Text style={styles.agentStatLabel}>RATING</Text>
+                <Text style={styles.progressNote}>{splittableItem.rating}</Text>
+              </View>
+            )}
+          </MetroCard>
+
+          {/* Split Progress */}
+          <MetroCard style={styles.progressCard}>
+            <Text style={styles.sectionLabel}>SPLIT ORDER PROGRESS</Text>
+
+            <View style={styles.progressStats}>
+              <View style={styles.progressStat}>
+                <Text style={styles.progressStatValue}>
+                  {(splitProgress?.pledgedQuantity || 0) + qty}
+                </Text>
+                <Text style={styles.progressStatLabel}>PLEDGED</Text>
+              </View>
+              <View style={styles.progressStat}>
+                <Text style={styles.progressStatValue}>{splittableItem.pack_quantity}</Text>
+                <Text style={styles.progressStatLabel}>NEEDED</Text>
+              </View>
+              <View style={styles.progressStat}>
+                <Text style={[
+                  styles.progressStatValue,
+                  { color: progress >= 1 ? MetroColors.accent.green : MetroColors.accent.cyan }
+                ]}>
+                  {Math.round(progress * 100)}%
+                </Text>
+                <Text style={styles.progressStatLabel}>COMPLETE</Text>
+              </View>
+            </View>
+
+            <ProgressBar progress={Math.min(progress, 1)} height={12} showLabel />
+
+            <Text style={styles.progressNote}>
+              {progress >= 1
+                ? 'Split complete! Order will execute at cutoff.'
+                : `Need ${Math.ceil(splittableItem.pack_quantity - (splitProgress?.pledgedQuantity || 0) - qty)} more units to complete split.`
+              }
+            </Text>
+
+            {splitProgress && splitProgress.participantCount > 0 && (
+              <Text style={styles.progressNote}>
+                {splitProgress.participantCount} neighbors already joined
+              </Text>
+            )}
+          </MetroCard>
+
+          {/* Quantity Selector */}
+          <MetroCard style={styles.quantityCard}>
+            <Text style={styles.sectionLabel}>SELECT QUANTITY</Text>
+
+            <View style={styles.quantityRow}>
+              <MetroButton
+                title="−"
+                variant="secondary"
+                size="md"
+                onPress={() => setQuantity(String(Math.max(1, qty - 1)))}
+              />
+              <View style={styles.quantityInputContainer}>
+                <TextInput
+                  style={styles.quantityInput}
+                  value={quantity}
+                  onChangeText={setQuantity}
+                  keyboardType="number-pad"
+                  selectTextOnFocus
+                />
+                <Text style={styles.quantityUnit}>units</Text>
+              </View>
+              <MetroButton
+                title="+"
+                variant="secondary"
+                size="md"
+                onPress={() => setQuantity(String(Math.min(qty + 1, splittableItem.pack_quantity)))}
+              />
+            </View>
+
+            <View style={styles.quickQuantities}>
+              {[1, 2, 3, 4].map((q) => (
+                <MetroButton
+                  key={q}
+                  title={`${q}`}
+                  variant={qty === q ? 'primary' : 'ghost'}
+                  size="sm"
+                  onPress={() => setQuantity(String(q))}
+                />
+              ))}
+            </View>
+          </MetroCard>
+
+          {/* Cost Summary */}
+          <MetroCard variant="active" style={styles.summaryCard}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Unit Price</Text>
+              <PriceDisplay
+                amount={splittableItem.price_per_unit}
+                size="md"
+                variant="highlight"
+              />
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Quantity</Text>
+              <Text style={styles.summaryValue}>{qty} units</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total Cost</Text>
+              <PriceDisplay
+                amount={splittableItem.price_per_unit * qty}
+                size="lg"
+                variant="highlight"
+              />
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Delivery Fee Estimate</Text>
+              <Text style={styles.summaryValue}>~$2.50</Text>
+            </View>
+          </MetroCard>
+        </ScrollView>
+
+        {/* Bottom Actions */}
+        <View style={styles.bottomActions}>
+          <MetroButton
+            title="ADD TO CART"
+            variant="primary"
+            size="lg"
+            onPress={() => {
+              // Convert splittable item to Product format for cart
+              const productForCart: Product = {
+                id: splittableItem.id,
+                name: splittableItem.title,
+                category: splittableItem.category.toLowerCase() as any,
+                description: splittableItem.description || splittableItem.feature,
+                unit: 'unit',
+                retailPrice: splittableItem.total_price,
+                bulkPrice: splittableItem.price_per_unit,
+                bulkMinimum: splittableItem.pack_quantity,
+                store: { id: 'split-store', name: 'Split Order', location: { latitude: 0, longitude: 0 } },
+                available: true,
+              };
+              addToCart(productForCart, qty);
+              Alert.alert('Added to Cart', `${qty} ${qty === 1 ? 'unit' : 'units'} of ${splittableItem.title}`);
+              router.back();
+            }}
+            style={styles.pledgeButton}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Regular product flow
+  if (!product) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>ITEM NOT FOUND</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const progress = bulkOrder
     ? (bulkOrder.totalQuantity + qty) / product.bulkMinimum
     : qty / product.bulkMinimum;
@@ -202,7 +473,11 @@ export default function ItemDetailModal() {
             <View style={styles.vsContainer}>
               <Text style={styles.vsText}>VS</Text>
               <View style={styles.savingsArrow}>
+<<<<<<< Updated upstream
                 <Text style={styles.arrowText}>-></Text>
+=======
+                <Text style={styles.arrowText}>{'->'}</Text>
+>>>>>>> Stashed changes
               </View>
             </View>
             

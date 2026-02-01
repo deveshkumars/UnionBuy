@@ -22,10 +22,18 @@ from models.schemas import (
     SecurityCheckOutput,
     EvaluateBulkBuyInput,
     EvaluateBulkBuyOutput,
+    RetailPriceInput,
+    RetailPriceOutput,
+    BulkPriceInput,
+    BulkPriceOutput,
+    SimpleBulkEvaluationInput,
+    SimpleBulkEvaluationOutput,
 )
 from agents.price_comparison_agent import PriceComparisonAgent
 from agents.bulk_approval_agent import BulkApprovalAgent
 from agents.security_agent import SecurityAgent
+from agents.retail_price_agent import RetailPriceAgent
+from agents.bulk_price_agent import BulkPriceAgent
 from tools.location_tools import calculate_centroid
 from tools.calculation_tools import calculate_price_range
 
@@ -51,10 +59,14 @@ class Orchestrator:
         """
         self.use_bedrock = not settings.mock_mode if use_bedrock is None else use_bedrock
         
-        # Initialize agents
+        # Initialize agents (legacy)
         self.price_agent = PriceComparisonAgent(use_bedrock=self.use_bedrock)
         self.approval_agent = BulkApprovalAgent(use_bedrock=self.use_bedrock)
         self.security_agent = SecurityAgent(use_bedrock=self.use_bedrock)
+
+        # Initialize new agents
+        self.retail_agent = RetailPriceAgent(use_bedrock=self.use_bedrock)
+        self.bulk_agent = BulkPriceAgent()
     
     def evaluate(self, input_data: EvaluateBulkBuyInput) -> EvaluateBulkBuyOutput:
         """
@@ -238,4 +250,56 @@ class Orchestrator:
             "max_cost": result.max_price_per_user.get("quick-check-user", 0),
             "reasoning": result.reasoning
         }
+
+    def evaluate_simple(self, input_data: SimpleBulkEvaluationInput) -> SimpleBulkEvaluationOutput:
+        """
+        Simplified bulk evaluation using new Agent 1 + Agent 2 flow.
+
+        This is the new recommended flow:
+        1. Agent 1: Find retail price with 25% markup (worst case)
+        2. Agent 2: Find bulk price from CSV and calculate breakeven
+        3. Return progress and savings info
+
+        Args:
+            input_data: SimpleBulkEvaluationInput with product and pledges
+
+        Returns:
+            SimpleBulkEvaluationOutput with retail + bulk analysis
+        """
+        # Step 1: Get retail price (worst case) from Agent 1
+        print(f"🔍 Agent 1: Finding retail price for {input_data.product_name}...")
+        retail_input = RetailPriceInput(
+            product_name=input_data.product_name,
+            location=input_data.location
+        )
+        retail_result = self.retail_agent.find_retail_price(retail_input)
+
+        # Step 2: Analyze bulk pricing from CSV with Agent 2
+        print(f"📊 Agent 2: Analyzing bulk pricing from CSV...")
+        bulk_input = BulkPriceInput(
+            product_name=input_data.product_name,
+            retail_unit_price=retail_result.retail_unit_price,
+            current_pledges=input_data.current_pledges,
+            pledged_unit=input_data.pledged_unit
+        )
+        bulk_result = self.bulk_agent.analyze(bulk_input)
+
+        # Step 3: Build recommendation
+        recommendation = {
+            "should_proceed": bulk_result.ready_to_order,
+            "progress_percent": bulk_result.progress_percent,
+            "quantity_remaining": bulk_result.quantity_remaining,
+            "savings_if_ordered": bulk_result.total_savings,
+            "savings_percent": bulk_result.savings_percent * 100,  # Convert to percentage
+            "breakeven_quantity": bulk_result.breakeven_quantity,
+            "current_pledges": bulk_result.current_pledges,
+            "bulk_minimum": bulk_result.bulk_minimum,
+        }
+
+        return SimpleBulkEvaluationOutput(
+            product_name=input_data.product_name,
+            retail=retail_result,
+            bulk=bulk_result,
+            recommendation=recommendation
+        )
 
