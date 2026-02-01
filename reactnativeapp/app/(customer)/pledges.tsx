@@ -1,8 +1,9 @@
 /**
  * Pledges Screen - My Active Pledges
- * Shows locked funds, active orders, and rollover items
+ * Clean, warm design showing locked funds and active orders
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -24,7 +25,7 @@ import {
     ProgressBar,
     StatusBadge,
 } from '@/components/metro';
-import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { BorderRadius, FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useApp, usePledges } from '@/context/AppContext';
 import { cancelPledge, fetchBulkOrderForProductAnyStatus, fetchUserPledges, repledgePledge } from '@/services/api';
 import { Pledge } from '@/types';
@@ -48,7 +49,6 @@ export default function PledgesScreen() {
     const productIds = Array.from(new Set(userPledges.map((p) => p.productId)));
     const progressEntries = await Promise.all(
       productIds.map(async (id) => {
-        // Use fetchBulkOrderForProductAnyStatus to get order progress even after it's triggered
         const order = await fetchBulkOrderForProductAnyStatus(id);
         if (order) {
           return [id, { total: order.totalQuantity, target: order.targetQuantity, status: order.status }];
@@ -73,7 +73,6 @@ export default function PledgesScreen() {
   };
 
   const handleCancelPledge = async (pledge: Pledge) => {
-    // Check if order is activated - don't allow cancel
     const progress = orderProgress[pledge.productId];
     if (progress?.status && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(progress.status)) {
       Alert.alert('Cannot Cancel', 'This order has been activated and is in progress. Cancellation is no longer available.');
@@ -89,13 +88,9 @@ export default function PledgesScreen() {
           text: 'Cancel Pledge',
           style: 'destructive',
           onPress: async () => {
-            console.log('[Pledges] Cancelling pledge:', pledge.id);
             const result = await cancelPledge(pledge.id);
-            console.log('[Pledges] Cancel result:', result);
             if (result.success) {
-              console.log('[Pledges] Updating local state...');
               updatePledge({ ...pledge, status: 'cancelled' });
-              // Reload to reflect changes
               await loadPledges();
               Alert.alert('Success', 'Pledge cancelled successfully!');
             } else {
@@ -116,10 +111,8 @@ export default function PledgesScreen() {
         {
           text: 'Re-pledge',
           onPress: async () => {
-            console.log('[Pledges] Re-pledging:', pledge.id);
             const result = await repledgePledge(pledge.id, user.id);
             if (result.success && result.pledge) {
-              // Reload pledges to show updated state
               await loadPledges();
               Alert.alert('Success', `Re-pledged ${pledge.product.name} to today's batch!`);
             } else {
@@ -131,12 +124,9 @@ export default function PledgesScreen() {
     );
   };
 
-  // Get pledges that can be cleared (active status but order not yet activated)
   const getClearablePledges = () => {
     return pledges.filter((p) => {
-      // Must be in an active status
       if (!['pending', 'locked'].includes(p.status)) return false;
-      // Check if order is activated - can't clear those
       const progress = orderProgress[p.productId];
       if (progress?.status && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(progress.status)) {
         return false;
@@ -162,7 +152,6 @@ export default function PledgesScreen() {
           text: 'Clear All',
           style: 'destructive',
           onPress: async () => {
-            console.log('[Pledges] Clearing all pledges:', clearable.length);
             let successCount = 0;
             let failCount = 0;
 
@@ -172,11 +161,9 @@ export default function PledgesScreen() {
                 successCount++;
               } else {
                 failCount++;
-                console.log('[Pledges] Failed to cancel:', pledge.id, result.error);
               }
             }
 
-            // Reload to reflect changes
             await loadPledges();
 
             if (failCount === 0) {
@@ -208,11 +195,14 @@ export default function PledgesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerLabel}>Union Buy</Text>
           <Text style={styles.headerTitle}>Pledges</Text>
         </View>
-        <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
-          <Text style={styles.utilityIcon}>CRT</Text>
+        <TouchableOpacity 
+          style={styles.headerIconButton}
+          onPress={() => router.push('/(customer)/cart')}
+        >
+          <Ionicons name="cart-outline" size={24} color={MetroColors.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -220,26 +210,27 @@ export default function PledgesScreen() {
       <MetroCard variant="active" style={styles.summaryCard}>
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>LOCKED FUNDS</Text>
+            <Text style={styles.summaryLabel}>Locked Funds</Text>
             <PriceDisplay amount={totalLocked} size="xl" variant="highlight" />
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>MAX HOLD</Text>
+            <Text style={styles.summaryLabel}>Max Hold</Text>
             <PriceDisplay amount={totalMaxHold} size="lg" variant="muted" />
           </View>
         </View>
         <View style={styles.savingsRow}>
+          <Ionicons name="trending-down" size={16} color={MetroColors.accent.green} />
           <Text style={styles.savingsText}>
             Potential savings: ${(totalMaxHold - totalLocked).toFixed(2)}
           </Text>
         </View>
         <Text style={styles.legendText}>
-          Completed = bulk executed (not cancellable). Active = collecting (cancellable) until cutoff.
+          Completed = bulk executed. Active = collecting until cutoff.
         </Text>
         {getClearablePledges().length > 0 && (
           <MetroButton
-            title={`CLEAR ALL (${getClearablePledges().length})`}
+            title={`Clear All (${getClearablePledges().length})`}
             variant="danger"
             size="sm"
             onPress={handleClearAllPledges}
@@ -262,7 +253,7 @@ export default function PledgesScreen() {
                 filter === f && styles.filterTextActive,
               ]}
             >
-              {f.toUpperCase()}
+              {f.charAt(0).toUpperCase() + f.slice(1)}
             </Text>
             {f === 'active' && activePledges.length > 0 && (
               <View style={styles.filterBadge}>
@@ -287,15 +278,15 @@ export default function PledgesScreen() {
       >
         {rolloverPledges.length > 0 && (
           <View style={styles.rolloverSection}>
-            <Text style={styles.rolloverTitle}>ROLLOVER TO TODAY</Text>
+            <Text style={styles.rolloverTitle}>Rollover to Today</Text>
             {rolloverPledges.map((pledge) => (
               <MetroCard key={pledge.id} style={styles.rolloverCard}>
                 <View style={styles.rolloverHeader}>
                   <Text style={styles.rolloverName}>{pledge.product.name}</Text>
-                  <StatusBadge label="ROLLED" variant="warning" size="sm" />
+                  <StatusBadge label="Rolled" variant="warning" size="sm" />
                 </View>
                 <Text style={styles.rolloverMeta}>
-                  {pledge.quantity} {pledge.product.unit} • Needed {pledge.product.bulkMinimum}
+                  {pledge.quantity} {pledge.product.unit} · Needed {pledge.product.bulkMinimum}
                 </Text>
                 <MetroButton
                   title="Re-pledge"
@@ -311,8 +302,8 @@ export default function PledgesScreen() {
 
         {filteredPledges.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>[]</Text>
-            <Text style={styles.emptyText}>NO PLEDGES</Text>
+            <Ionicons name="receipt-outline" size={48} color={MetroColors.text.muted} />
+            <Text style={styles.emptyText}>No Pledges</Text>
             <Text style={styles.emptySubtext}>
               Join a bulk buy from the Market to see your pledges here
             </Text>
@@ -338,7 +329,6 @@ interface PledgeCardProps {
   onCancel: () => void;
 }
 
-// Helper to generate batch info for display
 interface BatchInfo {
   batchNumber: number;
   totalBatches: number;
@@ -355,7 +345,6 @@ function getBatches(total: number, target: number): BatchInfo[] {
   const batches: BatchInfo[] = [];
   const totalBatches = completeBatches + (remainder > 0 ? 1 : 0);
   
-  // Add complete (filled) batches
   for (let i = 0; i < completeBatches; i++) {
     batches.push({
       batchNumber: i + 1,
@@ -366,7 +355,6 @@ function getBatches(total: number, target: number): BatchInfo[] {
     });
   }
   
-  // Add remainder batch if any (or if no batches at all)
   if (remainder > 0 || batches.length === 0) {
     batches.push({
       batchNumber: batches.length + 1,
@@ -387,15 +375,12 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
   const target = progress?.target || pledge.product.bulkMinimum;
   const total = progress?.total ?? pledge.quantity;
   
-  // Check if the order has been triggered/activated
   const orderStatus = progress?.status;
   const isOrderActivated = orderStatus && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(orderStatus);
 
-  // Calculate batches for display
   const batches = getBatches(total, target);
   const showMultipleBatches = batches.length > 1 || total > target;
 
-  // Render a single batch card
   const renderBatchCard = (batch: BatchInfo, isLastBatch: boolean) => {
     const batchRemaining = Math.max(batch.batchTarget - batch.batchTotal, 0);
     const batchPct = batch.batchTarget > 0 ? Math.min(batch.batchTotal / batch.batchTarget, 1) : 0;
@@ -405,7 +390,7 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
       : isCancelled
       ? 'default'
       : batch.isFilled
-      ? 'success'  // Filled batches show green
+      ? 'success'
       : isOrderActivated
       ? 'success'
       : pledge.status === 'locked'
@@ -427,17 +412,16 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
               )}
             </Text>
             <Text style={styles.pledgeDetails}>
-              {pledge.quantity} {pledge.product.unit} • {pledge.product.store.name}
+              {pledge.quantity} {pledge.product.unit} · {pledge.product.store.name}
             </Text>
           </View>
           <OrderStatusBadge status={batch.isFilled ? 'completed' : pledge.status as any} />
         </View>
 
-        {/* Only show pricing on first/main batch */}
         {batch.batchNumber === 1 && (
           <View style={styles.pledgePricing}>
             <View style={styles.priceBlock}>
-              <Text style={styles.priceBlockLabel}>ESTIMATED</Text>
+              <Text style={styles.priceBlockLabel}>Estimated</Text>
               <PriceDisplay
                 amount={pledge.totalAmount}
                 size="lg"
@@ -445,7 +429,7 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
               />
             </View>
             <View style={styles.priceBlock}>
-              <Text style={styles.priceBlockLabel}>MAX HOLD</Text>
+              <Text style={styles.priceBlockLabel}>Max Hold</Text>
               <PriceDisplay
                 amount={pledge.maxAmount}
                 size="md"
@@ -453,7 +437,7 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
               />
             </View>
             <View style={styles.priceBlock}>
-              <Text style={styles.priceBlockLabel}>SAVINGS</Text>
+              <Text style={styles.priceBlockLabel}>Savings</Text>
               <Text style={styles.savingsAmount}>
                 ${(pledge.maxAmount - pledge.totalAmount).toFixed(2)}
               </Text>
@@ -461,20 +445,18 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
           </View>
         )}
 
-        {/* Show filled banner for completed batches */}
         {batch.isFilled && (
           <View style={[styles.lockInfo, { backgroundColor: MetroColors.accent.greenMuted }]}>
-            <View style={[styles.lockIndicator, { backgroundColor: MetroColors.accent.green }]} />
+            <Ionicons name="checkmark-circle" size={16} color={MetroColors.accent.green} />
             <Text style={[styles.lockText, { color: MetroColors.accent.green }]}>
-              ✅ Order filled at {batch.batchTotal}/{batch.batchTarget}
+              Order filled at {batch.batchTotal}/{batch.batchTarget}
             </Text>
           </View>
         )}
 
-        {/* Show processing banner for non-filled batches when order is activated */}
         {!batch.isFilled && isOrderActivated && (
           <View style={[styles.lockInfo, { backgroundColor: MetroColors.accent.greenMuted }]}>
-            <View style={[styles.lockIndicator, { backgroundColor: MetroColors.accent.green }]} />
+            <Ionicons name="time" size={16} color={MetroColors.accent.green} />
             <Text style={[styles.lockText, { color: MetroColors.accent.green }]}>
               Order will be processed soon
             </Text>
@@ -483,9 +465,9 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
 
         {pledge.status === 'locked' && !isOrderActivated && !batch.isFilled && (
           <View style={styles.lockInfo}>
-            <View style={styles.lockIndicator} />
+            <Ionicons name="lock-closed" size={16} color={MetroColors.accent.purple} />
             <Text style={styles.lockText}>
-              Funds locked • Waiting for bulk order completion
+              Funds locked · Waiting for bulk order completion
             </Text>
           </View>
         )}
@@ -494,22 +476,21 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
           <View style={styles.progressSection}>
             <Text style={styles.progressText}>
               {batch.isFilled
-                ? `✅ Batch filled! ${batch.batchTotal}/${batch.batchTarget} ${pledge.product.unit}`
+                ? `Batch filled! ${batch.batchTotal}/${batch.batchTarget} ${pledge.product.unit}`
                 : isOrderActivated
-                ? `✅ Bulk minimum reached! ${batch.batchTotal}/${batch.batchTarget} ${pledge.product.unit} pledged`
+                ? `Bulk minimum reached! ${batch.batchTotal}/${batch.batchTarget} ${pledge.product.unit} pledged`
                 : batchRemaining === 0
-                ? 'Bulk ready • executing at cutoff'
+                ? 'Bulk ready · executing at cutoff'
                 : `Need ${batchRemaining} more ${pledge.product.unit} to reach bulk (${batch.batchTotal}/${batch.batchTarget})`}
             </Text>
-            <ProgressBar progress={batchPct} height={10} showLabel />
+            <ProgressBar progress={batchPct} height={8} showLabel />
           </View>
         )}
 
-        {/* Only show cancel on last batch and if cancellable */}
         {isLastBatch && isActive && !['active'].includes(pledge.status) && !isOrderActivated && !batch.isFilled && (
           <View style={styles.pledgeActions}>
             <MetroButton
-              title="CANCEL"
+              title="Cancel"
               variant="danger"
               size="sm"
               onPress={onCancel}
@@ -519,7 +500,8 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
 
         {isCompleted && batch.batchNumber === 1 && (
           <View style={styles.completedInfo}>
-            <Text style={styles.completedLabel}>COMPLETED</Text>
+            <Ionicons name="checkmark-circle" size={20} color={MetroColors.accent.green} />
+            <Text style={styles.completedLabel}>Completed</Text>
             <Text style={styles.completedDate}>
               {new Date(pledge.completedAt!).toLocaleDateString()}
             </Text>
@@ -553,47 +535,32 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: MetroColors.border.muted,
+    paddingVertical: Spacing[3],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     backgroundColor: MetroColors.background.secondary,
+    ...Shadows.sm,
   },
   headerLabel: {
     color: MetroColors.accent.purple,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
     fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   headerTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
     fontSize: FontSizes['3xl'],
     fontWeight: '700',
+    letterSpacing: -0.5,
     marginTop: 2,
   },
-  utilityPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: MetroColors.background.secondary,
-    borderWidth: 1,
-    borderColor: MetroColors.border.default,
-    borderRadius: 12,
-    paddingHorizontal: Spacing[2],
-    paddingVertical: Spacing[1],
-  },
-  utilityIcon: {
-    color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
+  headerIconButton: {
+    padding: Spacing[2],
   },
   summaryCard: {
-    margin: Spacing[3],
+    margin: Spacing[4],
     marginBottom: 0,
   },
   summaryRow: {
@@ -606,10 +573,9 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontWeight: '500',
     marginBottom: Spacing[2],
   },
   summaryDivider: {
@@ -618,23 +584,27 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.border.default,
   },
   savingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing[2],
     marginTop: Spacing[3],
     paddingTop: Spacing[3],
     borderTopWidth: 1,
-    borderTopColor: MetroColors.border.muted,
-    alignItems: 'center',
+    borderTopColor: MetroColors.border.default,
   },
   savingsText: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.heading,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   legendText: {
     color: MetroColors.text.tertiary,
     fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
     marginTop: Spacing[2],
+    textAlign: 'center',
     lineHeight: 20,
   },
   clearAllButton: {
@@ -642,8 +612,8 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing[3],
-    paddingVertical: Spacing[2],
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
     gap: Spacing[2],
     backgroundColor: MetroColors.background.primary,
   },
@@ -652,68 +622,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[2],
-    borderWidth: 1.5,
-    borderColor: MetroColors.border.default,
-    borderRadius: 16,
+    borderRadius: BorderRadius.full,
     backgroundColor: MetroColors.background.secondary,
+    ...Shadows.sm,
   },
   filterTabActive: {
-    borderColor: MetroColors.accent.purple,
     backgroundColor: MetroColors.accent.purple,
   },
   filterText: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '600',
-    textTransform: 'capitalize',
+    fontWeight: '500',
   },
   filterTextActive: {
-    color: MetroColors.background.secondary,
+    color: MetroColors.text.inverse,
   },
   filterBadge: {
     backgroundColor: MetroColors.background.secondary,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
     marginLeft: Spacing[2],
   },
   filterBadgeText: {
     color: MetroColors.accent.purple,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   listContainer: {
     flex: 1,
   },
   listContent: {
-    padding: Spacing[3],
-    paddingBottom: Spacing[9],
+    padding: Spacing[4],
+    paddingBottom: Spacing[10],
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing[16],
   },
-  emptyIcon: {
-    fontSize: 32,
-    color: MetroColors.text.muted,
-    marginBottom: Spacing[4],
-  },
   emptyText: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
-    marginBottom: Spacing[2],
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+    marginTop: Spacing[3],
+    marginBottom: Spacing[1],
   },
   emptySubtext: {
-    color: MetroColors.text.tertiary,
+    color: MetroColors.text.muted,
     fontFamily: Fonts.body,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     textAlign: 'center',
     paddingHorizontal: Spacing[8],
-    lineHeight: 22,
   },
   rolloverSection: {
     marginBottom: Spacing[4],
@@ -721,11 +683,10 @@ const styles = StyleSheet.create({
   },
   rolloverTitle: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontWeight: '600',
+    marginBottom: Spacing[1],
   },
   rolloverCard: {
     paddingVertical: Spacing[3],
@@ -739,8 +700,8 @@ const styles = StyleSheet.create({
   },
   rolloverName: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.lg,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
     fontWeight: '600',
   },
   rolloverMeta: {
@@ -753,8 +714,6 @@ const styles = StyleSheet.create({
   },
   pledgeCard: {
     marginBottom: Spacing[3],
-    paddingVertical: Spacing[4],
-    paddingHorizontal: Spacing[4],
   },
   pledgeCardInactive: {
     opacity: 0.7,
@@ -771,65 +730,55 @@ const styles = StyleSheet.create({
   },
   pledgeName: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '800',
-    marginBottom: 6,
-    lineHeight: 30,
-  },
-  batchLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.lg,
     fontWeight: '600',
+    marginBottom: 4,
   },
-  pledgeDetails: {
-    color: MetroColors.text.secondary,
+  batchLabel: {
+    color: MetroColors.text.tertiary,
     fontFamily: Fonts.body,
     fontSize: FontSizes.md,
     fontWeight: '500',
   },
+  pledgeDetails: {
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+  },
   pledgePricing: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing[4],
-    paddingVertical: Spacing[4],
+    marginBottom: Spacing[3],
+    paddingVertical: Spacing[3],
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: MetroColors.border.muted,
+    borderColor: MetroColors.border.default,
   },
   priceBlock: {
     alignItems: 'center',
   },
   priceBlockLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.sm,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-    textTransform: 'uppercase',
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   savingsAmount: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
   },
   lockInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: MetroColors.accent.purpleMuted,
     padding: Spacing[3],
-    borderRadius: 8,
+    borderRadius: BorderRadius.md,
     marginBottom: Spacing[3],
-  },
-  lockIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: MetroColors.accent.purple,
-    marginRight: Spacing[2],
+    gap: Spacing[2],
   },
   lockText: {
     color: MetroColors.accent.purple,
@@ -839,14 +788,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   progressSection: {
-    marginBottom: Spacing[4],
+    marginBottom: Spacing[3],
   },
   progressText: {
-    color: MetroColors.text.primary,
+    color: MetroColors.text.secondary,
     fontFamily: Fonts.body,
-    fontSize: FontSizes.md,
-    marginBottom: Spacing[3],
-    fontWeight: '600',
+    fontSize: FontSizes.sm,
+    marginBottom: Spacing[2],
+    fontWeight: '500',
   },
   pledgeActions: {
     flexDirection: 'row',
@@ -855,45 +804,43 @@ const styles = StyleSheet.create({
   },
   completedInfo: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: MetroColors.accent.greenMuted,
-    padding: Spacing[4],
-    borderRadius: 12,
-    marginBottom: Spacing[4],
+    padding: Spacing[3],
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing[3],
+    gap: Spacing[2],
   },
   completedLabel: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.md,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    flex: 1,
   },
   completedDate: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
   pledgeFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing[2],
     paddingTop: Spacing[3],
     borderTopWidth: 1,
-    borderTopColor: MetroColors.border.muted,
+    borderTopColor: MetroColors.border.default,
   },
   pledgeId: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '500',
   },
   pledgeDate: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
     fontWeight: '500',
   },
 });

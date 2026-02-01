@@ -1,31 +1,43 @@
 /**
  * Runner Tab Layout
- * Main navigation for runner/driver screens
+ * Clean, friendly navigation for runner/driver screens
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { BorderRadius, FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 
-// Custom tab bar icon component
+// Tab icon component with Ionicons
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    jobs: 'JOB',
-    mission: 'HUD',
-    checklist: 'LST',
-    scanner: 'SCN',
-    account: 'ACC',
+  const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+    jobs: 'briefcase-outline',
+    mission: 'navigate-outline',
+    checklist: 'checkbox-outline',
+    scanner: 'scan-outline',
+    account: 'person-outline',
   };
+
+  const iconMapFocused: Record<string, keyof typeof Ionicons.glyphMap> = {
+    jobs: 'briefcase',
+    mission: 'navigate',
+    checklist: 'checkbox',
+    scanner: 'scan',
+    account: 'person',
+  };
+
+  const iconName = focused ? iconMapFocused[name] : iconMap[name];
 
   return (
     <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-      <Text style={[styles.icon, focused && styles.iconActive]}>
-        {icons[name] || 'O'}
-      </Text>
-      {focused && <View style={styles.activeIndicator} />}
+      <Ionicons 
+        name={iconName || 'ellipse-outline'} 
+        size={22} 
+        color={focused ? MetroColors.accent.green : MetroColors.text.muted} 
+      />
     </View>
   );
 }
@@ -84,49 +96,27 @@ export default function RunnerTabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: MetroColors.background.secondary,
-    borderTopWidth: 1.5,
-    borderTopColor: MetroColors.accent.green,
-    height: 82,
+    borderTopWidth: 1,
+    borderTopColor: MetroColors.border.default,
+    height: 88,
     paddingTop: Spacing[2],
-    paddingBottom: Spacing[5],
+    paddingBottom: Spacing[6],
+    ...Shadows.sm,
   },
   tabLabel: {
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontWeight: '500',
     marginTop: 4,
-    textTransform: 'capitalize',
   },
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 36,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: MetroColors.border.muted,
-    backgroundColor: MetroColors.background.primary,
+    width: 44,
+    height: 32,
+    borderRadius: BorderRadius.md,
   },
   iconContainerActive: {
     backgroundColor: MetroColors.accent.greenMuted,
-    borderColor: MetroColors.accent.green,
-  },
-  icon: {
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    fontWeight: '700',
-    color: MetroColors.text.muted,
-  },
-  iconActive: {
-    color: MetroColors.accent.green,
-  },
-  activeIndicator: {
-    position: 'absolute',
-    bottom: -6,
-    width: 4,
-    height: 4,
-    backgroundColor: MetroColors.accent.green,
-    borderRadius: 2,
   },
 });

@@ -1,10 +1,11 @@
 /**
  * Market Screen - Customer Home
- * Trading floor style with trending items and bulk buy opportunities
+ * Clean, warm design with bulk buy opportunities
  */
 
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
     FlatList,
     RefreshControl,
@@ -40,16 +41,23 @@ import { Product, TrendingItem } from '@/types';
 export default function MarketScreen() {
   const router = useRouter();
   const { addToCart, getCartTotal } = useCart();
-  
+
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [splittableItems, setSplittableItems] = useState<SplittableItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState('');
+  const [timeRemaining, setTimeRemaining] = useState("");
 
-  const categories = ['grains', 'pantry', 'dairy', 'meat', 'produce', 'household'];
+  const categories = [
+    "grains",
+    "pantry",
+    "dairy",
+    "meat",
+    "produce",
+    "household",
+  ];
 
   useEffect(() => {
     loadData();
@@ -61,22 +69,21 @@ export default function MarketScreen() {
       const now = new Date();
       const cutoff = new Date();
       cutoff.setHours(18, 0, 0, 0);
-      
-      // If past cutoff today, set to tomorrow
+
       if (now > cutoff) {
         cutoff.setDate(cutoff.getDate() + 1);
       }
-      
+
       const diff = cutoff.getTime() - now.getTime();
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      
+
       setTimeRemaining(`${hours}h ${minutes}m`);
     };
-    
+
     updateCountdown();
-    const interval = setInterval(updateCountdown, 60000); // Update every minute
-    
+    const interval = setInterval(updateCountdown, 60000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -101,14 +108,14 @@ export default function MarketScreen() {
     if (query.length > 2) {
       const [productResults, splittableResults] = await Promise.all([
         searchProducts(query),
-        Promise.resolve(searchSplittableItems(query))
+        Promise.resolve(searchSplittableItems(query)),
       ]);
       setProducts(productResults);
       setSplittableItems(splittableResults);
     } else if (query.length === 0) {
       const [allProducts, allSplittable] = await Promise.all([
         fetchProducts(),
-        Promise.resolve(getAllSplittableItems())
+        Promise.resolve(getAllSplittableItems()),
       ]);
       setProducts(allProducts);
       setSplittableItems(allSplittable);
@@ -120,7 +127,9 @@ export default function MarketScreen() {
     : products;
 
   const filteredSplittableItems = selectedCategory
-    ? splittableItems.filter((item) => item.category.toLowerCase().includes(selectedCategory.toLowerCase()))
+    ? splittableItems.filter((item) =>
+        item.category.toLowerCase().includes(selectedCategory.toLowerCase()),
+      )
     : splittableItems;
 
   // Combine both product types into one unified list for Bulk Orders
@@ -128,7 +137,7 @@ export default function MarketScreen() {
   // Add prefix to avoid duplicate key issues
   const allBulkItems: (Product | SplittableItem)[] = [
     ...filteredProducts,
-    ...filteredSplittableItems
+    ...filteredSplittableItems,
   ];
 
   // Create unique keys for the FlatList
@@ -142,29 +151,21 @@ export default function MarketScreen() {
   const cartTotals = getCartTotal();
 
   // Ticker data
-  const tickerData = trendingItems
-    .slice(0, 10)
-    .map((item) => ({
-      id: item.product.id,
-      name: `[HOT] ${item.product.name}`,
-      value: `$${item.product.bulkPrice.toFixed(2)}`,
-      change: undefined,
-      suffix: `/${item.product.unit}`,
-    }));
+  const tickerData = trendingItems.slice(0, 10).map((item) => ({
+    id: item.product.id,
+    name: `🔥 ${item.product.name}`,
+    value: `$${item.product.bulkPrice.toFixed(2)}`,
+    change: undefined,
+    suffix: `/${item.product.unit}`,
+  }));
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.backgroundFX} pointerEvents="none">
-        <View style={styles.backgroundGlow} />
-        <View style={styles.backgroundGlowSecondary} />
-        <View style={styles.backgroundStreak} />
-        <View style={styles.backgroundScan} />
-      </View>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.fixedHeader}>
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerLabel}>UNION BUY</Text>
+            <Text style={styles.headerLabel}>Union Buy</Text>
             <Text style={styles.headerTitle}>Market</Text>
           </View>
           <View style={styles.headerRight}>
@@ -176,33 +177,43 @@ export default function MarketScreen() {
           </View>
         </View>
 
-        {/* Trending Ticker (simplified text) */}
-        <DataTicker items={tickerData} speed={36} height={46} showChange={false} />
+        {/* Trending Ticker */}
+        <DataTicker
+          items={tickerData}
+          speed={36}
+          height={44}
+          showChange={false}
+        />
 
         {/* Info Bar */}
         <InfoBar
           items={[
-            { label: 'HOT', value: trendingItems.length, highlight: true },
-            { label: 'ACTIVE ORDERS', value: allBulkItems.length },
-            { label: 'SAVED', value: '$2.8K' },
+            { label: "Hot", value: trendingItems.length, highlight: true },
+            { label: "Active", value: allBulkItems.length },
+            { label: "Saved", value: "$2.8K" },
           ]}
         />
 
         {/* Search */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputWrapper}>
-            <Text style={styles.searchIcon}>FND</Text>
+            <Ionicons
+              name="search"
+              size={20}
+              color={MetroColors.text.muted}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="Search products..."
-              placeholderTextColor={MetroColors.text.tertiary}
+              placeholderTextColor={MetroColors.text.muted}
               value={searchQuery}
               onChangeText={handleSearch}
               autoCapitalize="none"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearch('')}>
-                <Text style={styles.clearIcon}>X</Text>
+              <TouchableOpacity onPress={() => handleSearch("")}>
+                <Ionicons name="close-circle" size={20} color={MetroColors.text.muted} />
               </TouchableOpacity>
             )}
           </View>
@@ -216,7 +227,10 @@ export default function MarketScreen() {
           contentContainerStyle={styles.categoriesContent}
         >
           <TouchableOpacity
-            style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
+            style={[
+              styles.categoryChip,
+              !selectedCategory && styles.categoryChipActive,
+            ]}
             onPress={() => setSelectedCategory(null)}
           >
             <Text
@@ -225,7 +239,7 @@ export default function MarketScreen() {
                 !selectedCategory && styles.categoryTextActive,
               ]}
             >
-              ALL
+              All
             </Text>
           </TouchableOpacity>
           {categories.map((cat) => (
@@ -243,7 +257,7 @@ export default function MarketScreen() {
                   selectedCategory === cat && styles.categoryTextActive,
                 ]}
               >
-                {cat.toUpperCase()}
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -269,8 +283,7 @@ export default function MarketScreen() {
           />
         }
         renderItem={({ item }) => {
-          // Check if this is a splittable item (has title instead of name)
-          const isSplittableItem = 'title' in item;
+          const isSplittableItem = "title" in item;
 
           if (isSplittableItem) {
             const splitItem = item as SplittableItem;
@@ -279,44 +292,52 @@ export default function MarketScreen() {
             const pledgedQuantity = progress ? progress.pledgedQuantity : 0;
             const participantCount = progress ? progress.participantCount : 0;
 
-            // Calculate savings using pre-calculated retail price for consistency
-            const estimatedRetail = splitItem.estimatedRetailPricePerUnit || splitItem.price_per_unit * 1.35;
-            const savings = ((estimatedRetail - splitItem.price_per_unit) / estimatedRetail) * 100;
+            const estimatedRetail =
+              splitItem.estimatedRetailPricePerUnit ||
+              splitItem.price_per_unit * 1.35;
+            const savings =
+              ((estimatedRetail - splitItem.price_per_unit) / estimatedRetail) *
+              100;
 
             return (
-              <TouchableOpacity
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity activeOpacity={0.8}>
                 <MetroCard
-                  variant={splitProgress >= 0.8 ? 'active' : 'default'}
-                  label={splitProgress >= 1 ? 'READY' : splitProgress >= 0.8 ? 'ALMOST' : undefined}
+                  variant={splitProgress >= 0.8 ? "active" : "default"}
+                  label={
+                    splitProgress >= 1
+                      ? "Ready"
+                      : splitProgress >= 0.8
+                      ? "Almost"
+                      : undefined
+                  }
                   style={styles.productCard}
+                  showCorners={false}
                 >
                   <View style={styles.productHeader}>
                     <View style={styles.productInfo}>
                       <Text style={styles.productName}>{splitItem.title}</Text>
                       <Text style={styles.productCategory}>
-                        {splitItem.category.toUpperCase()} • {splitItem.pack_quantity}-PACK SPLIT
+                        {splitItem.category} · {splitItem.pack_quantity}-Pack Split
                       </Text>
                     </View>
                     <StatusBadge
-                      label={`-${savings.toFixed(0)}%`}
+                      label={`${savings.toFixed(0)}% off`}
                       variant="success"
-                      size="md"
+                      size="sm"
                     />
                   </View>
 
                   <View style={styles.priceRow}>
                     <View style={styles.priceCompare}>
                       <View style={styles.priceItem}>
-                        <Text style={styles.priceLabel}>RETAIL</Text>
+                        <Text style={styles.priceLabel}>Retail</Text>
                         <Text style={styles.retailPrice}>
                           ${(splitItem.price_per_unit * 1.35).toFixed(2)}
                         </Text>
                       </View>
-                      <Text style={styles.priceArrow}>{'→'}</Text>
+                      <Ionicons name="arrow-forward" size={16} color={MetroColors.accent.green} />
                       <View style={styles.priceItem}>
-                        <Text style={styles.priceLabel}>BULK</Text>
+                        <Text style={styles.priceLabel}>Bulk</Text>
                         <PriceDisplay
                           amount={splitItem.price_per_unit}
                           size="lg"
@@ -336,32 +357,41 @@ export default function MarketScreen() {
                         {participantCount} neighbors
                       </Text>
                     </View>
-                    <ProgressBar progress={splitProgress} height={10} showLabel />
+                    <ProgressBar
+                      progress={splitProgress}
+                      height={8}
+                      showLabel
+                    />
                   </View>
 
                   <View style={styles.cardActions}>
                     <MetroButton
-                      title="VIEW DETAILS"
+                      title="Details"
                       variant="ghost"
                       size="sm"
                       onPress={() => router.push(`/item/${splitItem.id}`)}
                     />
                     <MetroButton
-                      title="+ ADD"
+                      title="Add"
                       variant="primary"
                       size="sm"
                       onPress={() => {
-                        // Convert splittable item to Product format for cart
                         const productForCart: Product = {
                           id: splitItem.id,
                           name: splitItem.title,
                           category: splitItem.category.toLowerCase() as any,
-                          description: splitItem.description || splitItem.feature,
-                          unit: 'unit',
+                          description:
+                            splitItem.description || splitItem.feature,
+                          unit: "unit",
                           retailPrice: splitItem.total_price,
                           bulkPrice: splitItem.price_per_unit,
                           bulkMinimum: splitItem.pack_quantity,
-                          store: { id: 'split-store', name: 'Split Order', type: 'wholesale', location: { latitude: 0, longitude: 0 } },
+                          store: {
+                            id: "split-store",
+                            name: "Split Order",
+                            type: "wholesale",
+                            location: { latitude: 0, longitude: 0 },
+                          },
                           available: true,
                         };
                         addToCart(productForCart, 1);
@@ -375,11 +405,15 @@ export default function MarketScreen() {
 
           // Regular bulk order item
           const product = item as Product;
-          const trending = trendingItems.find((t) => t.product.id === product.id);
+          const trending = trendingItems.find(
+            (t) => t.product.id === product.id,
+          );
           const progress = trending ? trending.percentToGoal / 100 : 0;
           const totalQuantity = trending ? trending.totalQuantity : 0;
           const pledgeCount = trending ? trending.pledgeCount : 0;
-          const savings = ((product.retailPrice - product.bulkPrice) / product.retailPrice) * 100;
+          const savings =
+            ((product.retailPrice - product.bulkPrice) / product.retailPrice) *
+            100;
 
           return (
             <TouchableOpacity
@@ -387,35 +421,42 @@ export default function MarketScreen() {
               activeOpacity={0.8}
             >
               <MetroCard
-                variant={progress >= 0.8 ? 'active' : 'default'}
-                label={progress >= 1 ? 'READY' : progress >= 0.8 ? 'ALMOST' : undefined}
+                variant={progress >= 0.8 ? "active" : "default"}
+                label={
+                  progress >= 1
+                    ? "Ready"
+                    : progress >= 0.8
+                    ? "Almost"
+                    : undefined
+                }
                 style={styles.productCard}
+                showCorners={false}
               >
                 <View style={styles.productHeader}>
                   <View style={styles.productInfo}>
                     <Text style={styles.productName}>{product.name}</Text>
                     <Text style={styles.productCategory}>
-                      {product.category.toUpperCase()} • {product.store.name}
+                      {product.category} · {product.store.name}
                     </Text>
                   </View>
                   <StatusBadge
-                    label={`-${savings.toFixed(0)}%`}
+                    label={`${savings.toFixed(0)}% off`}
                     variant="success"
-                    size="md"
+                    size="sm"
                   />
                 </View>
 
                 <View style={styles.priceRow}>
                   <View style={styles.priceCompare}>
                     <View style={styles.priceItem}>
-                      <Text style={styles.priceLabel}>RETAIL</Text>
+                      <Text style={styles.priceLabel}>Retail</Text>
                       <Text style={styles.retailPrice}>
                         ${product.retailPrice.toFixed(2)}
                       </Text>
                     </View>
-                    <Text style={styles.priceArrow}>{'→'}</Text>
+                    <Ionicons name="arrow-forward" size={16} color={MetroColors.accent.green} />
                     <View style={styles.priceItem}>
-                      <Text style={styles.priceLabel}>BULK</Text>
+                      <Text style={styles.priceLabel}>Bulk</Text>
                       <PriceDisplay
                         amount={product.bulkPrice}
                         size="lg"
@@ -423,7 +464,7 @@ export default function MarketScreen() {
                       />
                     </View>
                   </View>
-                  <Text style={styles.unitText}>/unit</Text>
+                  <Text style={styles.unitText}>/{product.unit}</Text>
                 </View>
 
                 <View style={styles.progressSection}>
@@ -435,18 +476,18 @@ export default function MarketScreen() {
                       {pledgeCount} neighbors
                     </Text>
                   </View>
-                  <ProgressBar progress={progress} height={10} showLabel />
+                  <ProgressBar progress={progress} height={8} showLabel />
                 </View>
 
                 <View style={styles.cardActions}>
                   <MetroButton
-                    title="VIEW DETAILS"
+                    title="Details"
                     variant="ghost"
                     size="sm"
                     onPress={() => router.push(`/item/${product.id}`)}
                   />
                   <MetroButton
-                    title="+ ADD"
+                    title="Add"
                     variant="primary"
                     size="sm"
                     onPress={() => addToCart(product, 1)}
@@ -458,8 +499,8 @@ export default function MarketScreen() {
         }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>[]</Text>
-            <Text style={styles.emptyText}>NO ITEMS FOUND</Text>
+            <Ionicons name="basket-outline" size={48} color={MetroColors.text.muted} />
+            <Text style={styles.emptyText}>No items found</Text>
             <Text style={styles.emptySubtext}>Try adjusting your search</Text>
           </View>
         }
@@ -470,13 +511,13 @@ export default function MarketScreen() {
         <TouchableOpacity
           style={styles.cartFab}
           activeOpacity={0.9}
-          onPress={() => router.push('/(customer)/cart')}
+          onPress={() => router.push("/(customer)/cart")}
         >
           <View style={styles.cartFabContent}>
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>{cartTotals.items}</Text>
             </View>
-            <Text style={styles.cartFabText}>VIEW CART</Text>
+            <Text style={styles.cartFabText}>View Cart</Text>
             <Text style={styles.cartFabPrice}>
               ~${cartTotals.estimate.toFixed(2)}
             </Text>
@@ -496,223 +537,129 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.background.primary,
     zIndex: 10,
   },
-  backgroundFX: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-  },
-  backgroundGlow: {
-    position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: MetroColors.accent.cyan,
-    opacity: 0.14,
-    top: -80,
-    right: -90,
-  },
-  backgroundGlowSecondary: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: MetroColors.accent.purple,
-    opacity: 0.12,
-    bottom: 140,
-    left: -70,
-  },
-  backgroundStreak: {
-    position: 'absolute',
-    width: 360,
-    height: 120,
-    backgroundColor: MetroColors.accent.cyan,
-    opacity: 0.06,
-    top: 200,
-    left: -60,
-    transform: [{ rotate: '-8deg' }],
-  },
-  backgroundScan: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 130,
-    height: 2,
-    backgroundColor: MetroColors.accent.cyan,
-    opacity: 0.14,
-  },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: MetroColors.border.muted,
     backgroundColor: MetroColors.background.secondary,
+    ...Shadows.sm,
   },
   headerLabel: {
     color: MetroColors.accent.cyan,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.xs,
-    fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: "600",
   },
   headerTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
     fontSize: FontSizes['3xl'],
-    fontWeight: '700',
+    fontWeight: "700",
+    letterSpacing: -0.5,
     marginTop: 2,
   },
   headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[1],
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing[2],
   },
-  utilityPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: MetroColors.accent.cyanMuted,
-    borderWidth: 1.5,
-    borderColor: MetroColors.accent.cyan,
-    borderRadius: 16,
-    paddingHorizontal: Spacing[3],
-    paddingVertical: Spacing[1],
-  },
-  utilityIcon: {
-    fontSize: 10,
-    marginRight: 6,
-    fontFamily: Fonts.mono,
-    letterSpacing: 1,
-    color: MetroColors.accent.cyan,
-  },
-  utilityText: {
-    color: MetroColors.accent.cyan,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+  headerIconButton: {
+    padding: Spacing[2],
   },
   cutoffBox: {
-    alignItems: 'flex-end',
-    marginLeft: Spacing[3],
+    alignItems: "flex-end",
+    marginLeft: Spacing[2],
     backgroundColor: MetroColors.accent.orangeMuted,
-    paddingHorizontal: Spacing[2],
-    paddingVertical: Spacing[1],
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: MetroColors.accent.orange,
+    paddingHorizontal: Spacing[3],
+    paddingVertical: Spacing[2],
+    borderRadius: BorderRadius.md,
   },
   timeLabel: {
     color: MetroColors.accent.orange,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
-    fontWeight: '600',
-    letterSpacing: 1,
+    fontWeight: "500",
   },
   timeValue: {
     color: MetroColors.accent.orange,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.lg,
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: "700",
   },
   timeRemaining: {
     color: MetroColors.accent.orange,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
-    fontWeight: '600',
+    fontWeight: "500",
     marginTop: 2,
   },
   searchContainer: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[2],
+    paddingVertical: Spacing[3],
     backgroundColor: MetroColors.background.primary,
   },
   searchInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: MetroColors.background.secondary,
-    borderWidth: 2,
-    borderColor: MetroColors.border.accent,
-    borderRadius: 20,
+    borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing[4],
-    ...Shadows.cyanGlow,
+    ...Shadows.sm,
   },
   searchIcon: {
-    color: MetroColors.accent.cyan,
-    fontSize: FontSizes.sm,
     marginRight: Spacing[2],
-    fontFamily: Fonts.mono,
-    letterSpacing: 1,
   },
   searchInput: {
     flex: 1,
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.md,
-    fontWeight: '500',
-    paddingVertical: Spacing[2],
-  },
-  clearIcon: {
-    color: MetroColors.accent.cyan,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    padding: Spacing[2],
+    paddingVertical: Spacing[3],
   },
   categoriesContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: MetroColors.border.muted,
-    paddingTop: Spacing[1],
+    paddingVertical: Spacing[2],
     backgroundColor: MetroColors.background.primary,
-    paddingBottom: Spacing[1],
   },
   categoriesContent: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
+    gap: Spacing[2],
   },
   categoryChip: {
-    paddingHorizontal: Spacing[3],
-    paddingVertical: Spacing[1],
-    borderWidth: 2,
-    borderColor: MetroColors.border.default,
-    borderRadius: 20,
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[2],
+    borderRadius: BorderRadius.full,
     marginRight: Spacing[2],
     backgroundColor: MetroColors.background.secondary,
+    ...Shadows.sm,
   },
   categoryChipActive: {
-    borderColor: MetroColors.accent.cyan,
     backgroundColor: MetroColors.accent.cyan,
-    ...Shadows.cyanGlow,
   },
   categoryText: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: "500",
   },
   categoryTextActive: {
-    color: MetroColors.background.secondary,
+    color: MetroColors.text.inverse,
   },
   productsContainer: {
-    padding: Spacing[3],
-    paddingBottom: 96,
+    padding: Spacing[4],
+    paddingBottom: 100,
   },
   listSpacer: {
-    height: 2,
+    height: 4,
   },
   productCard: {
-    marginBottom: Spacing[2],
-    paddingVertical: Spacing[3],
-    paddingHorizontal: Spacing[3],
-    borderWidth: 1,
-    borderColor: MetroColors.border.muted,
-    backgroundColor: MetroColors.background.secondary,
+    marginBottom: Spacing[3],
   },
   productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: Spacing[3],
   },
   productInfo: {
@@ -722,150 +669,133 @@ const styles = StyleSheet.create({
   productName: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
-    marginBottom: 6,
-    lineHeight: 28,
+    fontSize: FontSizes.lg,
+    fontWeight: "600",
+    marginBottom: 4,
+    lineHeight: 24,
   },
   productCategory: {
-    color: MetroColors.text.secondary,
+    color: MetroColors.text.tertiary,
     fontFamily: Fonts.body,
-    fontSize: FontSizes.md,
-    fontWeight: '500',
+    fontSize: FontSizes.sm,
+    fontWeight: "500",
   },
   priceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     marginBottom: Spacing[3],
   },
   priceCompare: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing[3],
   },
   priceItem: {
-    gap: 4,
+    gap: 2,
   },
   priceLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.sm,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: "500",
   },
   retailPrice: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.lg,
-    textDecorationLine: 'line-through',
-  },
-  priceArrow: {
-    color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
-    letterSpacing: 1,
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    textDecorationLine: "line-through",
   },
   unitText: {
-    color: MetroColors.text.secondary,
+    color: MetroColors.text.tertiary,
     fontFamily: Fonts.body,
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.sm,
     marginLeft: Spacing[1],
-    fontWeight: '600',
   },
   progressSection: {
-    marginBottom: Spacing[4],
-    marginTop: Spacing[3],
+    marginBottom: Spacing[3],
     paddingTop: Spacing[3],
     borderTopWidth: 1,
-    borderTopColor: MetroColors.border.muted,
+    borderTopColor: MetroColors.border.default,
   },
   progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing[3],
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: Spacing[2],
   },
   progressLabel: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: "500",
   },
   pledgeCount: {
     color: MetroColors.accent.purple,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: "600",
   },
   cardActions: {
-    flexDirection: 'row',
-    gap: Spacing[3],
-    justifyContent: 'flex-end',
-    marginTop: Spacing[2],
+    flexDirection: "row",
+    gap: Spacing[2],
+    justifyContent: "flex-end",
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: Spacing[16],
-  },
-  emptyIcon: {
-    fontSize: 32,
-    color: MetroColors.text.muted,
-    marginBottom: Spacing[4],
   },
   emptyText: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    letterSpacing: 1,
-    marginBottom: Spacing[2],
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.lg,
+    fontWeight: "600",
+    marginTop: Spacing[3],
+    marginBottom: Spacing[1],
   },
   emptySubtext: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
   },
   cartFab: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 24,
     left: Spacing[4],
     right: Spacing[4],
     backgroundColor: MetroColors.accent.cyan,
-    borderRadius: 16,
-    ...Shadows.cyanGlow,
+    borderRadius: BorderRadius.full,
+    ...Shadows.lg,
   },
   cartFabContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing[3],
-    paddingHorizontal: Spacing[4],
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing[4],
+    paddingHorizontal: Spacing[5],
   },
   cartBadge: {
-    backgroundColor: MetroColors.background.primary,
-    paddingHorizontal: Spacing[2],
-    paddingVertical: 2,
-    borderRadius: 2,
+    backgroundColor: MetroColors.background.secondary,
+    paddingHorizontal: Spacing[3],
+    paddingVertical: Spacing[1],
+    borderRadius: BorderRadius.full,
     marginRight: Spacing[3],
   },
   cartBadgeText: {
     color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   cartFabText: {
     flex: 1,
-    color: MetroColors.background.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '700',
-    letterSpacing: 1,
+    color: MetroColors.text.inverse,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: "600",
   },
   cartFabPrice: {
-    color: MetroColors.background.primary,
-    fontFamily: Fonts.mono,
+    color: MetroColors.text.inverse,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });

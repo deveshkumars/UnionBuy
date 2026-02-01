@@ -1,6 +1,6 @@
 /**
  * DataTicker - Horizontal scrolling ticker for trending items
- * Stock market / trading floor aesthetic
+ * Clean, friendly design with warm colors
  */
 
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
@@ -37,8 +37,7 @@ export function DataTicker({
   useEffect(() => {
     if (items.length === 0) return;
     
-    // Auto-scroll animation with reset for infinite loop
-    const itemWidth = 200; // approximate width per item
+    const itemWidth = 200;
     const totalWidth = items.length * itemWidth;
     
     const startAnimation = () => {
@@ -46,10 +45,10 @@ export function DataTicker({
       Animated.timing(scrollX, {
         toValue: -totalWidth,
         duration: (totalWidth / speed) * 1000,
-        useNativeDriver: false, // Changed to false to avoid call stack issues
+        useNativeDriver: false,
       }).start(({ finished }) => {
         if (finished) {
-          startAnimation(); // Restart when complete
+          startAnimation();
         }
       });
     };
@@ -154,7 +153,7 @@ export function LiveValue({ label, value, prefix, suffix, blinking = false }: Li
       const animation = Animated.loop(
         Animated.sequence([
           Animated.timing(opacity, {
-            toValue: 0.3,
+            toValue: 0.4,
             duration: 500,
             useNativeDriver: true,
           }),
@@ -187,7 +186,7 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.background.secondary,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: MetroColors.border.muted,
+    borderColor: MetroColors.border.default,
     overflow: 'hidden',
   },
   tickerTrack: {
@@ -202,47 +201,47 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   itemName: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
     marginRight: Spacing[2],
     maxWidth: 160,
   },
   itemValue: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   itemChange: {
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
+    fontWeight: '600',
     marginLeft: Spacing[2],
   },
   separator: {
-    width: 2,
-    height: 20,
-    backgroundColor: MetroColors.accent.cyanMuted,
+    width: 1,
+    height: 16,
+    backgroundColor: MetroColors.border.default,
     marginLeft: Spacing[4],
   },
   edgeFade: {
     position: 'absolute',
     top: 0,
     bottom: 0,
-    width: 40,
+    width: 32,
     zIndex: 1,
   },
   leftFade: {
     left: 0,
     backgroundColor: MetroColors.background.secondary,
-    opacity: 0.8,
+    opacity: 0.9,
   },
   rightFade: {
     right: 0,
     backgroundColor: MetroColors.background.secondary,
-    opacity: 0.8,
+    opacity: 0.9,
   },
   infoBar: {
     flexDirection: 'row',
@@ -252,7 +251,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[3],
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: MetroColors.border.muted,
+    borderColor: MetroColors.border.default,
   },
   infoItem: {
     alignItems: 'center',
@@ -260,17 +259,15 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '500',
   },
   infoValue: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.xl,
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
   },
   liveValueContainer: {
     flexDirection: 'row',
@@ -279,14 +276,14 @@ const styles = StyleSheet.create({
   },
   liveLabel: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
-    textTransform: 'uppercase',
+    fontWeight: '500',
   },
   liveValue: {
     color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

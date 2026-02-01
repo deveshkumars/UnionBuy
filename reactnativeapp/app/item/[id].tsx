@@ -1,8 +1,9 @@
 /**
  * Item Detail Modal
- * Product details with agent comparison, confidence score, and pledge actions
+ * Clean, warm design for product details and pledge actions
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -23,7 +24,7 @@ import {
   ProgressBar,
   StatusBadge,
 } from '@/components/metro';
-import { Fonts, FontSizes, MetroColors, Spacing } from '@/constants/theme';
+import { BorderRadius, Fonts, FontSizes, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useApp, useCart, usePledges } from '@/context/AppContext';
 import { evaluateBulkBuy, getRegionalRetailPrice } from '@/services/agents';
 import {
@@ -58,17 +59,14 @@ export default function ItemDetailModal() {
     if (!id) return;
     setLoading(true);
 
-    // Check if this is a splittable item (ID starts with "split_")
     const isSplittable = typeof id === 'string' && id.startsWith('split_');
 
     if (isSplittable) {
-      // Load splittable item
       const splittable = getSplittableItemById(id);
       setSplittableItem(splittable);
       setProduct(null);
       setBulkOrder(null);
     } else {
-      // Load regular product
       const [productData, orderData] = await Promise.all([
         fetchProductById(id),
         fetchBulkOrderForProduct(id),
@@ -82,7 +80,6 @@ export default function ItemDetailModal() {
     setLoading(false);
   }, [id]);
 
-  // Fetch regional price once when product loads (not on every quantity change)
   const fetchRegionalPrice = useCallback(async () => {
     if (product) {
       const regionalPrice = await getRegionalRetailPrice({
@@ -93,12 +90,10 @@ export default function ItemDetailModal() {
       });
       setRegionalRetailPrice(regionalPrice.retailUnitPrice);
     } else if (splittableItem) {
-      // Use pre-calculated retail price for splittable items (more efficient)
       setRegionalRetailPrice(splittableItem.estimatedRetailPricePerUnit || splittableItem.price_per_unit * 1.35);
     }
   }, [product, splittableItem]);
 
-  // Run agent decision analysis (re-runs on quantity change for agent decision only)
   const runAgentAnalysis = useCallback(async () => {
     if (!product) return;
 
@@ -126,14 +121,12 @@ export default function ItemDetailModal() {
     loadData();
   }, [loadData]);
 
-  // Fetch regional price once when product loads
   useEffect(() => {
     if (product || splittableItem) {
       fetchRegionalPrice();
     }
   }, [product, splittableItem, fetchRegionalPrice]);
 
-  // Run agent analysis when quantity changes (for regular products only)
   useEffect(() => {
     if (product && quantity) {
       runAgentAnalysis();
@@ -160,15 +153,10 @@ export default function ItemDetailModal() {
             if (result.success && result.pledge) {
               addPledge(result.pledge);
               
-              // ⚡ Check if this pledge triggered the bulk order!
               if ((result as any).triggered) {
                 Alert.alert(
-                  '🎉 BULK ORDER ACTIVATED!',
-                  `Your pledge pushed this order over the threshold!\n\n` +
-                  `✅ Order is now ACTIVE\n` +
-                  `🚗 A runner can now pick it up\n` +
-                  `📦 Check Pledges tab to see your order "In Action"\n\n` +
-                  `You'll be notified when it's ready for pickup!`,
+                  '🎉 Bulk Order Activated!',
+                  `Your pledge pushed this order over the threshold!\n\n✅ Order is now active\n🚗 A runner can now pick it up\n📦 Check Pledges tab to track\n\nYou'll be notified when it's ready!`,
                   [{ text: 'Awesome!', onPress: () => router.back() }]
                 );
               } else {
@@ -191,7 +179,7 @@ export default function ItemDetailModal() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>LOADING...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -199,7 +187,7 @@ export default function ItemDetailModal() {
 
   const qty = parseInt(quantity) || 1;
 
-  // If this is a splittable item, render different UI
+  // Splittable item UI
   if (splittableItem) {
     const splitProgress = getSplittableProgress(splittableItem.id);
     const progress = splitProgress
@@ -211,12 +199,12 @@ export default function ItemDetailModal() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <Text style={styles.headerLabel}>{splittableItem.category.toUpperCase()} • SPLIT ORDER</Text>
+            <Text style={styles.headerLabel}>{splittableItem.category} · Split Order</Text>
             <Text style={styles.headerTitle}>{splittableItem.title}</Text>
             <Text style={styles.headerSubtitle}>{splittableItem.pack_quantity}-Pack Split</Text>
           </View>
           <MetroButton
-            title="X"
+            title="✕"
             variant="ghost"
             size="sm"
             onPress={() => router.back()}
@@ -226,43 +214,36 @@ export default function ItemDetailModal() {
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
           {/* Price Comparison Card */}
           <MetroCard variant="active" style={styles.priceCard}>
-            <Text style={styles.sectionLabel}>PRICING</Text>
+            <Text style={styles.sectionLabel}>Pricing</Text>
 
             <View style={styles.priceComparison}>
               <View style={styles.priceColumn}>
-                <Text style={styles.priceType}>RETAIL UNIT PRICE</Text>
+                <Text style={styles.priceType}>Retail</Text>
                 <PriceDisplay
                   amount={regionalRetailPrice || splittableItem.price_per_unit * 1.35}
                   size="xl"
                   variant="muted"
                 />
-                <Text style={styles.unitPrice}>
-                  Regional avg/unit
-                </Text>
+                <Text style={styles.unitPrice}>Regional avg/unit</Text>
               </View>
 
               <View style={styles.vsContainer}>
-                <Text style={styles.vsText}>VS</Text>
-                <View style={styles.savingsArrow}>
-                  <Text style={styles.arrowText}>{'->'}</Text>
-                </View>
+                <Ionicons name="arrow-forward" size={24} color={MetroColors.accent.green} />
               </View>
 
               <View style={styles.priceColumn}>
-                <Text style={styles.priceType}>PER UNIT</Text>
+                <Text style={styles.priceType}>Bulk</Text>
                 <PriceDisplay
                   amount={splittableItem.price_per_unit}
                   size="xl"
                   variant="highlight"
                 />
-                <Text style={styles.unitPrice}>
-                  Bulk price/unit
-                </Text>
+                <Text style={styles.unitPrice}>Per unit</Text>
               </View>
             </View>
 
             <View style={styles.savingsBox}>
-              <Text style={styles.savingsLabel}>YOUR SAVINGS PER UNIT</Text>
+              <Text style={styles.savingsLabel}>Your Savings Per Unit</Text>
               <View style={styles.savingsRow}>
                 <Text style={styles.savingsAmount}>
                   ${((regionalRetailPrice || splittableItem.price_per_unit * 1.35) - splittableItem.price_per_unit).toFixed(2)}
@@ -270,7 +251,7 @@ export default function ItemDetailModal() {
                 <StatusBadge
                   label={`${((((regionalRetailPrice || splittableItem.price_per_unit * 1.35) - splittableItem.price_per_unit) / (regionalRetailPrice || splittableItem.price_per_unit * 1.35)) * 100).toFixed(0)}% OFF`}
                   variant="success"
-                  size="md"
+                  size="sm"
                 />
               </View>
             </View>
@@ -286,36 +267,36 @@ export default function ItemDetailModal() {
 
           {/* Description */}
           <MetroCard style={styles.progressCard}>
-            <Text style={styles.sectionLabel}>ABOUT</Text>
-            <Text style={styles.agentReasoning}>{splittableItem.description}</Text>
+            <Text style={styles.sectionLabel}>About</Text>
+            <Text style={styles.descriptionText}>{splittableItem.description}</Text>
             {splittableItem.feature && (
-              <View style={styles.agentStat}>
-                <Text style={styles.agentStatLabel}>FEATURES</Text>
-                <Text style={styles.progressNote}>{splittableItem.feature}</Text>
+              <View style={styles.featureRow}>
+                <Text style={styles.featureLabel}>Features</Text>
+                <Text style={styles.featureValue}>{splittableItem.feature}</Text>
               </View>
             )}
             {splittableItem.rating && (
-              <View style={styles.agentStat}>
-                <Text style={styles.agentStatLabel}>RATING</Text>
-                <Text style={styles.progressNote}>{splittableItem.rating}</Text>
+              <View style={styles.featureRow}>
+                <Text style={styles.featureLabel}>Rating</Text>
+                <Text style={styles.featureValue}>{splittableItem.rating}</Text>
               </View>
             )}
           </MetroCard>
 
           {/* Split Progress */}
           <MetroCard style={styles.progressCard}>
-            <Text style={styles.sectionLabel}>SPLIT ORDER PROGRESS</Text>
+            <Text style={styles.sectionLabel}>Split Progress</Text>
 
             <View style={styles.progressStats}>
               <View style={styles.progressStat}>
                 <Text style={styles.progressStatValue}>
                   {(splitProgress?.pledgedQuantity || 0) + qty}
                 </Text>
-                <Text style={styles.progressStatLabel}>PLEDGED</Text>
+                <Text style={styles.progressStatLabel}>Pledged</Text>
               </View>
               <View style={styles.progressStat}>
                 <Text style={styles.progressStatValue}>{splittableItem.pack_quantity}</Text>
-                <Text style={styles.progressStatLabel}>NEEDED</Text>
+                <Text style={styles.progressStatLabel}>Needed</Text>
               </View>
               <View style={styles.progressStat}>
                 <Text style={[
@@ -324,11 +305,11 @@ export default function ItemDetailModal() {
                 ]}>
                   {Math.round(progress * 100)}%
                 </Text>
-                <Text style={styles.progressStatLabel}>COMPLETE</Text>
+                <Text style={styles.progressStatLabel}>Complete</Text>
               </View>
             </View>
 
-            <ProgressBar progress={Math.min(progress, 1)} height={12} showLabel />
+            <ProgressBar progress={Math.min(progress, 1)} height={10} showLabel />
 
             <Text style={styles.progressNote}>
               {progress >= 1
@@ -340,15 +321,18 @@ export default function ItemDetailModal() {
             </Text>
 
             {splitProgress && splitProgress.participantCount > 0 && (
-              <Text style={styles.progressNote}>
-                {splitProgress.participantCount} neighbors already joined
-              </Text>
+              <View style={styles.neighborRow}>
+                <Ionicons name="people" size={16} color={MetroColors.accent.purple} />
+                <Text style={styles.neighborText}>
+                  {splitProgress.participantCount} neighbors already joined
+                </Text>
+              </View>
             )}
           </MetroCard>
 
           {/* Quantity Selector */}
           <MetroCard style={styles.quantityCard}>
-            <Text style={styles.sectionLabel}>SELECT QUANTITY</Text>
+            <Text style={styles.sectionLabel}>Select Quantity</Text>
 
             <View style={styles.quantityRow}>
               <MetroButton
@@ -375,7 +359,6 @@ export default function ItemDetailModal() {
               />
               />
             </View>
-
           </MetroCard>
 
           {/* Cost Summary */}
@@ -402,7 +385,7 @@ export default function ItemDetailModal() {
               />
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery Fee Estimate</Text>
+              <Text style={styles.summaryLabel}>Delivery Fee (Est.)</Text>
               <Text style={styles.summaryValue}>~$2.50</Text>
             </View>
           </MetroCard>
@@ -411,11 +394,10 @@ export default function ItemDetailModal() {
         {/* Bottom Actions */}
         <View style={styles.bottomActions}>
           <MetroButton
-            title="ADD TO CART"
+            title="Add to Cart"
             variant="primary"
             size="lg"
             onPress={() => {
-              // Convert splittable item to Product format for cart
               const productForCart: Product = {
                 id: splittableItem.id,
                 name: splittableItem.title,
@@ -444,7 +426,7 @@ export default function ItemDetailModal() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>ITEM NOT FOUND</Text>
+          <Text style={styles.loadingText}>Item not found</Text>
         </View>
       </SafeAreaView>
     );
@@ -459,12 +441,12 @@ export default function ItemDetailModal() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerLabel}>{product.category.toUpperCase()}</Text>
+          <Text style={styles.headerLabel}>{product.category}</Text>
           <Text style={styles.headerTitle}>{product.name}</Text>
           <Text style={styles.headerSubtitle}>{product.store.name}</Text>
         </View>
         <MetroButton
-          title="X"
+          title="✕"
           variant="ghost"
           size="sm"
           onPress={() => router.back()}
@@ -474,52 +456,45 @@ export default function ItemDetailModal() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Price Comparison Card */}
         <MetroCard variant="active" style={styles.priceCard}>
-          <Text style={styles.sectionLabel}>PRICE ANALYSIS</Text>
+          <Text style={styles.sectionLabel}>Price Analysis</Text>
 
           <View style={styles.priceComparison}>
             <View style={styles.priceColumn}>
-              <Text style={styles.priceType}>RETAIL UNIT PRICE</Text>
+              <Text style={styles.priceType}>Retail</Text>
               <PriceDisplay
                 amount={regionalRetailPrice || product.retailPrice}
                 size="xl"
                 variant="muted"
               />
-              <Text style={styles.unitPrice}>
-                Regional avg/{product.unit}
-              </Text>
+              <Text style={styles.unitPrice}>Regional avg/{product.unit}</Text>
             </View>
 
             <View style={styles.vsContainer}>
-              <Text style={styles.vsText}>VS</Text>
-              <View style={styles.savingsArrow}>
-                <Text style={styles.arrowText}>{'->'}</Text>
-              </View>
+              <Ionicons name="arrow-forward" size={24} color={MetroColors.accent.green} />
             </View>
 
             <View style={styles.priceColumn}>
-              <Text style={styles.priceType}>PER UNIT</Text>
+              <Text style={styles.priceType}>Bulk</Text>
               <PriceDisplay
                 amount={product.bulkPrice}
                 size="xl"
                 variant="highlight"
               />
-              <Text style={styles.unitPrice}>
-                Bulk price/{product.unit}
-              </Text>
+              <Text style={styles.unitPrice}>Per {product.unit}</Text>
             </View>
           </View>
 
           {regionalRetailPrice && (
             <View style={styles.savingsBox}>
-              <Text style={styles.savingsLabel}>YOUR SAVINGS PER UNIT</Text>
+              <Text style={styles.savingsLabel}>Your Savings Per Unit</Text>
               <View style={styles.savingsRow}>
                 <Text style={styles.savingsAmount}>
                   ${(regionalRetailPrice - product.bulkPrice).toFixed(2)}
                 </Text>
                 <StatusBadge
-                  label={`${(((regionalRetailPrice - product.bulkPrice) / regionalRetailPrice) * 100).toFixed(0)}% OFF`}
+                  label={`${(((regionalRetailPrice - product.bulkPrice) / regionalRetailPrice) * 100).toFixed(0)}% off`}
                   variant="success"
-                  size="md"
+                  size="sm"
                 />
               </View>
             </View>
@@ -533,34 +508,29 @@ export default function ItemDetailModal() {
             style={styles.agentCard}
           >
             <View style={styles.agentHeader}>
-              <Text style={styles.sectionLabel}>AI AGENT ANALYSIS</Text>
+              <Text style={styles.sectionLabel}>AI Analysis</Text>
               <ConfidenceBadge score={agentDecision.confidence} />
             </View>
             
             <View style={styles.agentDecision}>
-              <View style={[
-                styles.decisionIndicator,
-                { backgroundColor: agentDecision.approved
-                  ? MetroColors.accent.green
-                  : MetroColors.accent.orange
-                }
-              ]} />
+              <Ionicons 
+                name={agentDecision.approved ? "checkmark-circle" : "alert-circle"} 
+                size={20} 
+                color={agentDecision.approved ? MetroColors.accent.green : MetroColors.accent.orange} 
+              />
               <Text style={[
                 styles.decisionText,
-                { color: agentDecision.approved
-                  ? MetroColors.accent.green
-                  : MetroColors.accent.orange
-                }
+                { color: agentDecision.approved ? MetroColors.accent.green : MetroColors.accent.orange }
               ]}>
-                {agentDecision.approved ? 'BULK BUY APPROVED' : 'REVIEW RECOMMENDED'}
+                {agentDecision.approved ? 'Bulk Buy Approved' : 'Review Recommended'}
               </Text>
             </View>
             
-            <Text style={styles.agentReasoning}>{agentDecision.reasoning}</Text>
+            <Text style={styles.descriptionText}>{agentDecision.reasoning}</Text>
             
             {agentDecision.bulkSavings && (
               <View style={styles.agentStat}>
-                <Text style={styles.agentStatLabel}>ESTIMATED BULK SAVINGS</Text>
+                <Text style={styles.agentStatLabel}>Estimated Bulk Savings</Text>
                 <Text style={styles.agentStatValue}>
                   ${agentDecision.bulkSavings.toFixed(2)}
                 </Text>
@@ -571,18 +541,18 @@ export default function ItemDetailModal() {
 
         {/* Bulk Progress */}
         <MetroCard style={styles.progressCard}>
-          <Text style={styles.sectionLabel}>BULK ORDER PROGRESS</Text>
+          <Text style={styles.sectionLabel}>Bulk Order Progress</Text>
           
           <View style={styles.progressStats}>
             <View style={styles.progressStat}>
               <Text style={styles.progressStatValue}>
                 {(bulkOrder?.totalQuantity || 0) + qty}
               </Text>
-              <Text style={styles.progressStatLabel}>PLEDGED</Text>
+              <Text style={styles.progressStatLabel}>Pledged</Text>
             </View>
             <View style={styles.progressStat}>
               <Text style={styles.progressStatValue}>{product.bulkMinimum}</Text>
-              <Text style={styles.progressStatLabel}>NEEDED</Text>
+              <Text style={styles.progressStatLabel}>Needed</Text>
             </View>
             <View style={styles.progressStat}>
               <Text style={[
@@ -591,11 +561,11 @@ export default function ItemDetailModal() {
               ]}>
                 {Math.round(progress * 100)}%
               </Text>
-              <Text style={styles.progressStatLabel}>COMPLETE</Text>
+              <Text style={styles.progressStatLabel}>Complete</Text>
             </View>
           </View>
           
-          <ProgressBar progress={Math.min(progress, 1)} height={12} showLabel />
+          <ProgressBar progress={Math.min(progress, 1)} height={10} showLabel />
           
           <Text style={styles.progressNote}>
             {progress >= 1
@@ -609,7 +579,7 @@ export default function ItemDetailModal() {
 
         {/* Quantity Selector */}
         <MetroCard style={styles.quantityCard}>
-          <Text style={styles.sectionLabel}>SELECT QUANTITY</Text>
+          <Text style={styles.sectionLabel}>Select Quantity</Text>
           
           <View style={styles.quantityRow}>
             <MetroButton
@@ -657,7 +627,7 @@ export default function ItemDetailModal() {
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Delivery Fee Estimate</Text>
+            <Text style={styles.summaryLabel}>Delivery Fee (Est.)</Text>
             <Text style={styles.summaryValue}>~$2.50</Text>
           </View>
         </MetroCard>
@@ -666,7 +636,7 @@ export default function ItemDetailModal() {
       {/* Bottom Actions */}
       <View style={styles.bottomActions}>
         <MetroButton
-          title="ADD TO CART"
+          title="Add to Cart"
           variant="secondary"
           size="lg"
           onPress={() => {
@@ -676,7 +646,7 @@ export default function ItemDetailModal() {
           style={styles.cartButton}
         />
         <MetroButton
-          title={pledging ? 'PLEDGING...' : 'PLEDGE NOW'}
+          title={pledging ? 'Pledging...' : 'Pledge Now'}
           variant="primary"
           size="lg"
           loading={pledging}
@@ -700,9 +670,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.md,
-    letterSpacing: 1,
   },
   header: {
     flexDirection: 'row',
@@ -710,31 +679,31 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: MetroColors.border.muted,
+    backgroundColor: MetroColors.background.secondary,
+    ...Shadows.sm,
   },
   headerContent: {
     flex: 1,
   },
   headerLabel: {
     color: MetroColors.accent.cyan,
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
-    letterSpacing: 1.5,
+    fontWeight: '600',
   },
   headerTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
-    fontSize: FontSizes['3xl'],
-    fontWeight: '800',
+    fontSize: FontSizes['2xl'],
+    fontWeight: '700',
+    letterSpacing: -0.5,
     marginVertical: 4,
   },
   headerSubtitle: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
@@ -744,15 +713,14 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing[10],
   },
   sectionLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.sansBold,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
-    letterSpacing: 1.5,
+    fontWeight: '600',
     marginBottom: Spacing[3],
   },
   priceCard: {
-    marginBottom: Spacing[4],
+    marginBottom: Spacing[3],
   },
   priceComparison: {
     flexDirection: 'row',
@@ -765,14 +733,14 @@ const styles = StyleSheet.create({
   },
   priceType: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
-    letterSpacing: 1,
+    fontWeight: '500',
     marginBottom: Spacing[1],
   },
   unitPrice: {
-    color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
     marginTop: Spacing[1],
   },
@@ -780,30 +748,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing[3],
   },
-  vsText: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-  },
-  savingsArrow: {
-    marginTop: Spacing[1],
-  },
-  arrowText: {
-    color: MetroColors.accent.green,
-    fontSize: 24,
-  },
   savingsBox: {
     backgroundColor: MetroColors.accent.greenMuted,
-    padding: Spacing[3],
-    borderRadius: 2,
+    padding: Spacing[4],
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
   },
   savingsLabel: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '500',
     marginBottom: Spacing[1],
   },
   savingsRow: {
@@ -813,12 +768,12 @@ const styles = StyleSheet.create({
   },
   savingsAmount: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes['4xl'],
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes['3xl'],
+    fontWeight: '700',
   },
   agentCard: {
-    marginBottom: Spacing[4],
+    marginBottom: Spacing[3],
   },
   agentHeader: {
     flexDirection: 'row',
@@ -830,25 +785,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: Spacing[3],
-  },
-  decisionIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: Spacing[2],
+    gap: Spacing[2],
   },
   decisionText: {
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.md,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '600',
   },
-  agentReasoning: {
+  descriptionText: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
     lineHeight: 20,
     marginBottom: Spacing[3],
+  },
+  featureRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: MetroColors.border.default,
+    marginTop: Spacing[2],
+  },
+  featureLabel: {
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
+  },
+  featureValue: {
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
   agentStat: {
     flexDirection: 'row',
@@ -856,23 +826,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: Spacing[3],
     borderTopWidth: 1,
-    borderTopColor: MetroColors.border.muted,
+    borderTopColor: MetroColors.border.default,
   },
   agentStatLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.sansBold,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontWeight: '500',
   },
   agentStatValue: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.heading,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xl,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   progressCard: {
-    marginBottom: Spacing[4],
+    marginBottom: Spacing[3],
   },
   progressStats: {
     flexDirection: 'row',
@@ -884,34 +853,44 @@ const styles = StyleSheet.create({
   },
   progressStatValue: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
   },
   progressStatLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.sansBold,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '500',
   },
   progressNote: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
     marginTop: Spacing[3],
     textAlign: 'center',
+  },
+  neighborRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing[2],
+    marginTop: Spacing[2],
+  },
+  neighborText: {
+    color: MetroColors.accent.purple,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
     fontWeight: '500',
   },
   quantityCard: {
-    marginBottom: Spacing[4],
+    marginBottom: Spacing[3],
   },
   quantityRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing[3],
-    marginBottom: Spacing[3],
   },
   quantityInputContainer: {
     flexDirection: 'row',
@@ -919,31 +898,24 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.background.tertiary,
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[2],
-    borderRadius: 2,
-    borderWidth: 1,
-    borderColor: MetroColors.border.default,
+    borderRadius: BorderRadius.md,
   },
   quantityInput: {
     color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xl,
     fontWeight: '700',
     minWidth: 60,
     textAlign: 'center',
   },
   quantityUnit: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
     marginLeft: Spacing[1],
   },
-  quickQuantities: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing[2],
-  },
   summaryCard: {
-    marginBottom: Spacing[4],
+    marginBottom: Spacing[3],
   },
   summaryRow: {
     flexDirection: 'row',
@@ -953,19 +925,19 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
   summaryValue: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.lg,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
     fontWeight: '600',
   },
   summaryDivider: {
     height: 1,
-    backgroundColor: MetroColors.border.muted,
+    backgroundColor: MetroColors.border.default,
     marginVertical: Spacing[3],
   },
   bottomActions: {
@@ -973,7 +945,7 @@ const styles = StyleSheet.create({
     padding: Spacing[4],
     paddingBottom: Spacing[6],
     borderTopWidth: 1,
-    borderTopColor: MetroColors.border.muted,
+    borderTopColor: MetroColors.border.default,
     backgroundColor: MetroColors.background.secondary,
     gap: Spacing[3],
   },

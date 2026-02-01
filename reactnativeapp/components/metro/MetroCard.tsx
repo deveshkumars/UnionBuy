@@ -1,75 +1,66 @@
 /**
- * MetroCard - Bounding box container with corner accents
- * The signature Metropolis card component with cyberpunk aesthetics
+ * MetroCard - Clean card container with soft shadows
+ * Warm, community-focused design without corner accents
  */
 
 import { BorderRadius, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import React from 'react';
-import { Animated, StyleSheet, View, ViewProps } from 'react-native';
+import { StyleSheet, Text, View, ViewProps } from 'react-native';
 
 type CardVariant = 'default' | 'active' | 'warning' | 'success' | 'locked';
 
 interface MetroCardProps extends ViewProps {
   variant?: CardVariant;
-  showCorners?: boolean;
+  showCorners?: boolean; // Kept for API compatibility but ignored
   glowing?: boolean;
   label?: string;
   children: React.ReactNode;
 }
 
-const variantColors: Record<CardVariant, string> = {
-  default: MetroColors.border.accent,
-  active: MetroColors.accent.cyan,
-  warning: MetroColors.accent.yellow,
-  success: MetroColors.accent.green,
-  locked: MetroColors.accent.pink,
+const variantColors: Record<CardVariant, { border: string; accent: string }> = {
+  default: { border: 'transparent', accent: MetroColors.accent.cyan },
+  active: { border: MetroColors.accent.cyan, accent: MetroColors.accent.cyan },
+  warning: { border: MetroColors.accent.orange, accent: MetroColors.accent.orange },
+  success: { border: MetroColors.accent.green, accent: MetroColors.accent.green },
+  locked: { border: MetroColors.accent.purple, accent: MetroColors.accent.purple },
 };
 
 export function MetroCard({
   variant = 'default',
-  showCorners = true,
+  showCorners = false, // Ignored - no longer used
   glowing = false,
   label,
   children,
   style,
   ...props
 }: MetroCardProps) {
-  const borderColor = variantColors[variant];
+  const colors = variantColors[variant];
   const isHighlighted = variant !== 'default';
 
   return (
     <View
       style={[
         styles.container,
-        { borderColor },
-        glowing && variant === 'active' && Shadows.cyanGlow,
-        glowing && variant === 'warning' && Shadows.orangeGlow,
+        isHighlighted && { borderColor: colors.border, borderWidth: 2 },
+        glowing && Shadows.md,
         style,
       ]}
       {...props}
     >
-      {/* Corner Accents */}
-      {showCorners && (
-        <>
-          <View style={[styles.corner, styles.topLeft, { borderColor }]} />
-          <View style={[styles.corner, styles.topRight, { borderColor }]} />
-          <View style={[styles.corner, styles.bottomLeft, { borderColor }]} />
-          <View style={[styles.corner, styles.bottomRight, { borderColor }]} />
-        </>
-      )}
-
       {/* Metadata Label */}
       {label && (
-        <View style={[styles.labelContainer, { backgroundColor: borderColor }]}>
-          <Animated.Text style={styles.labelText}>{label}</Animated.Text>
+        <View style={[styles.labelContainer, { backgroundColor: colors.accent }]}>
+          <Text style={styles.labelText}>{label}</Text>
         </View>
       )}
 
       {/* Content */}
       <View style={styles.content}>{children}</View>
 
-      {/* Scan line effect for highlighted cards */}
-      {isHighlighted && <View style={[styles.scanLine, { backgroundColor: borderColor }]} />}
+      {/* Subtle accent bar for highlighted cards */}
+      {isHighlighted && (
+        <View style={[styles.accentBar, { backgroundColor: colors.accent }]} />
+      )}
     </View>
   );
 }
@@ -77,70 +68,36 @@ export function MetroCard({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: MetroColors.background.secondary,
-    borderWidth: 1.5,
     borderRadius: BorderRadius.lg,
     position: 'relative',
     overflow: 'hidden',
+    ...Shadows.sm,
   },
   content: {
     padding: Spacing[4],
   },
-  corner: {
-    position: 'absolute',
-    width: 16,
-    height: 16,
-    borderWidth: 2.5,
-  },
-  topLeft: {
-    top: -1,
-    left: -1,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: BorderRadius.sm,
-  },
-  topRight: {
-    top: -1,
-    right: -1,
-    borderLeftWidth: 0,
-    borderBottomWidth: 0,
-    borderTopRightRadius: BorderRadius.sm,
-  },
-  bottomLeft: {
-    bottom: -1,
-    left: -1,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-    borderBottomLeftRadius: BorderRadius.sm,
-  },
-  bottomRight: {
-    bottom: -1,
-    right: -1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderBottomRightRadius: BorderRadius.sm,
-  },
   labelContainer: {
     position: 'absolute',
-    top: 0,
-    right: 16,
-    paddingHorizontal: Spacing[2],
+    top: Spacing[3],
+    right: Spacing[3],
+    paddingHorizontal: Spacing[3],
     paddingVertical: Spacing[1],
-    borderBottomLeftRadius: BorderRadius.sm,
-    borderBottomRightRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.full,
+    zIndex: 1,
   },
   labelText: {
-    color: MetroColors.background.primary,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    color: MetroColors.text.inverse,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
-  scanLine: {
+  accentBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     height: 3,
-    opacity: 0.8,
+    borderBottomLeftRadius: BorderRadius.lg,
+    borderBottomRightRadius: BorderRadius.lg,
   },
 });

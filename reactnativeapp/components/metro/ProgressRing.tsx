@@ -1,9 +1,9 @@
 /**
- * ProgressRing - Circular progress indicator for pledge completion
- * Features animated fill and glow effects
+ * ProgressRing - Circular progress indicator
+ * Clean, friendly design with warm colors
  */
 
-import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { BorderRadius, FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -25,7 +25,7 @@ interface ProgressRingProps {
 export function ProgressRing({
   progress,
   size = 80,
-  strokeWidth = 6,
+  strokeWidth = 8,
   showPercentage = true,
   label,
   variant = 'default',
@@ -34,7 +34,7 @@ export function ProgressRing({
   
   useEffect(() => {
     animatedProgress.value = withTiming(progress, {
-      duration: 800,
+      duration: 600,
       easing: Easing.bezier(0.25, 0.1, 0.25, 1),
     });
   }, [progress]);
@@ -47,15 +47,6 @@ export function ProgressRing({
 
   const color = getColor();
   const percentage = Math.round(progress * 100);
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-
-  const animatedStyle = useAnimatedStyle(() => {
-    const strokeDashoffset = circumference * (1 - animatedProgress.value);
-    return {
-      strokeDashoffset,
-    };
-  });
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
@@ -69,11 +60,11 @@ export function ProgressRing({
               height: size,
               borderRadius: size / 2,
               borderWidth: strokeWidth,
-              borderColor: MetroColors.border.muted,
+              borderColor: MetroColors.background.tertiary,
             },
           ]}
         />
-        {/* Progress Arc - Using a simplified view-based approach */}
+        {/* Progress Arc */}
         <View
           style={[
             styles.progressContainer,
@@ -110,27 +101,11 @@ export function ProgressRing({
         )}
         {label && <Text style={styles.label}>{label}</Text>}
       </View>
-
-      {/* Glow Effect */}
-      {progress >= 1 && (
-        <View
-          style={[
-            styles.glowRing,
-            {
-              width: size + 10,
-              height: size + 10,
-              borderRadius: (size + 10) / 2,
-              borderColor: color,
-              shadowColor: color,
-            },
-          ]}
-        />
-      )}
     </View>
   );
 }
 
-// Smaller inline progress bar variant
+// Progress bar variant
 interface ProgressBarProps {
   progress: number;
   height?: number;
@@ -140,7 +115,7 @@ interface ProgressBarProps {
 
 export function ProgressBar({
   progress,
-  height = 14,
+  height = 12,
   showLabel = false,
   variant = 'default',
 }: ProgressBarProps) {
@@ -155,7 +130,7 @@ export function ProgressBar({
 
   return (
     <View style={styles.barContainer}>
-      <View style={[styles.barBackground, { height }]}>
+      <View style={[styles.barBackground, { height, borderRadius: height / 2 }]}>
         <Animated.View
           style={[
             styles.barFill,
@@ -163,10 +138,7 @@ export function ProgressBar({
               width: `${Math.min(progress * 100, 100)}%`,
               backgroundColor: color,
               height,
-              shadowColor: color,
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.6,
-              shadowRadius: 6,
+              borderRadius: height / 2,
             },
           ]}
         />
@@ -202,42 +174,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   percentage: {
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.lg,
     fontWeight: '700',
   },
   label: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
     marginTop: 2,
-    textTransform: 'uppercase',
-  },
-  glowRing: {
-    position: 'absolute',
-    borderWidth: 2,
-    opacity: 0.3,
-    shadowOpacity: 0.8,
-    shadowRadius: 15,
   },
   barContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[2],
+    gap: Spacing[3],
   },
   barBackground: {
     flex: 1,
-    backgroundColor: MetroColors.border.muted,
-    borderRadius: 8,
+    backgroundColor: MetroColors.background.tertiary,
     overflow: 'hidden',
   },
   barFill: {
-    borderRadius: 8,
+    // Styles applied inline
   },
   barLabel: {
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes.md,
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
     minWidth: 44,
     textAlign: 'right',
   },
