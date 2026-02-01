@@ -1,6 +1,6 @@
 /**
  * Union Buy Theme System
- * A warm, community-focused aesthetic inspired by Airbnb & Duolingo
+ * Clean, professional light-mode navy/white design system
  */
 
 import { Platform } from 'react-native';
@@ -10,66 +10,69 @@ import { Platform } from 'react-native';
 // ============================================
 
 export const MetroColors = {
-  // Base backgrounds (warm, inviting)
+  // Base backgrounds (clean, light)
   background: {
-    primary: '#FAFAF8',      // Warm white - page background
+    primary: '#F9FAFB',      // Very light gray - page background
     secondary: '#FFFFFF',    // Pure white - cards / panels
-    tertiary: '#F5F5F3',     // Warm gray - sub-panels / chips
+    tertiary: '#F3F4F6',     // Light gray - sub-panels / chips
     elevated: '#FFFFFF',     // Modals / overlays
   },
 
-  // Accent colors (warm, approachable palette)
+  // Accent colors (navy + blue palette)
   accent: {
-    cyan: '#E05A47',         // Warm Coral - primary actions (renamed for compatibility)
-    cyanMuted: 'rgba(224, 90, 71, 0.12)',
-    cyanDark: '#C74A3A',
-    orange: '#E8A54B',       // Warm Amber - warnings / cutoff
-    orangeMuted: 'rgba(232, 165, 75, 0.15)',
-    green: '#6B9080',        // Sage Green - success
-    greenMuted: 'rgba(107, 144, 128, 0.15)',
-    red: '#D94F4F',          // Soft Red - errors
-    redMuted: 'rgba(217, 79, 79, 0.12)',
-    purple: '#8B7EC8',       // Soft Lavender - special highlights
-    purpleMuted: 'rgba(139, 126, 200, 0.12)',
-    yellow: '#E8A54B',       // Warm Amber - hot deals
-    yellowMuted: 'rgba(232, 165, 75, 0.15)',
-    pink: '#E07A9A',         // Soft Rose - special offers
-    pinkMuted: 'rgba(224, 122, 154, 0.12)',
-    indigo: '#6B7EC8',       // Soft Periwinkle - premium
-    indigoMuted: 'rgba(107, 126, 200, 0.12)',
+    cyan: '#3B6EA5',         // Lighter Navy - primary actions (kept name for compatibility)
+    cyanMuted: 'rgba(59, 110, 165, 0.10)',
+    cyanDark: '#2B5480',
+    orange: '#3B82F6',       // Blue - accent actions (kept name for compatibility)
+    orangeMuted: 'rgba(59, 130, 246, 0.10)',
+    green: '#10B981',        // Green - success
+    greenMuted: '#DCFCE7',   // Light green - discount backgrounds
+    greenDark: '#166534',    // Dark green - discount text
+    red: '#EF4444',          // Red - errors
+    redMuted: 'rgba(239, 68, 68, 0.10)',
+    purple: '#8B5CF6',       // Purple - special highlights
+    purpleMuted: 'rgba(139, 92, 246, 0.10)',
+    yellow: '#F59E0B',       // Amber - warnings
+    yellowMuted: 'rgba(245, 158, 11, 0.10)',
+    pink: '#EC4899',         // Pink - special offers
+    pinkMuted: 'rgba(236, 72, 153, 0.10)',
+    indigo: '#6366F1',       // Indigo - premium
+    indigoMuted: 'rgba(99, 102, 241, 0.10)',
+    teal: '#14B8A6',         // Teal - alternative accent
+    tealMuted: 'rgba(20, 184, 166, 0.10)',
   },
 
-  // Text colors - warm and readable
+  // Text colors - professional and clean
   text: {
-    primary: '#1A1A19',      // Near black - headlines
-    secondary: '#4A4A48',    // Warm dark gray - body text
-    tertiary: '#6B6B6A',     // Medium warm gray - labels
-    muted: '#9B9B9A',        // Light warm gray - placeholders
+    primary: '#111827',      // Dark gray - headlines
+    secondary: '#374151',    // Medium gray - body text
+    tertiary: '#6B7280',     // Gray - labels
+    muted: '#9CA3AF',        // Light gray - placeholders
     inverse: '#FFFFFF',      // On colored surfaces
   },
 
-  // Border colors - subtle and warm
+  // Border colors - subtle
   border: {
-    default: '#EBEBEA',      // Light warm gray - default borders
-    muted: '#F5F5F3',        // Very light - subtle dividers
-    accent: '#E05A47',       // Coral - highlighted borders
-    warning: '#E8A54B',      // Amber - warning state borders
+    default: '#E5E7EB',      // Light gray - default borders
+    muted: '#F3F4F6',        // Very light - subtle dividers
+    accent: '#3B6EA5',       // Lighter Navy - highlighted borders
+    warning: '#3B82F6',      // Blue - warning state borders
   },
 
-  // Status colors (semantic, warm)
+  // Status colors (semantic, clean)
   status: {
-    pending: '#E8A54B',      // Amber
-    active: '#E05A47',       // Coral
-    confirmed: '#6B9080',    // Sage
-    cancelled: '#D94F4F',    // Soft red
-    locked: '#8B7EC8',       // Lavender
+    pending: '#F59E0B',      // Amber
+    active: '#3B82F6',       // Blue
+    confirmed: '#10B981',    // Green
+    cancelled: '#EF4444',    // Red
+    locked: '#8B5CF6',       // Purple
   },
 
-  // Soft overlays (replacing glassmorphism)
+  // Soft overlays
   glass: {
     background: 'rgba(255, 255, 255, 0.95)',
-    border: 'rgba(235, 235, 234, 0.8)',
-    highlight: 'rgba(224, 90, 71, 0.08)',
+    border: 'rgba(229, 231, 235, 0.8)',
+    highlight: 'rgba(18, 58, 92, 0.05)',
   },
 } as const;
 
@@ -193,49 +196,49 @@ export const BorderRadius = {
 } as const;
 
 // ============================================
-// SHADOWS (soft, warm shadows)
+// SHADOWS (subtle, clean shadows)
 // ============================================
 
 export const Shadows = {
   sm: {
-    shadowColor: '#1A1A19',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
     elevation: 2,
   },
   md: {
-    shadowColor: '#1A1A19',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 4,
   },
   lg: {
-    shadowColor: '#1A1A19',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 8,
   },
   glow: (color: string) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
   }),
   cyanGlow: {
     shadowColor: MetroColors.accent.cyan,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
   },
   orangeGlow: {
     shadowColor: MetroColors.accent.orange,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
   },

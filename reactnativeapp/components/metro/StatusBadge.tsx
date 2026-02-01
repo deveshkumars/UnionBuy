@@ -25,8 +25,8 @@ const variantStyles: Record<BadgeVariant, { bg: string; text: string }> = {
     text: MetroColors.text.secondary,
   },
   success: {
-    bg: MetroColors.accent.greenMuted,
-    text: MetroColors.accent.green,
+    bg: MetroColors.accent.greenMuted,    // Light green background (#DCFCE7)
+    text: MetroColors.accent.greenDark,   // Dark green text (#166534)
   },
   warning: {
     bg: MetroColors.accent.orangeMuted,

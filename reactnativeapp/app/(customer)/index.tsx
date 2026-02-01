@@ -27,6 +27,7 @@ import {
   ProgressBar,
   StatusBadge,
 } from '@/components/metro';
+import { UBLogo } from '@/components/UBLogo';
 import { BorderRadius, Fonts, FontSizes, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useCart } from '@/context/AppContext';
 import { fetchProducts, fetchTrendingItems, searchProducts } from '@/services/api';
@@ -164,10 +165,7 @@ export default function MarketScreen() {
       <View style={styles.fixedHeader}>
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.headerLabel}>Union Buy</Text>
-            <Text style={styles.headerTitle}>Market</Text>
-          </View>
+          <UBLogo size="lg" variant="navy" source={require('@/assets/images/logo.png')} />
           <View style={styles.headerRight}>
             <TouchableOpacity 
               style={styles.headerIconButton}
@@ -567,7 +565,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[3],
     backgroundColor: MetroColors.background.secondary,
@@ -617,25 +615,25 @@ const styles = StyleSheet.create({
   cutoffBox: {
     alignItems: "flex-end",
     marginLeft: Spacing[2],
-    backgroundColor: MetroColors.accent.orangeMuted,
+    backgroundColor: MetroColors.background.tertiary,
     paddingHorizontal: Spacing[3],
     paddingVertical: Spacing[2],
     borderRadius: BorderRadius.md,
   },
   timeLabel: {
-    color: MetroColors.accent.orange,
+    color: MetroColors.accent.navy,
     fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
     fontWeight: "500",
   },
   timeValue: {
-    color: MetroColors.accent.orange,
+    color: MetroColors.accent.navy,
     fontFamily: Fonts.body,
     fontSize: FontSizes.md,
     fontWeight: "700",
   },
   timeRemaining: {
-    color: MetroColors.accent.orange,
+    color: MetroColors.accent.navy,
     fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
     fontWeight: "500",
