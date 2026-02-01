@@ -135,6 +135,7 @@ export interface Mission {
 }
 
 export type MissionStatus =
+  | 'pending'       // Not yet available (waiting for order to trigger)
   | 'available'
   | 'accepted'
   | 'en_route_to_store'

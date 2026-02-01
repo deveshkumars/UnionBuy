@@ -121,11 +121,25 @@ export default function ItemDetailModal() {
             
             if (result.success && result.pledge) {
               addPledge(result.pledge);
-              Alert.alert(
-                'Pledge Created',
-                'Your funds have been locked. Check the Pledges tab for status.',
-                [{ text: 'OK', onPress: () => router.back() }]
-              );
+              
+              // ⚡ Check if this pledge triggered the bulk order!
+              if ((result as any).triggered) {
+                Alert.alert(
+                  '🎉 BULK ORDER ACTIVATED!',
+                  `Your pledge pushed this order over the threshold!\n\n` +
+                  `✅ Order is now ACTIVE\n` +
+                  `🚗 A runner can now pick it up\n` +
+                  `📦 Check Pledges tab to see your order "In Action"\n\n` +
+                  `You'll be notified when it's ready for pickup!`,
+                  [{ text: 'Awesome!', onPress: () => router.back() }]
+                );
+              } else {
+                Alert.alert(
+                  'Pledge Created',
+                  'Your funds have been locked. Check the Pledges tab for status.',
+                  [{ text: 'OK', onPress: () => router.back() }]
+                );
+              }
             } else {
               Alert.alert('Error', result.error || 'Failed to create pledge');
             }

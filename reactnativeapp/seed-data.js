@@ -10,6 +10,23 @@ Amplify.configure(outputs);
 const client = generateClient({ authMode: 'apiKey' });
 
 const testProducts = [
+  // ⚡ DEMO TRIGGER ITEM - 1 jar away from activating!
+  {
+    name: '🍯 Local Honey',
+    category: 'pantry',
+    description: 'Raw wildflower honey from local apiaries - DEMO: 1 jar away from bulk!',
+    unit: 'jar',
+    retailPrice: 12.99,
+    bulkPrice: 7.49,
+    bulkMinimum: 20,
+    storeJson: JSON.stringify({
+      id: 'store-costco',
+      name: 'Costco Wholesale',
+      type: 'wholesale',
+      location: { latitude: 41.8268, longitude: -71.4025, address: '2 Mystic View Rd, Everett, MA' },
+    }),
+    available: true,
+  },
   {
     name: 'Organic Whole Milk',
     category: 'dairy',
@@ -96,12 +113,55 @@ const testProducts = [
 async function seedProducts() {
   console.log('🌱 Seeding products to DynamoDB...\n');
 
+  let honeyProductId = null;
+  
   for (const product of testProducts) {
     try {
       const result = await client.models.Product.create(product);
       console.log(`✅ Created: ${product.name} (ID: ${result.data?.id})`);
+      
+      // Save the honey product ID for bulk order creation
+      if (product.name.includes('Honey')) {
+        honeyProductId = result.data?.id;
+      }
     } catch (error) {
       console.error(`❌ Failed to create ${product.name}:`, error.errors?.[0]?.message || error.message);
+    }
+  }
+
+  // Create bulk order for Local Honey (19/20 jars - 1 away from triggering!)
+  if (honeyProductId) {
+    console.log('\n🍯 Creating bulk order for Local Honey...');
+    try {
+      const honeyProduct = testProducts.find(p => p.name.includes('Honey'));
+      const bulkOrder = await client.models.BulkOrder.create({
+        productId: honeyProductId,
+        productSnapshotJson: JSON.stringify({
+          id: honeyProductId,
+          name: honeyProduct.name,
+          category: honeyProduct.category,
+          description: honeyProduct.description,
+          unit: honeyProduct.unit,
+          retailPrice: honeyProduct.retailPrice,
+          bulkPrice: honeyProduct.bulkPrice,
+          bulkMinimum: honeyProduct.bulkMinimum,
+          store: JSON.parse(honeyProduct.storeJson),
+          available: true,
+        }),
+        totalQuantity: 19, // 1 jar away from bulk minimum of 20!
+        targetQuantity: 20,
+        pricePerUnit: 7.99,
+        status: 'collecting',
+        cutoffTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+        dropZoneJson: JSON.stringify({
+          latitude: 41.8236,
+          longitude: -71.4222,
+          address: 'East Side Community Hub',
+        }),
+      });
+      console.log(`✅ Created bulk order for Honey (ID: ${bulkOrder.data?.id}) - 19/20 jars pledged!`);
+    } catch (error) {
+      console.error(`❌ Failed to create bulk order:`, error.errors?.[0]?.message || error.message);
     }
   }
 

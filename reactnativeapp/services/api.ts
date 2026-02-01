@@ -38,7 +38,9 @@ import {
     mockMissions,
     mockPledges,
     mockProducts,
+    mockStores,
     mockTrendingItems,
+    mockUsers,
     mockWallet,
 } from './mockData';
 
@@ -108,6 +110,16 @@ export async function fetchBulkOrderForProduct(productId: string): Promise<BulkO
   return mockBulkOrders.find((o) => o.productId === productId && o.status === 'collecting') || null;
 }
 
+// Fetch bulk order for product regardless of status (for pledges page progress tracking)
+export async function fetchBulkOrderForProductAnyStatus(productId: string): Promise<BulkOrder | null> {
+  await delay(300);
+  // Return most recent order for this product, prioritizing active statuses
+  const orders = mockBulkOrders.filter((o) => o.productId === productId);
+  // Prefer active orders over rolled_over/cancelled
+  const activeOrder = orders.find(o => ['collecting', 'assigned', 'shopping', 'in_transit', 'distributing'].includes(o.status));
+  return activeOrder || orders[0] || null;
+}
+
 // ============================================
 // PLEDGES API
 // ============================================
@@ -139,7 +151,7 @@ export async function createPledge(
   productId: string,
   quantity: number,
   userId?: string
-): Promise<{ success: boolean; pledge?: Pledge; error?: string }> {
+): Promise<{ success: boolean; pledge?: Pledge; error?: string; triggered?: boolean }> {
   // Use provided userId or fall back to currentUser.id
   const effectiveUserId = userId || currentUser.id;
   console.log('[createPledge] Backend configured:', isBackendConfigured(), 'userId:', effectiveUserId);
@@ -164,6 +176,11 @@ export async function createPledge(
   const unitPrice = bulkOrder?.pricePerUnit || product.bulkPrice * 1.1;
   const totalAmount = unitPrice * quantity;
   const maxAmount = product.retailPrice * quantity;
+  
+  // Check if this pledge will trigger the bulk order (meet the minimum)
+  const newTotal = (bulkOrder?.totalQuantity || 0) + quantity;
+  const willTrigger = bulkOrder && newTotal >= product.bulkMinimum;
+  
   const newPledge: Pledge = {
     id: `pledge-${Date.now()}`,
     userId: effectiveUserId,
@@ -173,14 +190,72 @@ export async function createPledge(
     unitPrice,
     totalAmount,
     maxAmount,
-    status: 'locked',
+    status: willTrigger ? 'active' : 'locked',
     createdAt: new Date().toISOString(),
     lockedAt: new Date().toISOString(),
+    orderId: bulkOrder?.id,
   };
   mockPledges.push(newPledge);
-  console.log('[createPledge] ✅ Created new mock pledge:', newPledge.id);
+  
+  // ⚡ DEMO TRIGGER LOGIC: If this pledge pushes the order over the minimum, activate everything!
+  if (willTrigger && bulkOrder) {
+    console.log('[createPledge] ⚡ BULK MINIMUM REACHED! Triggering order activation...');
+    
+    // 1. Update bulk order status
+    bulkOrder.totalQuantity = newTotal;
+    bulkOrder.status = 'assigned';
+    bulkOrder.executedAt = new Date().toISOString();
+    bulkOrder.runnerId = 'user-3'; // Aisha the runner
+    console.log('[createPledge] ✅ Bulk order activated:', bulkOrder.id);
+    
+    // 2. Update all pledges for this order to 'active'
+    mockPledges.forEach(p => {
+      if (p.productId === productId && ['pending', 'locked'].includes(p.status)) {
+        p.status = 'active';
+      }
+    });
+    
+    // 3. Find and activate the demo mission (or create one)
+    const demoMission = mockMissions.find(m => m.id === 'mission-demo');
+    if (demoMission) {
+      demoMission.status = 'available';
+      demoMission.orders = [bulkOrder];
+      demoMission.totalItems = newTotal;
+      console.log('[createPledge] ✅ Mission activated:', demoMission.id);
+    }
+    
+    // 4. Create a distribution for this user
+    const newDistribution = {
+      id: `dist-demo-${Date.now()}`,
+      missionId: 'mission-demo',
+      userId: effectiveUserId,
+      user: mockUsers.find(u => u.id === effectiveUserId) || mockUsers[0],
+      items: [
+        { productId, productName: product.name, quantity, verified: false },
+      ],
+      qrCode: `METRO-${productId.toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      status: 'pending' as const,
+      scheduledTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+    };
+    mockDistributions.push(newDistribution);
+    console.log('[createPledge] ✅ Distribution created:', newDistribution.id, 'QR:', newDistribution.qrCode);
+    
+    // 5. Update trending item
+    const trendingItem = mockTrendingItems.find(t => t.product.id === productId);
+    if (trendingItem) {
+      trendingItem.totalQuantity = newTotal;
+      trendingItem.percentToGoal = 100;
+    }
+    
+    console.log('[createPledge] 🎉 ORDER FULLY ACTIVATED! Runner can now see it.');
+  } else if (bulkOrder) {
+    // Just update the total quantity without triggering
+    bulkOrder.totalQuantity = newTotal;
+  }
+  
+  console.log('[createPledge] ✅ Created new mock pledge:', newPledge.id, 'status:', newPledge.status);
   console.log('[createPledge] Total mock pledges now:', mockPledges.length);
-  return { success: true, pledge: newPledge };
+  return { success: true, pledge: newPledge, triggered: willTrigger };
 }
 
 export async function cancelPledge(pledgeId: string): Promise<{ success: boolean; error?: string }> {

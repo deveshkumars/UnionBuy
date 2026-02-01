@@ -205,11 +205,13 @@ function MissionCard({ mission, onAccept, onDecline, accepting, disabled }: Miss
   return (
     <MetroCard variant="active" style={styles.missionCard}>
       <View style={styles.missionHeader}>
-        <View>
+        <View style={styles.missionHeaderLeft}>
           <Text style={styles.missionTitle}>
             ORDER #{mission.id.slice(-4).toUpperCase()}
           </Text>
-          <Text style={styles.missionStores}>{storeNames}</Text>
+          <Text style={styles.missionStores} numberOfLines={1} ellipsizeMode="tail">
+            {storeNames}
+          </Text>
         </View>
         <View style={styles.earningsContainer}>
           <Text style={styles.earningsLabel}>ESTIMATED</Text>
@@ -265,7 +267,7 @@ function MissionCard({ mission, onAccept, onDecline, accepting, disabled }: Miss
 
       <View style={styles.missionFooter}>
         <View style={styles.missionMeta}>
-          <Text style={styles.metaText}>
+          <Text style={styles.metaText} numberOfLines={1}>
             Created {new Date(mission.createdAt).toLocaleTimeString()}
           </Text>
         </View>
@@ -278,7 +280,7 @@ function MissionCard({ mission, onAccept, onDecline, accepting, disabled }: Miss
             disabled={disabled}
           />
           <MetroButton
-            title={accepting ? 'ACCEPTING...' : 'ACCEPT MISSION'}
+            title={accepting ? 'ACCEPTING...' : 'ACCEPT'}
             variant="primary"
             size="md"
             onPress={onAccept}
@@ -421,7 +423,13 @@ const styles = StyleSheet.create({
   missionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: Spacing[3],
+  },
+  missionHeaderLeft: {
+    flex: 1,
+    flexShrink: 1,
+    marginRight: Spacing[2],
   },
   missionTitle: {
     color: MetroColors.text.primary,
@@ -439,6 +447,8 @@ const styles = StyleSheet.create({
   },
   earningsContainer: {
     alignItems: 'flex-end',
+    flexShrink: 0,
+    minWidth: 90,
   },
   earningsLabel: {
     color: MetroColors.text.muted,
@@ -528,8 +538,13 @@ const styles = StyleSheet.create({
     paddingTop: Spacing[3],
     borderTopWidth: 1,
     borderTopColor: MetroColors.border.muted,
+    flexWrap: 'wrap',
+    gap: Spacing[2],
   },
-  missionMeta: {},
+  missionMeta: {
+    flexShrink: 1,
+    minWidth: 80,
+  },
   metaText: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
@@ -539,5 +554,6 @@ const styles = StyleSheet.create({
   missionActions: {
     flexDirection: 'row',
     gap: Spacing[2],
+    flexShrink: 0,
   },
 });

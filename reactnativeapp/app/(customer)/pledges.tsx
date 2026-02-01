@@ -26,7 +26,7 @@ import {
 } from '@/components/metro';
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import { useApp, usePledges } from '@/context/AppContext';
-import { cancelPledge, fetchBulkOrderForProduct, fetchUserPledges } from '@/services/api';
+import { cancelPledge, fetchBulkOrderForProductAnyStatus, fetchUserPledges } from '@/services/api';
 import { Pledge } from '@/types';
 
 export default function PledgesScreen() {
@@ -35,7 +35,7 @@ export default function PledgesScreen() {
   const { pledges, setPledges, updatePledge } = usePledges();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
-  const [orderProgress, setOrderProgress] = useState<Record<string, { total: number; target: number }>>({});
+  const [orderProgress, setOrderProgress] = useState<Record<string, { total: number; target: number; status?: string }>>({});
 
   useEffect(() => {
     loadPledges();
@@ -48,18 +48,19 @@ export default function PledgesScreen() {
     const productIds = Array.from(new Set(userPledges.map((p) => p.productId)));
     const progressEntries = await Promise.all(
       productIds.map(async (id) => {
-        const order = await fetchBulkOrderForProduct(id);
+        // Use fetchBulkOrderForProductAnyStatus to get order progress even after it's triggered
+        const order = await fetchBulkOrderForProductAnyStatus(id);
         if (order) {
-          return [id, { total: order.totalQuantity, target: order.targetQuantity }];
+          return [id, { total: order.totalQuantity, target: order.targetQuantity, status: order.status }];
         }
         return null;
       })
     );
-    const map: Record<string, { total: number; target: number }> = {};
+    const map: Record<string, { total: number; target: number; status?: string }> = {};
     progressEntries.forEach((entry) => {
       if (entry) {
         const [id, value] = entry;
-        map[id] = value;
+        map[id] = value as { total: number; target: number; status?: string };
       }
     });
     setOrderProgress(map);
@@ -234,7 +235,7 @@ export default function PledgesScreen() {
 
 interface PledgeCardProps {
   pledge: Pledge;
-  progress?: { total: number; target: number };
+  progress?: { total: number; target: number; status?: string };
   onCancel: () => void;
 }
 
@@ -246,11 +247,17 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
   const total = progress?.total ?? pledge.quantity;
   const remaining = Math.max(target - total, 0);
   const pct = Math.min(total / target, 1);
+  
+  // Check if the order has been triggered/activated
+  const orderStatus = progress?.status;
+  const isOrderActivated = orderStatus && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(orderStatus);
 
   const variant = isCompleted
     ? 'success'
     : isCancelled
     ? 'default'
+    : isOrderActivated
+    ? 'success'  // Show green when order is activated!
     : pledge.status === 'locked'
     ? 'locked'
     : 'warning';
@@ -295,7 +302,17 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
         </View>
       </View>
 
-      {pledge.status === 'locked' && (
+      {/* Show activated banner when order is in progress */}
+      {isOrderActivated && (
+        <View style={[styles.lockInfo, { backgroundColor: MetroColors.accent.greenMuted }]}>
+          <View style={[styles.lockIndicator, { backgroundColor: MetroColors.accent.green }]} />
+          <Text style={[styles.lockText, { color: MetroColors.accent.green }]}>
+            🚀 ORDER ACTIVATED • Runner is on the way!
+          </Text>
+        </View>
+      )}
+
+      {pledge.status === 'locked' && !isOrderActivated && (
         <View style={styles.lockInfo}>
           <View style={styles.lockIndicator} />
           <Text style={styles.lockText}>
@@ -307,9 +324,11 @@ function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
       {['pending', 'locked', 'active'].includes(pledge.status) && (
         <View style={styles.progressSection}>
           <Text style={styles.progressText}>
-            {remaining === 0
+            {isOrderActivated
+              ? `✅ Bulk minimum reached! ${total}/${target} ${pledge.product.unit} pledged`
+              : remaining === 0
               ? 'Bulk ready • executing at cutoff'
-              : `Need ~${remaining} more ${pledge.product.unit} to reach bulk`}
+              : `Need ${remaining} more ${pledge.product.unit} to reach bulk (${total}/${target})`}
           </Text>
           <ProgressBar progress={pct} height={10} showLabel />
         </View>
