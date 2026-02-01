@@ -131,6 +131,65 @@ export default function PledgesScreen() {
     );
   };
 
+  // Get pledges that can be cleared (active status but order not yet activated)
+  const getClearablePledges = () => {
+    return pledges.filter((p) => {
+      // Must be in an active status
+      if (!['pending', 'locked'].includes(p.status)) return false;
+      // Check if order is activated - can't clear those
+      const progress = orderProgress[p.productId];
+      if (progress?.status && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(progress.status)) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  const handleClearAllPledges = async () => {
+    const clearable = getClearablePledges();
+    
+    if (clearable.length === 0) {
+      Alert.alert('No Pledges to Clear', 'All your pledges are either already completed, cancelled, or have hit bulk and are being processed.');
+      return;
+    }
+
+    Alert.alert(
+      'Clear All Pledges',
+      `Are you sure you want to cancel ${clearable.length} pledge${clearable.length > 1 ? 's' : ''}? Your funds will be released.`,
+      [
+        { text: 'Keep Pledges', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            console.log('[Pledges] Clearing all pledges:', clearable.length);
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const pledge of clearable) {
+              const result = await cancelPledge(pledge.id);
+              if (result.success) {
+                successCount++;
+              } else {
+                failCount++;
+                console.log('[Pledges] Failed to cancel:', pledge.id, result.error);
+              }
+            }
+
+            // Reload to reflect changes
+            await loadPledges();
+
+            if (failCount === 0) {
+              Alert.alert('Success', `Cleared ${successCount} pledge${successCount > 1 ? 's' : ''} successfully!`);
+            } else {
+              Alert.alert('Partial Success', `Cleared ${successCount} pledge${successCount > 1 ? 's' : ''}, but ${failCount} failed to cancel.`);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const filteredPledges = pledges.filter((p) => {
     if (filter === 'active') return ['pending', 'locked', 'active'].includes(p.status);
     if (filter === 'completed') return ['completed', 'cancelled'].includes(p.status);
@@ -178,6 +237,15 @@ export default function PledgesScreen() {
         <Text style={styles.legendText}>
           Completed = bulk executed (not cancellable). Active = collecting (cancellable) until cutoff.
         </Text>
+        {getClearablePledges().length > 0 && (
+          <MetroButton
+            title={`CLEAR ALL (${getClearablePledges().length})`}
+            variant="danger"
+            size="sm"
+            onPress={handleClearAllPledges}
+            style={styles.clearAllButton}
+          />
+        )}
       </MetroCard>
 
       {/* Filter Tabs */}
@@ -568,6 +636,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     marginTop: Spacing[2],
     lineHeight: 20,
+  },
+  clearAllButton: {
+    marginTop: Spacing[3],
   },
   filterContainer: {
     flexDirection: 'row',

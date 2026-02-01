@@ -576,6 +576,72 @@ export async function acceptMission(
   mission.runnerId = effectiveRunnerId;
   mission.acceptedAt = new Date().toISOString();
   
+  // Generate distributions with PINs for all customers in this mission
+  console.log('[acceptMission] Creating distributions for mission:', missionId);
+  
+  // Get all product IDs from this mission's orders
+  const orderProductIds = mission.orders.map(order => order.productId);
+  
+  // Find all active pledges for these products
+  const relevantPledges = mockPledges.filter(
+    pledge => orderProductIds.includes(pledge.productId) && 
+              ['locked', 'active', 'pending'].includes(pledge.status)
+  );
+  
+  // Group pledges by userId
+  const pledgesByUser = new Map<string, typeof relevantPledges>();
+  relevantPledges.forEach(pledge => {
+    const existing = pledgesByUser.get(pledge.userId) || [];
+    existing.push(pledge);
+    pledgesByUser.set(pledge.userId, existing);
+  });
+  
+  // Create a distribution for each user with their items and a fresh PIN
+  pledgesByUser.forEach((userPledges, userId) => {
+    // Check if distribution already exists for this user and mission
+    const existingDist = mockDistributions.find(
+      d => d.missionId === missionId && d.userId === userId
+    );
+    
+    if (existingDist) {
+      // Update existing distribution with a fresh PIN
+      existingDist.pickupPin = generatePickupPin();
+      console.log('[acceptMission] Updated PIN for existing distribution:', existingDist.id, 'PIN:', existingDist.pickupPin);
+    } else {
+      // Create new distribution
+      const pickupPin = generatePickupPin();
+      const items = userPledges.map(pledge => ({
+        productId: pledge.productId,
+        productName: pledge.product.name,
+        quantity: pledge.quantity,
+        verified: false,
+      }));
+      
+      const newDistribution: Distribution = {
+        id: `dist-${Date.now()}-${userId}`,
+        missionId,
+        userId,
+        user: mockUsers.find(u => u.id === userId) || mockUsers[0],
+        items,
+        pickupPin,
+        status: 'pending',
+        scheduledTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+      };
+      
+      mockDistributions.push(newDistribution);
+      console.log('[acceptMission] Created distribution:', newDistribution.id, 'PIN:', pickupPin, 'Items:', items.length);
+    }
+    
+    // Update pledge statuses to 'active'
+    userPledges.forEach(pledge => {
+      if (pledge.status !== 'completed') {
+        pledge.status = 'active';
+      }
+    });
+  });
+  
+  console.log('[acceptMission] ✅ Mission accepted, distributions created for', pledgesByUser.size, 'users');
+  
   return { success: true, mission };
 }
 

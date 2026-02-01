@@ -496,6 +496,97 @@ export async function acceptMissionInBackend(
     });
     if (errors?.length) return { success: false, error: errors[0].message };
     if (!updated) return { success: false, error: 'Update failed' };
+    
+    // Generate distributions with PINs for customers
+    console.log('[acceptMissionInBackend] Creating distributions for mission:', missionId);
+    
+    // Find bulk orders that are pending execution (ready to be picked up)
+    const { data: bulkOrders } = await client.models.BulkOrder.list({
+      filter: { status: { eq: 'pending_execution' } }
+    });
+    
+    if (bulkOrders && bulkOrders.length > 0) {
+      // Get product IDs from pending bulk orders
+      const productIds = bulkOrders.map(o => o.productId);
+      
+      // Find all pledges for these products with active/locked status
+      const { data: allPledges } = await client.models.Pledge.list();
+      const relevantPledges = (allPledges || []).filter(
+        p => productIds.includes(p.productId) && ['locked', 'active', 'pending'].includes(p.status as string)
+      );
+      
+      // Group pledges by userId
+      const pledgesByUser = new Map<string, typeof relevantPledges>();
+      relevantPledges.forEach(pledge => {
+        const existing = pledgesByUser.get(pledge.userId) || [];
+        existing.push(pledge);
+        pledgesByUser.set(pledge.userId, existing);
+      });
+      
+      // Create a distribution for each user
+      for (const [userId, userPledges] of pledgesByUser.entries()) {
+        // Check if distribution already exists
+        const { data: existingDists } = await client.models.Distribution.list({
+          filter: { missionId: { eq: missionId }, userId: { eq: userId } }
+        });
+        
+        if (existingDists && existingDists.length > 0) {
+          // Update existing distribution with a fresh PIN
+          const freshPin = Math.floor(1000 + Math.random() * 9000).toString();
+          await client.models.Distribution.update({
+            id: existingDists[0].id,
+            pickupPin: freshPin,
+          });
+          console.log('[acceptMissionInBackend] Updated PIN for distribution:', existingDists[0].id);
+        } else {
+          // Create new distribution
+          const pickupPin = Math.floor(1000 + Math.random() * 9000).toString();
+          const items = userPledges.map(pledge => {
+            const productSnapshot = pledge.productSnapshotJson 
+              ? JSON.parse(pledge.productSnapshotJson as string) 
+              : { name: 'Unknown Product' };
+            return {
+              productId: pledge.productId,
+              productName: productSnapshot.name || 'Unknown Product',
+              quantity: pledge.quantity,
+              verified: false,
+            };
+          });
+          
+          await client.models.Distribution.create({
+            missionId,
+            userId,
+            itemsJson: JSON.stringify(items),
+            pickupPin,
+            status: 'pending',
+            scheduledTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+          });
+          console.log('[acceptMissionInBackend] Created distribution for user:', userId, 'PIN:', pickupPin);
+        }
+        
+        // Update pledge statuses to 'active'
+        for (const pledge of userPledges) {
+          if (pledge.status !== 'completed') {
+            await client.models.Pledge.update({
+              id: pledge.id,
+              status: 'active',
+            });
+          }
+        }
+      }
+      
+      // Update bulk orders to 'assigned' status
+      for (const order of bulkOrders) {
+        await client.models.BulkOrder.update({
+          id: order.id,
+          status: 'assigned',
+          runnerId,
+        });
+      }
+      
+      console.log('[acceptMissionInBackend] ✅ Distributions created for', pledgesByUser.size, 'users');
+    }
+    
     return { success: true, mission: missionFromRecord(updated as never) };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
