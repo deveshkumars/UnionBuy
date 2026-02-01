@@ -6,10 +6,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert,
+    Keyboard,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
+    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -224,7 +226,8 @@ export default function ScannerScreen() {
     
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.pinContainer}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.pinContainer}>
           <View style={styles.pinHeader}>
             <Text style={styles.pinHeaderLabel}>VERIFY CUSTOMER</Text>
             <Text style={styles.pinHeaderName}>{distribution?.name}</Text>
@@ -288,6 +291,7 @@ export default function ScannerScreen() {
             />
           </View>
         </View>
+        </TouchableWithoutFeedback>
       </SafeAreaView>
     );
   }
