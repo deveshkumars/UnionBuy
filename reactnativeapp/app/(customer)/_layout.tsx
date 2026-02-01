@@ -104,6 +104,12 @@ export default function CustomerTabLayout() {
           href: null, // Hide from tab bar
         }}
       />
+      <Tabs.Screen
+        name="cart 2"
+        options={{
+          href: null, // Hide from tab bar - legacy file
+        }}
+      />
     </Tabs>
   );
 }
