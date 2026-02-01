@@ -1,11 +1,11 @@
 /**
- * ScanOverlay - Camera viewfinder with corner brackets
- * Used for QR scanning and visual verification
+ * ScanOverlay - Camera viewfinder with rounded corners
+ * Clean, friendly design for QR scanning
  */
 
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
+import { MetroColors, FontSizes, Fonts, Spacing, BorderRadius } from '@/constants/theme';
 
 interface ScanOverlayProps {
   size?: number;
@@ -20,7 +20,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export function ScanOverlay({
   size = SCREEN_WIDTH * 0.7,
   color = MetroColors.accent.cyan,
-  label = 'ALIGN QR CODE',
+  label = 'Align QR Code',
   scanning = true,
   success = false,
 }: ScanOverlayProps) {
@@ -31,7 +31,6 @@ export function ScanOverlay({
 
   useEffect(() => {
     if (scanning && !success) {
-      // Scan line animation
       const scanAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(scanLineAnim, {
@@ -54,10 +53,9 @@ export function ScanOverlay({
 
   useEffect(() => {
     if (success) {
-      // Success pulse animation
       const pulseAnimation = Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.1,
+          toValue: 1.05,
           duration: 150,
           useNativeDriver: true,
         }),
@@ -89,16 +87,12 @@ export function ScanOverlay({
               {
                 width: size,
                 height: size,
+                borderRadius: BorderRadius.xl,
+                borderColor: displayColor,
                 transform: [{ scale: pulseAnim }],
               },
             ]}
           >
-            {/* Corner Brackets */}
-            <CornerBracket position="topLeft" color={displayColor} />
-            <CornerBracket position="topRight" color={displayColor} />
-            <CornerBracket position="bottomLeft" color={displayColor} />
-            <CornerBracket position="bottomRight" color={displayColor} />
-
             {/* Scan Line */}
             {scanning && !success && (
               <Animated.View
@@ -127,42 +121,10 @@ export function ScanOverlay({
       {/* Label */}
       <View style={styles.labelContainer}>
         <Text style={[styles.label, { color: displayColor }]}>
-          {success ? 'SCAN COMPLETE' : label}
+          {success ? 'Scan Complete' : label}
         </Text>
       </View>
     </View>
-  );
-}
-
-// Corner bracket component
-interface CornerBracketProps {
-  position: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
-  color: string;
-  size?: number;
-  thickness?: number;
-}
-
-function CornerBracket({
-  position,
-  color,
-  size = 30,
-  thickness = 3,
-}: CornerBracketProps) {
-  const positionStyles = {
-    topLeft: { top: 0, left: 0, borderTopWidth: thickness, borderLeftWidth: thickness },
-    topRight: { top: 0, right: 0, borderTopWidth: thickness, borderRightWidth: thickness },
-    bottomLeft: { bottom: 0, left: 0, borderBottomWidth: thickness, borderLeftWidth: thickness },
-    bottomRight: { bottom: 0, right: 0, borderBottomWidth: thickness, borderRightWidth: thickness },
-  };
-
-  return (
-    <View
-      style={[
-        styles.cornerBracket,
-        { width: size, height: size, borderColor: color },
-        positionStyles[position],
-      ]}
-    />
   );
 }
 
@@ -178,21 +140,10 @@ export function TargetReticle({
   color = MetroColors.accent.cyan,
   animated = true,
 }: TargetReticleProps) {
-  const rotateAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (animated) {
-      // Slow rotation
-      const rotateAnimation = Animated.loop(
-        Animated.timing(rotateAnim, {
-          toValue: 1,
-          duration: 8000,
-          useNativeDriver: true,
-        })
-      );
-
-      // Pulse scale
       const scaleAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(scaleAnim, {
@@ -208,20 +159,13 @@ export function TargetReticle({
         ])
       );
 
-      rotateAnimation.start();
       scaleAnimation.start();
 
       return () => {
-        rotateAnimation.stop();
         scaleAnimation.stop();
       };
     }
   }, [animated]);
-
-  const rotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
 
   return (
     <Animated.View
@@ -230,14 +174,10 @@ export function TargetReticle({
         {
           width: size,
           height: size,
-          transform: [{ rotate }, { scale: scaleAnim }],
+          transform: [{ scale: scaleAnim }],
         },
       ]}
     >
-      {/* Cross hairs */}
-      <View style={[styles.crosshairH, { backgroundColor: color }]} />
-      <View style={[styles.crosshairV, { backgroundColor: color }]} />
-      
       {/* Outer ring */}
       <View
         style={[
@@ -260,7 +200,7 @@ export function TargetReticle({
             height: size * 0.6,
             borderRadius: (size * 0.6) / 2,
             borderColor: color,
-            opacity: 0.5,
+            opacity: 0.4,
           },
         ]}
       />
@@ -281,7 +221,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   overlaySection: {
-    backgroundColor: 'rgba(10, 14, 20, 0.85)',
+    backgroundColor: 'rgba(26, 26, 25, 0.8)',
   },
   overlayTop: {
     flex: 1,
@@ -298,17 +238,16 @@ const styles = StyleSheet.create({
   scanArea: {
     position: 'relative',
     backgroundColor: 'transparent',
-  },
-  cornerBracket: {
-    position: 'absolute',
-    borderColor: MetroColors.accent.cyan,
+    borderWidth: 3,
+    overflow: 'hidden',
   },
   scanLine: {
     position: 'absolute',
-    left: 10,
-    right: 10,
+    left: 16,
+    right: 16,
     height: 2,
-    opacity: 0.8,
+    opacity: 0.7,
+    borderRadius: 1,
   },
   successContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -316,7 +255,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   successIcon: {
-    fontSize: 60,
+    fontSize: 56,
     fontWeight: 'bold',
   },
   labelContainer: {
@@ -327,39 +266,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
     fontWeight: '600',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    backgroundColor: MetroColors.background.primary,
-    paddingHorizontal: Spacing[4],
+    backgroundColor: MetroColors.background.secondary,
+    paddingHorizontal: Spacing[5],
     paddingVertical: Spacing[2],
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
   },
   reticleContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  crosshairH: {
-    position: 'absolute',
-    width: '100%',
-    height: 1,
-    opacity: 0.6,
-  },
-  crosshairV: {
-    position: 'absolute',
-    width: 1,
-    height: '100%',
-    opacity: 0.6,
-  },
   reticleRing: {
     position: 'absolute',
-    borderWidth: 1,
+    borderWidth: 2,
   },
   reticleDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
-

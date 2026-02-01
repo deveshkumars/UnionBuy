@@ -1,6 +1,6 @@
 /**
- * PulseRadar - Animated radar effect for location/scanning
- * Used for finding neighbors and location-based features
+ * PulseRadar - Animated pulse effect for location/scanning
+ * Clean, friendly design for finding neighbors
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -65,7 +65,7 @@ export function PulseRadar({
         });
         const opacity = anim.interpolate({
           inputRange: [0, 0.5, 1],
-          outputRange: [0.8, 0.4, 0],
+          outputRange: [0.6, 0.3, 0],
         });
 
         return (
@@ -109,7 +109,7 @@ export function PulseRadar({
         </View>
       )}
 
-      {/* Custom children (e.g., user markers) */}
+      {/* Custom children */}
       {children}
 
       {/* Label */}
@@ -124,8 +124,8 @@ export function PulseRadar({
 
 // Blip marker for radar display
 interface RadarBlipProps {
-  angle: number; // degrees from top (0-360)
-  distance: number; // 0-1, proportion of radar radius
+  angle: number;
+  distance: number;
   size?: number;
   color?: string;
   label?: string;
@@ -163,9 +163,8 @@ export function RadarBlip({
     }
   }, [pulse]);
 
-  // Convert polar to cartesian (relative to center)
   const radians = ((angle - 90) * Math.PI) / 180;
-  const maxRadius = 50; // Will be scaled by parent
+  const maxRadius = 50;
   const x = Math.cos(radians) * distance * maxRadius;
   const y = Math.sin(radians) * distance * maxRadius;
 
@@ -275,7 +274,7 @@ export function LocationIndicator({
 
   const opacity = pulseAnim.interpolate({
     inputRange: [1, 2],
-    outputRange: [0.6, 0],
+    outputRange: [0.5, 0],
   });
 
   return (
@@ -321,7 +320,7 @@ const styles = StyleSheet.create({
   staticRing: {
     position: 'absolute',
     borderWidth: 1,
-    opacity: 0.2,
+    opacity: 0.15,
   },
   centerDot: {
     width: 16,
@@ -329,7 +328,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    opacity: 0.3,
+    opacity: 0.25,
   },
   centerDotInner: {
     width: 8,
@@ -342,11 +341,9 @@ const styles = StyleSheet.create({
     bottom: -30,
   },
   label: {
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
   blip: {
     position: 'absolute',
@@ -357,10 +354,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '100%',
     marginTop: 4,
-    fontFamily: Fonts.mono,
-    fontSize: 8,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontFamily: Fonts.body,
+    fontSize: 10,
+    fontWeight: '500',
   },
   sweepContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -370,7 +366,7 @@ const styles = StyleSheet.create({
   sweepLine: {
     width: '50%',
     height: 2,
-    opacity: 0.5,
+    opacity: 0.4,
     marginLeft: '50%',
   },
   locationContainer: {
@@ -385,4 +381,3 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
 });
-

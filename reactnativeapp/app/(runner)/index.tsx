@@ -1,9 +1,9 @@
 /**
  * Job Board Screen - Runner Home
- * Available missions with earnings, cargo, and accept/reject actions
- * Now shows STACKED missions grouped by zone for efficiency
+ * Clean, warm design for available missions and stacked orders
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -24,7 +24,7 @@ import {
     PriceDisplay,
     StatusBadge,
 } from '@/components/metro';
-import { Fonts, FontSizes, MetroColors, Spacing } from '@/constants/theme';
+import { BorderRadius, Fonts, FontSizes, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useApp, useMission } from '@/context/AppContext';
 import { acceptMission, fetchStackedMissions, MissionStack } from '@/services/api';
 import { Mission } from '@/types';
@@ -78,7 +78,6 @@ export default function JobBoardScreen() {
           onPress: async () => {
             setAccepting(stack.id);
             
-            // Accept ALL missions in the stack
             const acceptedMissionIds: string[] = [];
             let firstAcceptedMission: Mission | null = null;
             const allOrders: any[] = [];
@@ -87,7 +86,6 @@ export default function JobBoardScreen() {
               const result = await acceptMission(mission.id, user.id);
               if (result.success && result.mission) {
                 acceptedMissionIds.push(mission.id);
-                // Collect all orders from all missions
                 if (result.mission.orders) {
                   allOrders.push(...result.mission.orders);
                 }
@@ -100,25 +98,21 @@ export default function JobBoardScreen() {
             setAccepting(null);
 
             if (firstAcceptedMission && acceptedMissionIds.length > 0) {
-              // Create a combined stacked mission with ALL mission IDs and ALL orders
               const stackedMission: Mission = {
                 ...firstAcceptedMission,
                 totalItems: stack.totalItems,
                 totalWeight: stack.totalWeight,
                 estimatedEarnings: stack.totalEarnings,
-                // Combine all orders from all missions in the stack
                 orders: allOrders,
-                // Include ALL mission IDs so scanner can load all distributions
                 stackedMissionIds: acceptedMissionIds,
               };
               setActiveMission(stackedMission);
               setDistributionsComplete(false);
-              // Remove entire stack from available
               setMissionStacks((prev) => prev.filter((s) => s.id !== stack.id));
               Alert.alert('Stack Accepted', `You've accepted ${acceptedMissionIds.length} orders in ${stack.zoneName}. Navigate to Mission tab to begin.`);
               router.push('/(runner)/mission');
             } else {
-              Alert.alert('Error', result.error || 'Failed to accept mission');
+              Alert.alert('Error', 'Failed to accept mission');
             }
           },
         },
@@ -150,12 +144,12 @@ export default function JobBoardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerLabel}>Union Buy</Text>
           <Text style={styles.headerTitle}>Runner Board</Text>
         </View>
         <View style={styles.headerRight}>
           <StatusBadge
-            label={activeMission ? 'ON MISSION' : 'AVAILABLE'}
+            label={activeMission ? 'On Mission' : 'Available'}
             variant={activeMission ? 'success' : 'info'}
             size="sm"
             pulse={!!activeMission}
@@ -166,9 +160,9 @@ export default function JobBoardScreen() {
       {/* Stats Bar */}
       <InfoBar
         items={[
-          { label: 'TODAY', value: `$${0}` },
-          { label: 'THIS WEEK', value: `$${127.50}` },
-          { label: 'RATING', value: user.trustScore.toFixed(1), highlight: true },
+          { label: 'Today', value: '$0' },
+          { label: 'This Week', value: '$127.50' },
+          { label: 'Rating', value: user.trustScore.toFixed(1), highlight: true },
         ]}
       />
 
@@ -185,20 +179,21 @@ export default function JobBoardScreen() {
       >
         {/* Active Mission Alert */}
         {activeMission && (
-          <MetroCard variant="success" glowing style={styles.activeMissionCard}>
+          <MetroCard variant="success" style={styles.activeMissionCard}>
             <View style={styles.activeMissionHeader}>
-              <Text style={styles.activeMissionTitle}>ACTIVE MISSION</Text>
+              <Ionicons name="navigate" size={24} color={MetroColors.accent.green} />
+              <Text style={styles.activeMissionTitle}>Active Mission</Text>
               <StatusBadge
-                label={activeMission.status.replace('_', ' ').toUpperCase()}
+                label={activeMission.status.replace('_', ' ')}
                 variant="success"
                 size="sm"
               />
             </View>
             <Text style={styles.activeMissionInfo}>
-              {activeMission.totalItems} items • {activeMission.stores.length} stores
+              {activeMission.totalItems} items · {activeMission.stores.length} stores
             </Text>
             <MetroButton
-              title="CONTINUE MISSION"
+              title="Continue Mission"
               variant="primary"
               size="md"
               fullWidth
@@ -210,17 +205,17 @@ export default function JobBoardScreen() {
 
         {/* Section Header */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>AVAILABLE STACKS</Text>
+          <Text style={styles.sectionTitle}>Available Stacks</Text>
           <Text style={styles.sectionCount}>
-            {missionStacks.length} zones • {totalMissions} orders
+            {missionStacks.length} zones · {totalMissions} orders
           </Text>
         </View>
 
         {/* Stacked Mission Cards */}
         {missionStacks.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>▣</Text>
-            <Text style={styles.emptyText}>NO ORDERS AVAILABLE</Text>
+            <Ionicons name="briefcase-outline" size={48} color={MetroColors.text.muted} />
+            <Text style={styles.emptyText}>No Orders Available</Text>
             <Text style={styles.emptySubtext}>
               Check back after the next cutoff time
             </Text>
@@ -244,10 +239,7 @@ export default function JobBoardScreen() {
   );
 }
 
-// ============================================
-// STACK CARD COMPONENT
-// ============================================
-
+// Stack Card Component
 interface StackCardProps {
   stack: MissionStack;
   expanded: boolean;
@@ -267,7 +259,6 @@ function StackCard({
   accepting,
   disabled,
 }: StackCardProps) {
-  // Get unique store names
   const storeNames = [...new Set(stack.missions.flatMap((m) => m.stores.map((s) => s.name)))];
 
   return (
@@ -280,14 +271,14 @@ function StackCard({
               <Text style={styles.zoneBadgeText}>{stack.missions.length}</Text>
             </View>
             <View style={styles.zoneDetails}>
-              <Text style={styles.zoneName}>{stack.zoneName.toUpperCase()}</Text>
+              <Text style={styles.zoneName}>{stack.zoneName}</Text>
               <Text style={styles.zoneRadius}>
-                {stack.zoneRadius < 0.5 ? 'TIGHT CLUSTER' : `~${stack.zoneRadius.toFixed(1)}mi radius`}
+                {stack.zoneRadius < 0.5 ? 'Tight Cluster' : `~${stack.zoneRadius.toFixed(1)} mi radius`}
               </Text>
             </View>
           </View>
           <View style={styles.earningsContainer}>
-            <Text style={styles.earningsLabel}>TOTAL EARNINGS</Text>
+            <Text style={styles.earningsLabel}>Total Earnings</Text>
             <PriceDisplay
               amount={stack.totalEarnings}
               size="xl"
@@ -298,20 +289,20 @@ function StackCard({
 
         {/* Stack Stats */}
         <View style={styles.stackStats}>
-          <StackStat label="ORDERS" value={stack.missions.length} icon="◫" />
-          <StackStat label="ITEMS" value={stack.totalItems} icon="[]" />
-          <StackStat label="WEIGHT" value={`${stack.totalWeight}lbs`} icon="◈" />
-          <StackStat label="TIME" value={`~${stack.estimatedTime}min`} icon="◉" />
+          <StackStat label="Orders" value={stack.missions.length} icon="layers-outline" />
+          <StackStat label="Items" value={stack.totalItems} icon="cube-outline" />
+          <StackStat label="Weight" value={`${stack.totalWeight}lbs`} icon="scale-outline" />
+          <StackStat label="Time" value={`~${stack.estimatedTime}min`} icon="time-outline" />
         </View>
       </TouchableOpacity>
 
       {/* Stores Route */}
       <View style={styles.storesSection}>
-        <Text style={styles.storesLabel}>STORES</Text>
+        <Text style={styles.storesLabel}>Stores</Text>
         <View style={styles.storesList}>
-          {storeNames.map((name, idx) => (
+          {storeNames.map((name) => (
             <View key={name} style={styles.storeChip}>
-              <View style={styles.storeChipDot} />
+              <Ionicons name="storefront-outline" size={14} color={MetroColors.accent.cyan} />
               <Text style={styles.storeChipText}>{name}</Text>
             </View>
           ))}
@@ -321,7 +312,7 @@ function StackCard({
       {/* Expanded: Individual Orders */}
       {expanded && (
         <View style={styles.expandedSection}>
-          <Text style={styles.expandedTitle}>ORDERS IN THIS STACK</Text>
+          <Text style={styles.expandedTitle}>Orders in this stack</Text>
           {stack.missions.map((mission, idx) => (
             <View key={mission.id} style={styles.orderRow}>
               <View style={styles.orderDot}>
@@ -332,7 +323,7 @@ function StackCard({
                   {mission.dropZone.address || 'Drop Zone'}
                 </Text>
                 <Text style={styles.orderMeta}>
-                  {mission.totalItems} items • ${mission.estimatedEarnings.toFixed(2)}
+                  {mission.totalItems} items · ${mission.estimatedEarnings.toFixed(2)}
                 </Text>
               </View>
             </View>
@@ -342,22 +333,27 @@ function StackCard({
 
       {/* Expand/Collapse Indicator */}
       <TouchableOpacity onPress={onToggleExpand} style={styles.expandToggle}>
+        <Ionicons 
+          name={expanded ? "chevron-up" : "chevron-down"} 
+          size={20} 
+          color={MetroColors.accent.cyan} 
+        />
         <Text style={styles.expandToggleText}>
-          {expanded ? '▲ COLLAPSE' : '▼ VIEW INDIVIDUAL ORDERS'}
+          {expanded ? 'Collapse' : 'View Individual Orders'}
         </Text>
       </TouchableOpacity>
 
       {/* Action Buttons */}
       <View style={styles.stackActions}>
         <MetroButton
-          title="DECLINE"
+          title="Decline"
           variant="ghost"
           size="sm"
           onPress={onDecline}
           disabled={disabled}
         />
         <MetroButton
-          title={accepting ? 'ACCEPTING...' : `ACCEPT STACK (${stack.missions.length})`}
+          title={accepting ? 'Accepting...' : `Accept Stack (${stack.missions.length})`}
           variant="primary"
           size="md"
           onPress={onAccept}
@@ -376,11 +372,11 @@ function StackStat({
 }: {
   label: string;
   value: string | number;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
 }) {
   return (
     <View style={styles.statItem}>
-      <Text style={styles.statIcon}>{icon}</Text>
+      <Ionicons name={icon} size={18} color={MetroColors.accent.green} />
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -398,22 +394,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: MetroColors.accent.green + '40',
+    backgroundColor: MetroColors.background.secondary,
+    ...Shadows.sm,
   },
   headerLabel: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    letterSpacing: 2,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
     fontWeight: '600',
   },
   headerTitle: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.heading,
     fontSize: FontSizes['3xl'],
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
   headerRight: {
     alignItems: 'flex-end',
@@ -430,22 +425,21 @@ const styles = StyleSheet.create({
   },
   activeMissionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: Spacing[2],
     marginBottom: Spacing[2],
   },
   activeMissionTitle: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
+    flex: 1,
   },
   activeMissionInfo: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
     marginBottom: Spacing[3],
   },
   continueButton: {
@@ -459,43 +453,36 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   sectionCount: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing[16],
   },
-  emptyIcon: {
-    fontSize: 48,
-    color: MetroColors.text.muted,
-    marginBottom: Spacing[4],
-  },
   emptyText: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: Spacing[2],
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+    marginTop: Spacing[3],
+    marginBottom: Spacing[1],
   },
   emptySubtext: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
     textAlign: 'center',
   },
   // Stack Card Styles
   stackCard: {
-    marginBottom: Spacing[4],
+    marginBottom: Spacing[3],
   },
   stackHeader: {
     flexDirection: 'row',
@@ -513,7 +500,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: MetroColors.accent.cyan + '30',
+    backgroundColor: MetroColors.accent.cyanMuted,
     borderWidth: 2,
     borderColor: MetroColors.accent.cyan,
     justifyContent: 'center',
@@ -521,25 +508,23 @@ const styles = StyleSheet.create({
   },
   zoneBadgeText: {
     color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
   },
   zoneDetails: {
     flex: 1,
   },
   zoneName: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
   },
   zoneRadius: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '600',
     marginTop: 2,
   },
   earningsContainer: {
@@ -549,10 +534,9 @@ const styles = StyleSheet.create({
   },
   earningsLabel: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '500',
     marginBottom: 2,
   },
   stackStats: {
@@ -561,39 +545,33 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[3],
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: MetroColors.border.muted,
+    borderColor: MetroColors.border.default,
     marginBottom: Spacing[3],
   },
   statItem: {
     alignItems: 'center',
     gap: 2,
   },
-  statIcon: {
-    color: MetroColors.accent.green,
-    fontSize: 16,
-  },
   statValue: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   statLabel: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '500',
   },
   storesSection: {
     marginBottom: Spacing[3],
   },
   storesLabel: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '500',
     marginBottom: Spacing[2],
   },
   storesList: {
@@ -607,35 +585,26 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.background.tertiary,
     paddingHorizontal: Spacing[3],
     paddingVertical: Spacing[2],
-    borderRadius: 4,
-    gap: Spacing[2],
-  },
-  storeChipDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: MetroColors.accent.cyan,
+    borderRadius: BorderRadius.full,
+    gap: Spacing[1],
   },
   storeChipText: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   expandedSection: {
-    backgroundColor: MetroColors.background.secondary,
-    borderRadius: 4,
+    backgroundColor: MetroColors.background.tertiary,
+    borderRadius: BorderRadius.md,
     padding: Spacing[3],
     marginBottom: Spacing[3],
-    borderWidth: 1,
-    borderColor: MetroColors.border.muted,
   },
   expandedTitle: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
     marginBottom: Spacing[3],
   },
   orderRow: {
@@ -645,13 +614,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[2],
     paddingBottom: Spacing[2],
     borderBottomWidth: 1,
-    borderBottomColor: MetroColors.border.muted + '50',
+    borderBottomColor: MetroColors.border.default,
   },
   orderDot: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: MetroColors.accent.green + '30',
+    backgroundColor: MetroColors.accent.greenMuted,
     borderWidth: 1,
     borderColor: MetroColors.accent.green,
     justifyContent: 'center',
@@ -659,37 +628,38 @@ const styles = StyleSheet.create({
   },
   orderDotText: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '700',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
   },
   orderInfo: {
     flex: 1,
   },
   orderAddress: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
   orderMeta: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '500',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
     marginTop: 2,
   },
   expandToggle: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing[1],
     paddingVertical: Spacing[2],
     marginBottom: Spacing[3],
   },
   expandToggleText: {
     color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 1,
+    fontWeight: '500',
   },
   stackActions: {
     flexDirection: 'row',
@@ -697,6 +667,6 @@ const styles = StyleSheet.create({
     gap: Spacing[2],
     paddingTop: Spacing[3],
     borderTopWidth: 1,
-    borderTopColor: MetroColors.border.muted,
+    borderTopColor: MetroColors.border.default,
   },
 });

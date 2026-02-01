@@ -1,31 +1,45 @@
 /**
  * Customer Tab Layout
- * Main navigation for customer-facing screens
+ * Clean, friendly navigation for customer-facing screens
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
+import { BorderRadius, FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 
-// Custom tab bar icon component
+// Tab icon component with Ionicons
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    market: 'MKT',
-    pledges: 'PLG',
-    operations: 'OPS',
-    cart: 'CRT',
-    wallet: 'WLT',
-    account: 'ACC',
+  const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+    market: 'storefront-outline',
+    pledges: 'receipt-outline',
+    operations: 'map-outline',
+    cart: 'cart-outline',
+    wallet: 'wallet-outline',
+    account: 'person-outline',
   };
+
+  const iconMapFocused: Record<string, keyof typeof Ionicons.glyphMap> = {
+    market: 'storefront',
+    pledges: 'receipt',
+    operations: 'map',
+    cart: 'cart',
+    wallet: 'wallet',
+    account: 'person',
+  };
+
+  const iconName = focused ? iconMapFocused[name] : iconMap[name];
 
   return (
     <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-      <Text style={[styles.icon, focused && styles.iconActive]}>
-        {icons[name] || 'O'}
-      </Text>
+      <Ionicons 
+        name={iconName || 'ellipse-outline'} 
+        size={22} 
+        color={focused ? MetroColors.accent.cyan : MetroColors.text.muted} 
+      />
     </View>
   );
 }
@@ -37,7 +51,7 @@ export default function CustomerTabLayout() {
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: MetroColors.accent.cyan,
-        tabBarInactiveTintColor: MetroColors.text.tertiary,
+        tabBarInactiveTintColor: MetroColors.text.muted,
         tabBarLabelStyle: styles.tabLabel,
         tabBarButton: HapticTab,
         tabBarIconStyle: styles.tabIcon,
@@ -85,19 +99,18 @@ export default function CustomerTabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: MetroColors.background.secondary,
-    borderTopWidth: 1.5,
-    borderTopColor: MetroColors.border.accent,
-    height: 82,
+    borderTopWidth: 1,
+    borderTopColor: MetroColors.border.default,
+    height: 88,
     paddingTop: Spacing[2],
-    paddingBottom: Spacing[5],
+    paddingBottom: Spacing[6],
+    ...Shadows.sm,
   },
   tabLabel: {
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
-    fontWeight: '600',
-    marginTop: 6,
-    letterSpacing: 0.5,
-    textTransform: 'capitalize',
+    fontWeight: '500',
+    marginTop: 4,
   },
   tabIcon: {
     marginBottom: 0,
@@ -105,26 +118,11 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 34,
-    height: 28,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: MetroColors.border.muted,
-    backgroundColor: MetroColors.background.primary,
+    width: 44,
+    height: 32,
+    borderRadius: BorderRadius.md,
   },
   iconContainerActive: {
-    borderColor: MetroColors.accent.cyan,
     backgroundColor: MetroColors.accent.cyanMuted,
-    ...Shadows.cyanGlow,
-  },
-  icon: {
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: MetroColors.text.tertiary,
-  },
-  iconActive: {
-    color: MetroColors.accent.cyan,
-    transform: [{ scale: 1.05 }],
   },
 });

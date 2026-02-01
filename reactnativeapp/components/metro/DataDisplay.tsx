@@ -1,6 +1,6 @@
 /**
- * DataDisplay - Monospace number/price displays with labels
- * Used for prices, quantities, times, and other data points
+ * DataDisplay - Clean number/price displays with labels
+ * Warm, friendly typography for prices, quantities, and times
  */
 
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
@@ -24,12 +24,11 @@ interface DataDisplayProps {
 const variantColors: Record<DataVariant, string> = {
   default: MetroColors.text.primary,
   highlight: MetroColors.accent.cyan,
-  warning: MetroColors.accent.yellow,
+  warning: MetroColors.accent.orange,
   success: MetroColors.accent.green,
-  muted: MetroColors.text.secondary,
+  muted: MetroColors.text.tertiary,
 };
 
-// Increased sizes for better visibility
 const sizeMap: Record<DataSize, number> = {
   sm: FontSizes.md,
   md: FontSizes.xl,
@@ -55,11 +54,11 @@ export function DataDisplay({
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={styles.valueContainer}>
         {prefix && (
-          <Text style={[styles.affix, { fontSize: fontSize * 0.6, color }]}>{prefix}</Text>
+          <Text style={[styles.affix, { fontSize: fontSize * 0.7, color }]}>{prefix}</Text>
         )}
         <Text style={[styles.value, { fontSize, color }]}>{value}</Text>
         {suffix && (
-          <Text style={[styles.affix, { fontSize: fontSize * 0.6, color }]}>{suffix}</Text>
+          <Text style={[styles.affix, { fontSize: fontSize * 0.7, color }]}>{suffix}</Text>
         )}
       </View>
     </View>
@@ -130,14 +129,14 @@ export function QuantityDisplay({
     <View style={[styles.container, style]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={styles.quantityRow}>
-        <Text style={[styles.value, { color: variantColors[progressVariant], fontSize: FontSizes.xl, fontWeight: '800' }]}>
+        <Text style={[styles.value, { color: variantColors[progressVariant], fontSize: FontSizes.xl }]}>
           {current}
         </Text>
         <Text style={[styles.separator, { color }]}>/</Text>
-        <Text style={[styles.value, { color: MetroColors.text.secondary, fontSize: FontSizes.xl }]}>
+        <Text style={[styles.value, { color: MetroColors.text.tertiary, fontSize: FontSizes.xl }]}>
           {total}
         </Text>
-        <Text style={[styles.unit, { color: MetroColors.text.tertiary }]}>{unit}</Text>
+        <Text style={[styles.unit]}>{unit}</Text>
       </View>
     </View>
   );
@@ -173,26 +172,24 @@ const styles = StyleSheet.create({
     gap: Spacing[1],
   },
   label: {
-    color: MetroColors.text.secondary,
+    color: MetroColors.text.tertiary,
     fontSize: FontSizes.sm,
-    fontFamily: Fonts.sansBold,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    fontWeight: '700',
+    fontFamily: Fonts.body,
+    fontWeight: '500',
   },
   valueContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   value: {
-    fontFamily: Fonts.sansBold,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontFamily: Fonts.body,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
   affix: {
-    fontFamily: Fonts.sansBold,
-    fontWeight: '700',
-    marginHorizontal: 2,
+    fontFamily: Fonts.body,
+    fontWeight: '600',
+    marginHorizontal: 1,
   },
   quantityRow: {
     flexDirection: 'row',
@@ -200,17 +197,17 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   separator: {
-    fontFamily: Fonts.sansBold,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.lg,
-    fontWeight: '600',
+    fontWeight: '500',
     marginHorizontal: 2,
+    color: MetroColors.text.muted,
   },
   unit: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '600',
+    fontWeight: '500',
     marginLeft: Spacing[1],
-    textTransform: 'lowercase',
+    color: MetroColors.text.tertiary,
   },
 });
-

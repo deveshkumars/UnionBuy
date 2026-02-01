@@ -1,8 +1,9 @@
 /**
  * Wallet Screen - Customer Finances
- * Balance, locked funds, transaction history, and trust score
+ * Clean, warm design for balance and transaction history
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -21,7 +22,7 @@ import {
     StatusBadge,
     TrustScore,
 } from '@/components/metro';
-import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { BorderRadius, FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { fetchWallet } from '@/services/api';
 import { Transaction, Wallet } from '@/types';
@@ -51,7 +52,7 @@ export default function WalletScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>LOADING WALLET...</Text>
+          <Text style={styles.loadingText}>Loading wallet...</Text>
         </View>
       </SafeAreaView>
     );
@@ -62,11 +63,14 @@ export default function WalletScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerLabel}>Union Buy</Text>
           <Text style={styles.headerTitle}>Wallet</Text>
         </View>
-        <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
-          <Text style={styles.utilityIcon}>CRT</Text>
+        <TouchableOpacity 
+          style={styles.headerIconButton}
+          onPress={() => router.push('/(customer)/cart')}
+        >
+          <Ionicons name="cart-outline" size={24} color={MetroColors.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -82,8 +86,8 @@ export default function WalletScreen() {
         }
       >
         {/* Balance Card */}
-        <MetroCard variant="active" glowing style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>AVAILABLE BALANCE</Text>
+        <MetroCard variant="active" style={styles.balanceCard}>
+          <Text style={styles.balanceLabel}>Available Balance</Text>
           <PriceDisplay
             amount={wallet.balance}
             size="xl"
@@ -91,15 +95,15 @@ export default function WalletScreen() {
           />
           <View style={styles.balanceDetails}>
             <View style={styles.balanceItem}>
-              <Text style={styles.balanceItemLabel}>LOCKED</Text>
-              <Text style={styles.balanceItemValue}>
+              <Text style={styles.balanceItemLabel}>Locked</Text>
+              <Text style={[styles.balanceItemValue, { color: MetroColors.accent.orange }]}>
                 ${wallet.lockedFunds.toFixed(2)}
               </Text>
             </View>
             <View style={styles.balanceDivider} />
             <View style={styles.balanceItem}>
-              <Text style={styles.balanceItemLabel}>CREDITS</Text>
-              <Text style={[styles.balanceItemValue, styles.creditsValue]}>
+              <Text style={styles.balanceItemLabel}>Credits</Text>
+              <Text style={[styles.balanceItemValue, { color: MetroColors.accent.green }]}>
                 ${wallet.discountCredits.toFixed(2)}
               </Text>
             </View>
@@ -109,13 +113,15 @@ export default function WalletScreen() {
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <MetroCard style={styles.statCard}>
-            <Text style={styles.statLabel}>TOTAL SAVED</Text>
+            <Ionicons name="trending-up" size={24} color={MetroColors.accent.green} style={styles.statIcon} />
+            <Text style={styles.statLabel}>Total Saved</Text>
             <Text style={styles.statValue}>${wallet.totalSavings.toFixed(2)}</Text>
             <Text style={styles.statSubtext}>lifetime savings</Text>
           </MetroCard>
 
           <MetroCard style={styles.statCard}>
-            <Text style={styles.statLabel}>TRUST SCORE</Text>
+            <Ionicons name="star" size={24} color={MetroColors.accent.orange} style={styles.statIcon} />
+            <Text style={styles.statLabel}>Trust Score</Text>
             <TrustScore score={user.trustScore} />
           </MetroCard>
         </View>
@@ -123,16 +129,16 @@ export default function WalletScreen() {
         {/* Quick Stats */}
         <MetroCard style={styles.quickStats}>
           <View style={styles.quickStatsRow}>
-            <QuickStat label="PLEDGES" value="12" />
-            <QuickStat label="COMPLETED" value="10" />
-            <QuickStat label="CANCELLED" value="1" />
-            <QuickStat label="ACTIVE" value="2" highlight />
+            <QuickStat label="Pledges" value="12" icon="receipt-outline" />
+            <QuickStat label="Completed" value="10" icon="checkmark-circle-outline" color={MetroColors.accent.green} />
+            <QuickStat label="Cancelled" value="1" icon="close-circle-outline" />
+            <QuickStat label="Active" value="2" icon="time-outline" color={MetroColors.accent.cyan} />
           </View>
         </MetroCard>
 
         {/* Transactions */}
         <View style={styles.transactionsHeader}>
-          <Text style={styles.sectionTitle}>RECENT TRANSACTIONS</Text>
+          <Text style={styles.sectionTitle}>Recent Transactions</Text>
           <Text style={styles.sectionCount}>
             {wallet.transactions.length} items
           </Text>
@@ -149,23 +155,19 @@ export default function WalletScreen() {
 function QuickStat({
   label,
   value,
-  highlight = false,
+  icon,
+  color = MetroColors.text.primary,
 }: {
   label: string;
   value: string;
-  highlight?: boolean;
+  icon: keyof typeof Ionicons.glyphMap;
+  color?: string;
 }) {
   return (
     <View style={styles.quickStatItem}>
+      <Ionicons name={icon} size={20} color={MetroColors.text.muted} style={styles.quickStatIcon} />
+      <Text style={[styles.quickStatValue, { color }]}>{value}</Text>
       <Text style={styles.quickStatLabel}>{label}</Text>
-      <Text
-        style={[
-          styles.quickStatValue,
-          highlight && { color: MetroColors.accent.cyan },
-        ]}
-      >
-        {value}
-      </Text>
     </View>
   );
 }
@@ -190,9 +192,26 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
     discount_applied: 'success',
   };
 
+  const typeIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
+    pledge_hold: 'lock-closed-outline',
+    pledge_capture: 'card-outline',
+    pledge_release: 'lock-open-outline',
+    refund: 'refresh-outline',
+    discount_applied: 'gift-outline',
+    runner_earnings: 'car-outline',
+    tip: 'heart-outline',
+  };
+
   return (
     <MetroCard style={styles.transactionCard}>
       <View style={styles.transactionHeader}>
+        <View style={styles.transactionIconContainer}>
+          <Ionicons 
+            name={typeIcons[transaction.type] || 'receipt-outline'} 
+            size={20} 
+            color={MetroColors.text.tertiary} 
+          />
+        </View>
         <View style={styles.transactionInfo}>
           <StatusBadge
             label={typeLabels[transaction.type] || transaction.type}
@@ -220,7 +239,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
             transaction.status === 'pending' && styles.statusPending,
           ]}
         >
-          {transaction.status.toUpperCase()}
+          {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
         </Text>
       </View>
     </MetroCard>
@@ -239,75 +258,58 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    letterSpacing: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
   },
   header: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: MetroColors.border.muted,
+    paddingVertical: Spacing[3],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     backgroundColor: MetroColors.background.secondary,
+    ...Shadows.sm,
   },
   headerLabel: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
     fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   headerTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
     fontSize: FontSizes['3xl'],
     fontWeight: '700',
+    letterSpacing: -0.5,
     marginTop: 2,
   },
-  utilityPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: MetroColors.background.secondary,
-    borderWidth: 1,
-    borderColor: MetroColors.border.default,
-    borderRadius: 12,
-    paddingHorizontal: Spacing[2],
-    paddingVertical: Spacing[1],
-  },
-  utilityIcon: {
-    color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
+  headerIconButton: {
+    padding: Spacing[2],
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: Spacing[3],
-    paddingBottom: Spacing[9],
+    padding: Spacing[4],
+    paddingBottom: Spacing[10],
   },
   balanceCard: {
     alignItems: 'center',
-    paddingVertical: Spacing[5],
-    marginBottom: Spacing[3],
+    paddingVertical: Spacing[6],
+    marginBottom: Spacing[4],
   },
   balanceLabel: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    marginBottom: Spacing[3],
+    fontWeight: '500',
+    marginBottom: Spacing[2],
   },
   balanceDetails: {
     flexDirection: 'row',
     marginTop: Spacing[4],
-    paddingTop: Spacing[3],
+    paddingTop: Spacing[4],
     borderTopWidth: 1,
     borderTopColor: MetroColors.border.default,
   },
@@ -320,20 +322,16 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.border.default,
   },
   balanceItemLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.sansBold,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
+    fontWeight: '500',
     marginBottom: 4,
   },
   balanceItemValue: {
-    color: MetroColors.accent.orange,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '800',
-  },
-  creditsValue: {
-    color: MetroColors.accent.green,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
   },
   statsRow: {
     flexDirection: 'row',
@@ -345,25 +343,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing[4],
   },
-  statLabel: {
-    color: MetroColors.text.tertiary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+  statIcon: {
     marginBottom: Spacing[2],
   },
-  statValue: {
-    color: MetroColors.accent.green,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes['3xl'],
-    fontWeight: '800',
-  },
-  statSubtext: {
+  statLabel: {
     color: MetroColors.text.tertiary,
     fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
-    marginTop: 4,
+    fontWeight: '500',
+    marginBottom: Spacing[1],
+  },
+  statValue: {
+    color: MetroColors.accent.green,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '700',
+  },
+  statSubtext: {
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    marginTop: 2,
   },
   quickStats: {
     marginBottom: Spacing[4],
@@ -376,19 +376,20 @@ const styles = StyleSheet.create({
   quickStatItem: {
     alignItems: 'center',
   },
-  quickStatLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.sansBold,
-    fontSize: FontSizes.sm,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  quickStatIcon: {
     marginBottom: 4,
   },
+  quickStatLabel: {
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xs,
+    fontWeight: '500',
+    marginTop: 2,
+  },
   quickStatValue: {
-    color: MetroColors.text.primary,
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
   },
   transactionsHeader: {
     flexDirection: 'row',
@@ -398,41 +399,45 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.md,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    fontWeight: '600',
   },
   sectionCount: {
-    color: MetroColors.text.tertiary,
+    color: MetroColors.text.muted,
     fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
   },
   transactionCard: {
     marginBottom: Spacing[2],
-    paddingVertical: Spacing[4],
-    paddingHorizontal: Spacing[4],
   },
   transactionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  transactionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: MetroColors.background.tertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing[3],
   },
   transactionInfo: {
     flex: 1,
-    gap: Spacing[2],
+    gap: Spacing[1],
   },
   transactionDesc: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.body,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     lineHeight: 20,
   },
   transactionAmount: {
-    fontFamily: Fonts.heading,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '800',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
     marginLeft: Spacing[2],
   },
   amountPositive: {
@@ -447,19 +452,18 @@ const styles = StyleSheet.create({
     marginTop: Spacing[3],
     paddingTop: Spacing[3],
     borderTopWidth: 1,
-    borderTopColor: MetroColors.border.muted,
+    borderTopColor: MetroColors.border.default,
   },
   transactionDate: {
-    color: MetroColors.text.secondary,
+    color: MetroColors.text.muted,
     fontFamily: Fonts.body,
-    fontSize: FontSizes.md,
-    fontWeight: '500',
+    fontSize: FontSizes.sm,
   },
   transactionStatus: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.sansBold,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
   },
   statusPending: {
     color: MetroColors.accent.orange,
