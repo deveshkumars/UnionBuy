@@ -4,29 +4,34 @@
  */
 
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import * as ExpoLocation from 'expo-location';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  View
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import LeafletMap from '@/components/LeafletMap';
 import {
-  MetroButton,
-  PulseRadar,
-  StatusBadge
+    MetroButton,
+    PulseRadar,
+    StatusBadge
 } from '@/components/metro';
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { useApp, useMission } from '@/context/AppContext';
+import { fetchUserDistribution } from '@/services/api';
 import { findOptimalDropZone } from '@/services/kmeans';
-import { currentUser, mockDistributions, mockMissions, mockUsers } from '@/services/mockData';
-import { Location } from '@/types';
+import { mockMissions, mockUsers } from '@/services/mockData';
+import { Distribution, Location, Mission, MissionStatus } from '@/types';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+// Fixed user location: 90 George St., Providence, RI 02912
+const USER_LOCATION: Location = {
+  latitude: 41.82589639049507,
+  longitude: -71.40257245149334,
+  address: '90 George St., Providence, RI 02912',
+};
 
 // Simulated customer locations for this order (in real app, would come from pledges)
 const orderCustomers = [
@@ -40,45 +45,95 @@ const orderCustomers = [
 // Calculate optimal drop zone using K-means
 const kmeansResult = findOptimalDropZone(orderCustomers);
 
+// Helper to determine timeline step status based on mission status
+function getTimelineStatuses(missionStatus: MissionStatus | undefined): {
+  ordered: 'completed' | 'active' | 'pending';
+  accepted: 'completed' | 'active' | 'pending';
+  shopping: 'completed' | 'active' | 'pending';
+  enRoute: 'completed' | 'active' | 'pending';
+  arriving: 'completed' | 'active' | 'pending';
+} {
+  // Default to all pending if no mission status
+  if (!missionStatus) {
+    return {
+      ordered: 'pending',
+      accepted: 'pending',
+      shopping: 'pending',
+      enRoute: 'pending',
+      arriving: 'pending',
+    };
+  }
+
+  // Status progression order for comparison
+  const statusOrder: MissionStatus[] = [
+    'pending',
+    'available',
+    'accepted',
+    'en_route_to_store',
+    'shopping',
+    'checkout',
+    'en_route_to_dropzone',
+    'distributing',
+    'completed',
+  ];
+
+  const currentIndex = statusOrder.indexOf(missionStatus);
+
+  // Helper to determine if a step is completed, active, or pending
+  const getStepStatus = (stepStatuses: MissionStatus[]): 'completed' | 'active' | 'pending' => {
+    const stepIndices = stepStatuses.map(s => statusOrder.indexOf(s));
+    const maxStepIndex = Math.max(...stepIndices);
+    const minStepIndex = Math.min(...stepIndices);
+
+    if (currentIndex > maxStepIndex) return 'completed';
+    if (currentIndex >= minStepIndex && currentIndex <= maxStepIndex) return 'active';
+    return 'pending';
+  };
+
+  return {
+    // ORDERED: completed once mission exists (pending/available)
+    ordered: currentIndex >= statusOrder.indexOf('pending') ? 'completed' : 'pending',
+    // ACCEPTED: active at 'accepted', completed after
+    accepted: getStepStatus(['accepted']),
+    // SHOPPING: covers en_route_to_store, shopping, checkout
+    shopping: getStepStatus(['en_route_to_store', 'shopping', 'checkout']),
+    // EN ROUTE: covers en_route_to_dropzone
+    enRoute: getStepStatus(['en_route_to_dropzone']),
+    // ARRIVING: covers distributing, completed
+    arriving: getStepStatus(['distributing', 'completed']),
+  };
+}
+
+// Helper to format timestamp for display
+function formatTime(dateString?: string): string {
+  if (!dateString) return '--:--';
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 export default function OperationsScreen() {
-  const [activeMissions] = useState(mockMissions.filter(
-    m => !['completed', 'available'].includes(m.status)
-  ));
-  const [userLocation, setUserLocation] = useState<Location | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const { user } = useApp();
+  const { activeMission } = useMission();
+  const [userDistribution, setUserDistribution] = useState<Distribution | null>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const currentMission = activeMissions[0];
+  // Use activeMission from context if available, otherwise fall back to mockMissions
+  const mockActiveMissions = mockMissions.filter(
+    m => !['completed', 'available', 'pending'].includes(m.status)
+  );
+  const currentMission: Mission | null = activeMission || mockActiveMissions[0] || null;
 
-  // Get user's real GPS location
+  // Get timeline statuses based on current mission status
+  const timelineStatuses = getTimelineStatuses(currentMission?.status);
+
+  // Fetch user's active distribution
   useEffect(() => {
-    (async () => {
-      // Request permission
-      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationError('Location permission denied');
-        // Fall back to mock location
-        setUserLocation(currentUser.location);
-        return;
-      }
-
-      try {
-        // Get current position
-        const location = await ExpoLocation.getCurrentPositionAsync({
-          accuracy: ExpoLocation.Accuracy.Balanced,
-        });
-
-        setUserLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-      } catch (error) {
-        console.error('Error getting location:', error);
-        // Fall back to mock location
-        setUserLocation(currentUser.location);
-      }
-    })();
-  }, []);
+    const loadDistribution = async () => {
+      const dist = await fetchUserDistribution(user.id);
+      setUserDistribution(dist);
+    };
+    loadDistribution();
+  }, [user.id]);
 
   // Bottom sheet snap points: collapsed (25%), half (50%), expanded (85%)
   const snapPoints = useMemo(() => ['25%', '50%', '85%'], []);
@@ -96,7 +151,7 @@ export default function OperationsScreen() {
             stores={currentMission.stores}
             dropZone={kmeansResult.location} // Use K-means optimized drop zone
             runnerPosition={getRunnerLocation(currentMission)}
-            userLocation={userLocation || undefined}
+            userLocation={USER_LOCATION}
             missionStatus={currentMission.status}
           />
         ) : (
@@ -152,11 +207,31 @@ export default function OperationsScreen() {
                 </View>
 
                 <View style={styles.progressTimeline}>
-                  <TimelineStep label="ORDERED" status="completed" time="18:10" />
-                  <TimelineStep label="ACCEPTED" status="completed" time="18:15" />
-                  <TimelineStep label="SHOPPING" status="completed" time="18:45" />
-                  <TimelineStep label="EN ROUTE" status="active" time="--:--" />
-                  <TimelineStep label="ARRIVING" status="pending" time="--:--" />
+                  <TimelineStep 
+                    label="ORDERED" 
+                    status={timelineStatuses.ordered} 
+                    time={formatTime(currentMission.createdAt)} 
+                  />
+                  <TimelineStep 
+                    label="ACCEPTED" 
+                    status={timelineStatuses.accepted} 
+                    time={formatTime(currentMission.acceptedAt)} 
+                  />
+                  <TimelineStep 
+                    label="SHOPPING" 
+                    status={timelineStatuses.shopping} 
+                    time={timelineStatuses.shopping !== 'pending' ? formatTime(currentMission.acceptedAt) : '--:--'} 
+                  />
+                  <TimelineStep 
+                    label="EN ROUTE" 
+                    status={timelineStatuses.enRoute} 
+                    time="--:--" 
+                  />
+                  <TimelineStep 
+                    label="ARRIVING" 
+                    status={timelineStatuses.arriving} 
+                    time={timelineStatuses.arriving === 'completed' ? formatTime(currentMission.completedAt) : '--:--'} 
+                  />
                 </View>
               </View>
 
@@ -181,25 +256,31 @@ export default function OperationsScreen() {
               {/* Your Items */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>YOUR ITEMS</Text>
-                {mockDistributions.slice(0, 2).map((dist) => (
-                  <View key={dist.id} style={styles.itemCard}>
-                    <View style={styles.itemRow}>
-                      <View>
-                        <Text style={styles.itemName}>{dist.items[0].productName}</Text>
-                        <Text style={styles.itemQuantity}>{dist.items[0].quantity} units</Text>
+                {userDistribution ? (
+                  userDistribution.items.map((item, index) => (
+                    <View key={index} style={styles.itemCard}>
+                      <View style={styles.itemRow}>
+                        <View>
+                          <Text style={styles.itemName}>{item.productName}</Text>
+                          <Text style={styles.itemQuantity}>{item.quantity} units</Text>
+                        </View>
+                        <StatusBadge label={userDistribution.status.toUpperCase()} variant="warning" size="sm" />
                       </View>
-                      <StatusBadge label={dist.status.toUpperCase()} variant="warning" size="sm" />
                     </View>
+                  ))
+                ) : (
+                  <View style={styles.itemCard}>
+                    <Text style={styles.itemQuantity}>No items to pick up</Text>
                   </View>
-                ))}
+                )}
               </View>
 
-              {/* Pickup Code */}
+              {/* Pickup PIN */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>PICKUP CODE</Text>
+                <Text style={styles.sectionTitle}>PICKUP PIN</Text>
                 <View style={styles.codeCard}>
-                  <Text style={styles.codeLabel}>Show this to your runner</Text>
-                  <Text style={styles.codeValue}>{mockDistributions[0]?.qrCode || 'N/A'}</Text>
+                  <Text style={styles.codeLabel}>Show this PIN to your runner</Text>
+                  <Text style={styles.codeValue}>{userDistribution?.pickupPin || '----'}</Text>
                 </View>
               </View>
 
@@ -245,7 +326,7 @@ export default function OperationsScreen() {
   );
 }
 
-function getRunnerLocation(mission: typeof mockMissions[0]): Location | undefined {
+function getRunnerLocation(mission: Mission): Location | undefined {
   if (!mission || mission.stores.length === 0) return undefined;
 
   const firstStore = mission.stores[0].location;

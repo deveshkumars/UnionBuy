@@ -135,6 +135,7 @@ export interface Mission {
 }
 
 export type MissionStatus =
+  | 'pending'       // Not yet available (waiting for order to trigger)
   | 'available'
   | 'accepted'
   | 'en_route_to_store'
@@ -158,7 +159,7 @@ export interface Distribution {
   userId: string;
   user: User;
   items: DistributionItem[];
-  qrCode: string;
+  pickupPin: string; // 4-digit PIN for verification
   status: 'pending' | 'arrived' | 'verified' | 'completed';
   scheduledTime?: string;
   completedAt?: string;

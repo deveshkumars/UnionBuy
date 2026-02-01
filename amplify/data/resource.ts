@@ -70,6 +70,36 @@ const schema = a.schema({
       dropZoneJson: a.string(), // JSON: Location
     })
     .authorization((allow) => [allow.publicApiKey()]),
+
+  // Runner mission (public access)
+  Mission: a
+    .model({
+      runnerId: a.string(),
+      status: a.string().required(), // available | accepted | en_route_to_store | shopping | checkout | en_route_to_dropzone | distributing | completed
+      estimatedEarnings: a.float().required(),
+      tips: a.float(),
+      totalItems: a.integer().required(),
+      totalWeight: a.float(),
+      storesJson: a.string().required(), // JSON array of Store objects
+      routeJson: a.string().required(), // JSON: RouteInfo
+      dropZoneJson: a.string().required(), // JSON: Location
+      acceptedAt: a.string(),
+      completedAt: a.string(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  // Distribution for customer pickup (public access)
+  Distribution: a
+    .model({
+      missionId: a.string().required(),
+      userId: a.string().required(),
+      itemsJson: a.string().required(), // JSON array of DistributionItem
+      pickupPin: a.string().required(), // 4-digit PIN for verification
+      status: a.string().required(), // pending | arrived | verified | completed
+      scheduledTime: a.string(),
+      completedAt: a.string(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

@@ -22,7 +22,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/ce9df1daf200165c0c26c7af66c9e3b4e82f427e745009deec63ffebfe5a46b3.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/93a9dd6f2317705f74862fc844f536e4e84f63afabd345d7cc8ad1e3e99d2546.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -2417,6 +2417,1022 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "amplifyDataBulkOrderNestedStackBulkOrderNestedStackResource8FEC6566"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/DynamoDBModelTableReadIOPS": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBModelTableReadIOPS"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/DynamoDBModelTableWriteIOPS": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBModelTableWriteIOPS"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/DynamoDBBillingMode": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBBillingMode"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/DynamoDBEnablePointInTimeRecovery": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBEnablePointInTimeRecovery"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/DynamoDBEnableServerSideEncryption": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBEnableServerSideEncryption"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/HasEnvironmentParameter": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "HasEnvironmentParameter"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/ShouldUsePayPerRequestBilling": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ShouldUsePayPerRequestBilling"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/ShouldUsePointInTimeRecovery": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ShouldUsePointInTimeRecovery"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MissionTable": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MissionTable/Default/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MissionTable"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/CustomTableMissionTable": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/GetAttMissionTableStreamArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetAttMissionTableStreamArn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/GetAttMissionTableName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetAttMissionTableName"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MissionIAMRole": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MissionIAMRole"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MissionIAMRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MissionIAMRole1F4D5CBC"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MissionIAMRole"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MissionDataSource": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MissionTable"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MissionDataSource/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MissionDataSource"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MissionTable"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/QuerygetMissionauth0Function/QuerygetMissionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetMissionauth0FunctionQuerygetMissionauth0FunctionAppSyncFunction7FD7AA99"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetMissionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/QuerygetMissionpostAuth0Function/QuerygetMissionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetMissionpostAuth0FunctionQuerygetMissionpostAuth0FunctionAppSyncFunction0B220BE6"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetMissionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/QueryGetMissionDataResolverFn/QueryGetMissionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryGetMissionDataResolverFnQueryGetMissionDataResolverFnAppSyncFunctionA9FBA21A"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryGetMissionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/queryGetMissionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetMissionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.getMission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/QuerylistMissionsauth0Function/QuerylistMissionsauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistMissionsauth0FunctionQuerylistMissionsauth0FunctionAppSyncFunctionE3C886B5"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistMissionsauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/QuerylistMissionspostAuth0Function/QuerylistMissionspostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistMissionspostAuth0FunctionQuerylistMissionspostAuth0FunctionAppSyncFunctionD86A22FF"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistMissionspostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/QueryListMissionsDataResolverFn/QueryListMissionsDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListMissionsDataResolverFnQueryListMissionsDataResolverFnAppSyncFunctionCFE89A40"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListMissionsDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/queryListMissionsResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ListMissionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listMissions"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationcreateMissioninit0Function/MutationcreateMissioninit0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreateMissioninit0FunctionMutationcreateMissioninit0FunctionAppSyncFunction6918ED79"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreateMissioninit0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationcreateMissionauth0Function/MutationcreateMissionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreateMissionauth0FunctionMutationcreateMissionauth0FunctionAppSyncFunctionCC97F0AF"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreateMissionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationcreateMissionpostAuth0Function/MutationcreateMissionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreateMissionpostAuth0FunctionMutationcreateMissionpostAuth0FunctionAppSyncFunction706C8506"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreateMissionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationCreateMissionDataResolverFn/MutationCreateMissionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationCreateMissionDataResolverFnMutationCreateMissionDataResolverFnAppSyncFunction4CAB36C9"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationCreateMissionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/mutationCreateMissionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CreateMissionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.createMission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationupdateMissioninit0Function/MutationupdateMissioninit0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdateMissioninit0FunctionMutationupdateMissioninit0FunctionAppSyncFunction8D6AF2DE"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdateMissioninit0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationupdateMissionauth0Function/MutationupdateMissionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdateMissionauth0FunctionMutationupdateMissionauth0FunctionAppSyncFunctionD6B5BD00"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdateMissionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationupdateMissionpostAuth0Function/MutationupdateMissionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdateMissionpostAuth0FunctionMutationupdateMissionpostAuth0FunctionAppSyncFunction1ACB40D4"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdateMissionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationUpdateMissionDataResolverFn/MutationUpdateMissionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationUpdateMissionDataResolverFnMutationUpdateMissionDataResolverFnAppSyncFunctionEE07DDE1"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationUpdateMissionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/mutationUpdateMissionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "UpdateMissionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.updateMission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationdeleteMissionauth0Function/MutationdeleteMissionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeleteMissionauth0FunctionMutationdeleteMissionauth0FunctionAppSyncFunction5D3AC215"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeleteMissionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationdeleteMissionpostAuth0Function/MutationdeleteMissionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeleteMissionpostAuth0FunctionMutationdeleteMissionpostAuth0FunctionAppSyncFunction5D903AFD"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeleteMissionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/MutationDeleteMissionDataResolverFn/MutationDeleteMissionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationDeleteMissionDataResolverFnMutationDeleteMissionDataResolverFnAppSyncFunction962B27AD"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationDeleteMissionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/mutationDeleteMissionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DeleteMissionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.deleteMission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/SubscriptiononCreateMissionauth0Function/SubscriptiononCreateMissionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreateMissionauth0FunctionSubscriptiononCreateMissionauth0FunctionAppSyncFunction496E7FB4"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononCreateMissionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/SubscriptiononCreateMissionpostAuth0Function/SubscriptiononCreateMissionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreateMissionpostAuth0FunctionSubscriptiononCreateMissionpostAuth0FunctionAppSyncFunction5E7CB33F"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononCreateMissionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/SubscriptionOnCreateMissionDataResolverFn/SubscriptionOnCreateMissionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnCreateMissionDataResolverFnSubscriptionOnCreateMissionDataResolverFnAppSyncFunctionD651D981"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnCreateMissionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/subscriptionOnCreateMissionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreateMissionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onCreateMission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/SubscriptiononUpdateMissionauth0Function/SubscriptiononUpdateMissionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdateMissionauth0FunctionSubscriptiononUpdateMissionauth0FunctionAppSyncFunctionAD42ABA5"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononUpdateMissionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/SubscriptiononUpdateMissionpostAuth0Function/SubscriptiononUpdateMissionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdateMissionpostAuth0FunctionSubscriptiononUpdateMissionpostAuth0FunctionAppSyncFunctionBE0B9D67"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononUpdateMissionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/SubscriptionOnUpdateMissionDataResolverFn/SubscriptionOnUpdateMissionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnUpdateMissionDataResolverFnSubscriptionOnUpdateMissionDataResolverFnAppSyncFunctionB2D27405"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnUpdateMissionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/subscriptionOnUpdateMissionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdateMissionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onUpdateMission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/SubscriptiononDeleteMissionauth0Function/SubscriptiononDeleteMissionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeleteMissionauth0FunctionSubscriptiononDeleteMissionauth0FunctionAppSyncFunction22B655A9"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononDeleteMissionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/SubscriptiononDeleteMissionpostAuth0Function/SubscriptiononDeleteMissionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeleteMissionpostAuth0FunctionSubscriptiononDeleteMissionpostAuth0FunctionAppSyncFunction6082BD05"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononDeleteMissionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/SubscriptionOnDeleteMissionDataResolverFn/SubscriptionOnDeleteMissionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnDeleteMissionDataResolverFnSubscriptionOnDeleteMissionDataResolverFnAppSyncFunctionFAF3DB8B"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnDeleteMissionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/subscriptionOnDeleteMissionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeleteMissionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onDeleteMission"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/CDKMetadata/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadata"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/CDKMetadata/Condition": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadataAvailable"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource4BEA722EOutputs.amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataAmplifyTableManagerTableManagerCustomProviderframeworkonEventE297E64CArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource4BEA722EOutputsamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataAmplifyTableManagerTFE2361EC"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataGraphQLAPI289F00FEApiId": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataGraphQLAPI289F00FEApiId"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataGraphQLAPINONEDS7F2A5178Name": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataGraphQLAPINONEDS7F2A5178Name"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputs.amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthauthenticatedUserRole10967AA6Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputsamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthauthenticatedUserRole10967AA6Ref"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputs.amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthunauthenticatedUserRoleEA369BA4Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputsamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthunauthenticatedUserRoleEA369BA4Ref"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputs.amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthIdentityPoolA4232204Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputsamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthIdentityPoolA4232204Ref"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Mission.NestedStack/Mission.NestedStackResource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataMissionNestedStackMissionNestedStackResource77B953E7"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DynamoDBModelTableReadIOPS": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBModelTableReadIOPS"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DynamoDBModelTableWriteIOPS": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBModelTableWriteIOPS"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DynamoDBBillingMode": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBBillingMode"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DynamoDBEnablePointInTimeRecovery": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBEnablePointInTimeRecovery"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DynamoDBEnableServerSideEncryption": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBEnableServerSideEncryption"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/HasEnvironmentParameter": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "HasEnvironmentParameter"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/ShouldUsePayPerRequestBilling": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ShouldUsePayPerRequestBilling"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/ShouldUsePointInTimeRecovery": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ShouldUsePointInTimeRecovery"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DistributionTable": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Distribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DistributionTable/Default/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DistributionTable"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Distribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/CustomTableDistributionTable": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Distribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/GetAttDistributionTableStreamArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetAttDistributionTableStreamArn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/GetAttDistributionTableName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetAttDistributionTableName"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DistributionIAMRole": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "DistributionIAMRole"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DistributionIAMRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DistributionIAMRole6712DEAF"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "DistributionIAMRole"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DistributionDataSource": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "DistributionTable"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/DistributionDataSource/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DistributionDataSource"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "DistributionTable"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/QuerygetDistributionauth0Function/QuerygetDistributionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetDistributionauth0FunctionQuerygetDistributionauth0FunctionAppSyncFunction739F8F5D"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetDistributionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/QuerygetDistributionpostAuth0Function/QuerygetDistributionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetDistributionpostAuth0FunctionQuerygetDistributionpostAuth0FunctionAppSyncFunctionC9C6FC7E"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetDistributionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/QueryGetDistributionDataResolverFn/QueryGetDistributionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryGetDistributionDataResolverFnQueryGetDistributionDataResolverFnAppSyncFunction1F785AE1"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryGetDistributionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/queryGetDistributionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetDistributionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.getDistribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/QuerylistDistributionsauth0Function/QuerylistDistributionsauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistDistributionsauth0FunctionQuerylistDistributionsauth0FunctionAppSyncFunctionC2532A5E"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistDistributionsauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/QuerylistDistributionspostAuth0Function/QuerylistDistributionspostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistDistributionspostAuth0FunctionQuerylistDistributionspostAuth0FunctionAppSyncFunctionD0DD5833"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistDistributionspostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/QueryListDistributionsDataResolverFn/QueryListDistributionsDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListDistributionsDataResolverFnQueryListDistributionsDataResolverFnAppSyncFunction686AD5C7"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListDistributionsDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/queryListDistributionsResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ListDistributionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listDistributions"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationcreateDistributioninit0Function/MutationcreateDistributioninit0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreateDistributioninit0FunctionMutationcreateDistributioninit0FunctionAppSyncFunction4C26292F"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreateDistributioninit0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationcreateDistributionauth0Function/MutationcreateDistributionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreateDistributionauth0FunctionMutationcreateDistributionauth0FunctionAppSyncFunction66549DF5"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreateDistributionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationcreateDistributionpostAuth0Function/MutationcreateDistributionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreateDistributionpostAuth0FunctionMutationcreateDistributionpostAuth0FunctionAppSyncFunction1F313955"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreateDistributionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationCreateDistributionDataResolverFn/MutationCreateDistributionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationCreateDistributionDataResolverFnMutationCreateDistributionDataResolverFnAppSyncFunction464A3672"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationCreateDistributionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/mutationCreateDistributionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CreateDistributionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.createDistribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationupdateDistributioninit0Function/MutationupdateDistributioninit0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdateDistributioninit0FunctionMutationupdateDistributioninit0FunctionAppSyncFunctionE137C36D"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdateDistributioninit0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationupdateDistributionauth0Function/MutationupdateDistributionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdateDistributionauth0FunctionMutationupdateDistributionauth0FunctionAppSyncFunction9613EBEF"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdateDistributionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationupdateDistributionpostAuth0Function/MutationupdateDistributionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdateDistributionpostAuth0FunctionMutationupdateDistributionpostAuth0FunctionAppSyncFunction4C865ED0"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdateDistributionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationUpdateDistributionDataResolverFn/MutationUpdateDistributionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationUpdateDistributionDataResolverFnMutationUpdateDistributionDataResolverFnAppSyncFunction65A21F22"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationUpdateDistributionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/mutationUpdateDistributionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "UpdateDistributionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.updateDistribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationdeleteDistributionauth0Function/MutationdeleteDistributionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeleteDistributionauth0FunctionMutationdeleteDistributionauth0FunctionAppSyncFunctionC74AE2D6"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeleteDistributionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationdeleteDistributionpostAuth0Function/MutationdeleteDistributionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeleteDistributionpostAuth0FunctionMutationdeleteDistributionpostAuth0FunctionAppSyncFunctionA6EDA9EE"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeleteDistributionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/MutationDeleteDistributionDataResolverFn/MutationDeleteDistributionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationDeleteDistributionDataResolverFnMutationDeleteDistributionDataResolverFnAppSyncFunctionA5CE8B34"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationDeleteDistributionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/mutationDeleteDistributionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DeleteDistributionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.deleteDistribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/SubscriptiononCreateDistributionauth0Function/SubscriptiononCreateDistributionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreateDistributionauth0FunctionSubscriptiononCreateDistributionauth0FunctionAppSyncFunction750076F2"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononCreateDistributionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/SubscriptiononCreateDistributionpostAuth0Function/SubscriptiononCreateDistributionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreateDistributionpostAuth0FunctionSubscriptiononCreateDistributionpostAuth0FunctionAppSyncFunctionF717480D"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononCreateDistributionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/SubscriptionOnCreateDistributionDataResolverFn/SubscriptionOnCreateDistributionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnCreateDistributionDataResolverFnSubscriptionOnCreateDistributionDataResolverFnAppSyncFunction7EEACFB1"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnCreateDistributionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/subscriptionOnCreateDistributionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreateDistributionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onCreateDistribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/SubscriptiononUpdateDistributionauth0Function/SubscriptiononUpdateDistributionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdateDistributionauth0FunctionSubscriptiononUpdateDistributionauth0FunctionAppSyncFunctionA7EE74DD"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononUpdateDistributionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/SubscriptiononUpdateDistributionpostAuth0Function/SubscriptiononUpdateDistributionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdateDistributionpostAuth0FunctionSubscriptiononUpdateDistributionpostAuth0FunctionAppSyncFunctionF7546A89"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononUpdateDistributionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/SubscriptionOnUpdateDistributionDataResolverFn/SubscriptionOnUpdateDistributionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnUpdateDistributionDataResolverFnSubscriptionOnUpdateDistributionDataResolverFnAppSyncFunctionC8B6CD99"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnUpdateDistributionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/subscriptionOnUpdateDistributionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdateDistributionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onUpdateDistribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/SubscriptiononDeleteDistributionauth0Function/SubscriptiononDeleteDistributionauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeleteDistributionauth0FunctionSubscriptiononDeleteDistributionauth0FunctionAppSyncFunctionB86E3291"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononDeleteDistributionauth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/SubscriptiononDeleteDistributionpostAuth0Function/SubscriptiononDeleteDistributionpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeleteDistributionpostAuth0FunctionSubscriptiononDeleteDistributionpostAuth0FunctionAppSyncFunction961D3E69"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononDeleteDistributionpostAuth0Function"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/SubscriptionOnDeleteDistributionDataResolverFn/SubscriptionOnDeleteDistributionDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnDeleteDistributionDataResolverFnSubscriptionOnDeleteDistributionDataResolverFnAppSyncFunctionAA001051"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnDeleteDistributionDataResolverFn"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/subscriptionOnDeleteDistributionResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeleteDistributionResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onDeleteDistribution"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/CDKMetadata/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadata"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/CDKMetadata/Condition": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadataAvailable"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource4BEA722EOutputs.amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataAmplifyTableManagerTableManagerCustomProviderframeworkonEventE297E64CArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource4BEA722EOutputsamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataAmplifyTableManagerTFE2361EC"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataGraphQLAPI289F00FEApiId": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataGraphQLAPI289F00FEApiId"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataGraphQLAPINONEDS7F2A5178Name": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1dataamplifyDataGraphQLAPINONEDS7F2A5178Name"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputs.amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthauthenticatedUserRole10967AA6Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputsamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthauthenticatedUserRole10967AA6Ref"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputs.amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthunauthenticatedUserRoleEA369BA4Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputsamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthunauthenticatedUserRoleEA369BA4Ref"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution/reference-to-amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputs.amplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthIdentityPoolA4232204Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authNestedStackauthNestedStackResource4799C2FAOutputsamplifysecretlittlemonkeydeveshsandboxa0d0e2c9e1authamplifyAuthIdentityPoolA4232204Ref"
+          }
+        ],
+        "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/Distribution.NestedStack/Distribution.NestedStackResource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataDistributionNestedStackDistributionNestedStackResource1714F0DE"
           }
         ],
         "/amplify-secretlittlemonkey-devesh-sandbox-a0d0e2c9e1/data/amplifyData/AmplifyCodegenAssets/AmplifyCodegenAssetsBucket/Resource": [
