@@ -3,8 +3,9 @@
  * Trading floor style with trending items and bulk buy opportunities
  */
 
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -14,8 +15,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   DataTicker,
@@ -25,31 +26,47 @@ import {
   PriceDisplay,
   ProgressBar,
   StatusBadge,
-} from '@/components/metro';
-import { Fonts, FontSizes, MetroColors, Shadows, Spacing } from '@/constants/theme';
-import { useCart } from '@/context/AppContext';
-import { fetchProducts, fetchTrendingItems, searchProducts } from '@/services/api';
+} from "@/components/metro";
+import {
+  Fonts,
+  FontSizes,
+  MetroColors,
+  Spacing
+} from "@/constants/theme";
+import { useCart } from "@/context/AppContext";
+import {
+  fetchProducts,
+  fetchTrendingItems,
+  searchProducts,
+} from "@/services/api";
 import {
   getAllSplittableItems,
   getSplitProgress,
   searchSplittableItems,
   SplittableItem,
-} from '@/services/splittableItems';
-import { Product, TrendingItem } from '@/types';
+} from "@/services/splittableItems";
+import { Product, TrendingItem } from "@/types";
 
 export default function MarketScreen() {
   const router = useRouter();
   const { addToCart, getCartTotal } = useCart();
-  
+
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [splittableItems, setSplittableItems] = useState<SplittableItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState('');
+  const [timeRemaining, setTimeRemaining] = useState("");
 
-  const categories = ['grains', 'pantry', 'dairy', 'meat', 'produce', 'household'];
+  const categories = [
+    "grains",
+    "pantry",
+    "dairy",
+    "meat",
+    "produce",
+    "household",
+  ];
 
   useEffect(() => {
     loadData();
@@ -61,22 +78,22 @@ export default function MarketScreen() {
       const now = new Date();
       const cutoff = new Date();
       cutoff.setHours(18, 0, 0, 0);
-      
+
       // If past cutoff today, set to tomorrow
       if (now > cutoff) {
         cutoff.setDate(cutoff.getDate() + 1);
       }
-      
+
       const diff = cutoff.getTime() - now.getTime();
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      
+
       setTimeRemaining(`${hours}h ${minutes}m`);
     };
-    
+
     updateCountdown();
     const interval = setInterval(updateCountdown, 60000); // Update every minute
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -101,14 +118,14 @@ export default function MarketScreen() {
     if (query.length > 2) {
       const [productResults, splittableResults] = await Promise.all([
         searchProducts(query),
-        Promise.resolve(searchSplittableItems(query))
+        Promise.resolve(searchSplittableItems(query)),
       ]);
       setProducts(productResults);
       setSplittableItems(splittableResults);
     } else if (query.length === 0) {
       const [allProducts, allSplittable] = await Promise.all([
         fetchProducts(),
-        Promise.resolve(getAllSplittableItems())
+        Promise.resolve(getAllSplittableItems()),
       ]);
       setProducts(allProducts);
       setSplittableItems(allSplittable);
@@ -120,30 +137,30 @@ export default function MarketScreen() {
     : products;
 
   const filteredSplittableItems = selectedCategory
-    ? splittableItems.filter((item) => item.category.toLowerCase().includes(selectedCategory.toLowerCase()))
+    ? splittableItems.filter((item) =>
+        item.category.toLowerCase().includes(selectedCategory.toLowerCase()),
+      )
     : splittableItems;
 
   // Combine both product types into one unified list for Bulk Orders
   const allBulkItems: (Product | SplittableItem)[] = [
     ...filteredProducts,
-    ...filteredSplittableItems
+    ...filteredSplittableItems,
   ];
 
   const cartTotals = getCartTotal();
 
   // Ticker data
-  const tickerData = trendingItems
-    .slice(0, 10)
-    .map((item) => ({
-      id: item.product.id,
-      name: `[HOT] ${item.product.name}`,
-      value: `$${item.product.bulkPrice.toFixed(2)}`,
-      change: undefined,
-      suffix: `/${item.product.unit}`,
-    }));
+  const tickerData = trendingItems.slice(0, 10).map((item) => ({
+    id: item.product.id,
+    name: `[HOT] ${item.product.name}`,
+    value: `$${item.product.bulkPrice.toFixed(2)}`,
+    change: undefined,
+    suffix: `/${item.product.unit}`,
+  }));
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.backgroundFX} pointerEvents="none">
         <View style={styles.backgroundGlow} />
         <View style={styles.backgroundGlowSecondary} />
@@ -158,13 +175,22 @@ export default function MarketScreen() {
             <Text style={styles.headerTitle}>Market</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/wallet')}>
-              <Text style={styles.utilityIcon}>WLT</Text>
-              <Text style={styles.utilityText}>$</Text>
+            <TouchableOpacity onPress={() => router.push("/(customer)/wallet")}>
+              <Ionicons
+                name="cash"
+                size={24}
+                color={MetroColors.text.primary}
+              />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
-              <Text style={styles.utilityIcon}>CRT</Text>
-              <Text style={styles.utilityText}>{cartTotals.items}</Text>
+            <TouchableOpacity
+              onPress={() => router.push("/(customer)/cart")}
+              style={{ marginLeft: 16 }}
+            >
+              <Ionicons
+                name="cart"
+                size={24}
+                color={MetroColors.text.primary}
+              />
             </TouchableOpacity>
             <View style={styles.cutoffBox}>
               <Text style={styles.timeLabel}>CUTOFF</Text>
@@ -177,21 +203,31 @@ export default function MarketScreen() {
         </View>
 
         {/* Trending Ticker (simplified text) */}
-        <DataTicker items={tickerData} speed={36} height={46} showChange={false} />
+        <DataTicker
+          items={tickerData}
+          speed={36}
+          height={46}
+          showChange={false}
+        />
 
         {/* Info Bar */}
         <InfoBar
           items={[
-            { label: 'HOT', value: trendingItems.length, highlight: true },
-            { label: 'ACTIVE ORDERS', value: allBulkItems.length },
-            { label: 'SAVED', value: '$2.8K' },
+            { label: "HOT", value: trendingItems.length, highlight: true },
+            { label: "ACTIVE ORDERS", value: allBulkItems.length },
+            { label: "SAVED", value: "$2.8K" },
           ]}
         />
 
         {/* Search */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputWrapper}>
-            <Text style={styles.searchIcon}>FND</Text>
+            <Ionicons
+              name="search"
+              size={20}
+              color={MetroColors.text.tertiary}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="Search products..."
@@ -201,7 +237,7 @@ export default function MarketScreen() {
               autoCapitalize="none"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearch('')}>
+              <TouchableOpacity onPress={() => handleSearch("")}>
                 <Text style={styles.clearIcon}>X</Text>
               </TouchableOpacity>
             )}
@@ -216,7 +252,10 @@ export default function MarketScreen() {
           contentContainerStyle={styles.categoriesContent}
         >
           <TouchableOpacity
-            style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
+            style={[
+              styles.categoryChip,
+              !selectedCategory && styles.categoryChipActive,
+            ]}
             onPress={() => setSelectedCategory(null)}
           >
             <Text
@@ -270,7 +309,7 @@ export default function MarketScreen() {
         }
         renderItem={({ item }) => {
           // Check if this is a splittable item (has title instead of name)
-          const isSplittableItem = 'title' in item;
+          const isSplittableItem = "title" in item;
 
           if (isSplittableItem) {
             const splitItem = item as SplittableItem;
@@ -280,23 +319,33 @@ export default function MarketScreen() {
             const participantCount = progress ? progress.participantCount : 0;
 
             // Calculate savings using pre-calculated retail price for consistency
-            const estimatedRetail = splitItem.estimatedRetailPricePerUnit || splitItem.price_per_unit * 1.35;
-            const savings = ((estimatedRetail - splitItem.price_per_unit) / estimatedRetail) * 100;
+            const estimatedRetail =
+              splitItem.estimatedRetailPricePerUnit ||
+              splitItem.price_per_unit * 1.35;
+            const savings =
+              ((estimatedRetail - splitItem.price_per_unit) / estimatedRetail) *
+              100;
 
             return (
-              <TouchableOpacity
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity activeOpacity={0.8}>
                 <MetroCard
-                  variant={splitProgress >= 0.8 ? 'active' : 'default'}
-                  label={splitProgress >= 1 ? 'READY' : splitProgress >= 0.8 ? 'ALMOST' : undefined}
+                  variant={splitProgress >= 0.8 ? "active" : "default"}
+                  label={
+                    splitProgress >= 1
+                      ? "READY"
+                      : splitProgress >= 0.8
+                      ? "ALMOST"
+                      : undefined
+                  }
                   style={styles.productCard}
+                  showCorners={false}
                 >
                   <View style={styles.productHeader}>
                     <View style={styles.productInfo}>
                       <Text style={styles.productName}>{splitItem.title}</Text>
                       <Text style={styles.productCategory}>
-                        {splitItem.category.toUpperCase()} • {splitItem.pack_quantity}-PACK SPLIT
+                        {splitItem.category.toUpperCase()} •{" "}
+                        {splitItem.pack_quantity}-PACK SPLIT
                       </Text>
                     </View>
                     <StatusBadge
@@ -314,7 +363,7 @@ export default function MarketScreen() {
                           ${(splitItem.price_per_unit * 1.35).toFixed(2)}
                         </Text>
                       </View>
-                      <Text style={styles.priceArrow}>{'→'}</Text>
+                      <Text style={styles.priceArrow}>{"→"}</Text>
                       <View style={styles.priceItem}>
                         <Text style={styles.priceLabel}>BULK</Text>
                         <PriceDisplay
@@ -330,13 +379,18 @@ export default function MarketScreen() {
                   <View style={styles.progressSection}>
                     <View style={styles.progressHeader}>
                       <Text style={styles.progressLabel}>
-                        {pledgedQuantity}/{splitItem.pack_quantity} units pledged
+                        {pledgedQuantity}/{splitItem.pack_quantity} units
+                        pledged
                       </Text>
                       <Text style={styles.pledgeCount}>
                         {participantCount} neighbors
                       </Text>
                     </View>
-                    <ProgressBar progress={splitProgress} height={10} showLabel />
+                    <ProgressBar
+                      progress={splitProgress}
+                      height={10}
+                      showLabel
+                    />
                   </View>
 
                   <View style={styles.cardActions}>
@@ -356,12 +410,18 @@ export default function MarketScreen() {
                           id: splitItem.id,
                           name: splitItem.title,
                           category: splitItem.category.toLowerCase() as any,
-                          description: splitItem.description || splitItem.feature,
-                          unit: 'unit',
+                          description:
+                            splitItem.description || splitItem.feature,
+                          unit: "unit",
                           retailPrice: splitItem.total_price,
                           bulkPrice: splitItem.price_per_unit,
                           bulkMinimum: splitItem.pack_quantity,
-                          store: { id: 'split-store', name: 'Split Order', type: 'wholesale', location: { latitude: 0, longitude: 0 } },
+                          store: {
+                            id: "split-store",
+                            name: "Split Order",
+                            type: "wholesale",
+                            location: { latitude: 0, longitude: 0 },
+                          },
                           available: true,
                         };
                         addToCart(productForCart, 1);
@@ -375,11 +435,15 @@ export default function MarketScreen() {
 
           // Regular bulk order item
           const product = item as Product;
-          const trending = trendingItems.find((t) => t.product.id === product.id);
+          const trending = trendingItems.find(
+            (t) => t.product.id === product.id,
+          );
           const progress = trending ? trending.percentToGoal / 100 : 0;
           const totalQuantity = trending ? trending.totalQuantity : 0;
           const pledgeCount = trending ? trending.pledgeCount : 0;
-          const savings = ((product.retailPrice - product.bulkPrice) / product.retailPrice) * 100;
+          const savings =
+            ((product.retailPrice - product.bulkPrice) / product.retailPrice) *
+            100;
 
           return (
             <TouchableOpacity
@@ -387,9 +451,16 @@ export default function MarketScreen() {
               activeOpacity={0.8}
             >
               <MetroCard
-                variant={progress >= 0.8 ? 'active' : 'default'}
-                label={progress >= 1 ? 'READY' : progress >= 0.8 ? 'ALMOST' : undefined}
+                variant={progress >= 0.8 ? "active" : "default"}
+                label={
+                  progress >= 1
+                    ? "READY"
+                    : progress >= 0.8
+                    ? "ALMOST"
+                    : undefined
+                }
                 style={styles.productCard}
+                showCorners={false}
               >
                 <View style={styles.productHeader}>
                   <View style={styles.productInfo}>
@@ -413,7 +484,7 @@ export default function MarketScreen() {
                         ${product.retailPrice.toFixed(2)}
                       </Text>
                     </View>
-                    <Text style={styles.priceArrow}>{'→'}</Text>
+                    <Text style={styles.priceArrow}>{"→"}</Text>
                     <View style={styles.priceItem}>
                       <Text style={styles.priceLabel}>BULK</Text>
                       <PriceDisplay
@@ -429,7 +500,8 @@ export default function MarketScreen() {
                 <View style={styles.progressSection}>
                   <View style={styles.progressHeader}>
                     <Text style={styles.progressLabel}>
-                      {totalQuantity}/{product.bulkMinimum} {product.unit} pledged
+                      {totalQuantity}/{product.bulkMinimum} {product.unit}{" "}
+                      pledged
                     </Text>
                     <Text style={styles.pledgeCount}>
                       {pledgeCount} neighbors
@@ -470,7 +542,7 @@ export default function MarketScreen() {
         <TouchableOpacity
           style={styles.cartFab}
           activeOpacity={0.9}
-          onPress={() => router.push('/(customer)/cart')}
+          onPress={() => router.push("/(customer)/cart")}
         >
           <View style={styles.cartFabContent}>
             <View style={styles.cartBadge}>
@@ -501,7 +573,7 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   backgroundGlow: {
-    position: 'absolute',
+    position: "absolute",
     width: 260,
     height: 260,
     borderRadius: 130,
@@ -511,7 +583,7 @@ const styles = StyleSheet.create({
     right: -90,
   },
   backgroundGlowSecondary: {
-    position: 'absolute',
+    position: "absolute",
     width: 220,
     height: 220,
     borderRadius: 110,
@@ -521,17 +593,17 @@ const styles = StyleSheet.create({
     left: -70,
   },
   backgroundStreak: {
-    position: 'absolute',
+    position: "absolute",
     width: 360,
     height: 120,
     backgroundColor: MetroColors.accent.cyan,
     opacity: 0.06,
     top: 200,
     left: -60,
-    transform: [{ rotate: '-8deg' }],
+    transform: [{ rotate: "-8deg" }],
   },
   backgroundScan: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     top: 130,
@@ -540,9 +612,9 @@ const styles = StyleSheet.create({
     opacity: 0.14,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[3],
     borderBottomWidth: 1,
@@ -553,25 +625,25 @@ const styles = StyleSheet.create({
     color: MetroColors.accent.cyan,
     fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   headerTitle: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
-    fontSize: FontSizes['3xl'],
-    fontWeight: '700',
+    fontSize: FontSizes["3xl"],
+    fontWeight: "700",
     marginTop: 2,
   },
   headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing[1],
   },
   utilityPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: MetroColors.accent.cyanMuted,
     borderWidth: 1.5,
     borderColor: MetroColors.accent.cyan,
@@ -590,10 +662,10 @@ const styles = StyleSheet.create({
     color: MetroColors.accent.cyan,
     fontFamily: Fonts.sans,
     fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   cutoffBox: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     marginLeft: Spacing[3],
     backgroundColor: MetroColors.accent.orangeMuted,
     paddingHorizontal: Spacing[2],
@@ -606,20 +678,20 @@ const styles = StyleSheet.create({
     color: MetroColors.accent.orange,
     fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 1,
   },
   timeValue: {
     color: MetroColors.accent.orange,
     fontFamily: Fonts.heading,
     fontSize: FontSizes.lg,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   timeRemaining: {
     color: MetroColors.accent.orange,
     fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 2,
   },
   searchContainer: {
@@ -628,34 +700,30 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.background.primary,
   },
   searchInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: MetroColors.background.secondary,
     borderWidth: 2,
     borderColor: MetroColors.border.accent,
     borderRadius: 20,
     paddingHorizontal: Spacing[4],
-    ...Shadows.cyanGlow,
   },
   searchIcon: {
-    color: MetroColors.accent.cyan,
-    fontSize: FontSizes.sm,
     marginRight: Spacing[2],
-    fontFamily: Fonts.mono,
-    letterSpacing: 1,
   },
   searchInput: {
     flex: 1,
     color: MetroColors.text.primary,
     fontFamily: Fonts.sans,
     fontSize: FontSizes.md,
-    fontWeight: '500',
+    fontWeight: "300",
     paddingVertical: Spacing[2],
+    opacity: 0.7,
   },
   clearIcon: {
     color: MetroColors.accent.cyan,
     fontSize: FontSizes.md,
-    fontWeight: '600',
+    fontWeight: "600",
     padding: Spacing[2],
   },
   categoriesContainer: {
@@ -668,8 +736,8 @@ const styles = StyleSheet.create({
   categoriesContent: {
     paddingHorizontal: Spacing[4],
     paddingVertical: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   categoryChip: {
     paddingHorizontal: Spacing[3],
@@ -683,13 +751,12 @@ const styles = StyleSheet.create({
   categoryChipActive: {
     borderColor: MetroColors.accent.cyan,
     backgroundColor: MetroColors.accent.cyan,
-    ...Shadows.cyanGlow,
   },
   categoryText: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.sans,
     fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   categoryTextActive: {
     color: MetroColors.background.secondary,
@@ -710,9 +777,9 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.background.secondary,
   },
   productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: Spacing[3],
   },
   productInfo: {
@@ -723,7 +790,7 @@ const styles = StyleSheet.create({
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
     fontSize: FontSizes.xl,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 6,
     lineHeight: 28,
   },
@@ -731,16 +798,16 @@ const styles = StyleSheet.create({
     color: MetroColors.text.secondary,
     fontFamily: Fonts.body,
     fontSize: FontSizes.md,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   priceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     marginBottom: Spacing[3],
   },
   priceCompare: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing[3],
   },
   priceItem: {
@@ -750,21 +817,21 @@ const styles = StyleSheet.create({
     color: MetroColors.text.secondary,
     fontFamily: Fonts.sans,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontWeight: "700",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   retailPrice: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.heading,
     fontSize: FontSizes.lg,
-    textDecorationLine: 'line-through',
+    textDecorationLine: "line-through",
   },
   priceArrow: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.lg,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 1,
   },
   unitText: {
@@ -772,7 +839,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.lg,
     marginLeft: Spacing[1],
-    fontWeight: '600',
+    fontWeight: "600",
   },
   progressSection: {
     marginBottom: Spacing[4],
@@ -782,30 +849,30 @@ const styles = StyleSheet.create({
     borderTopColor: MetroColors.border.muted,
   },
   progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: Spacing[3],
   },
   progressLabel: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.heading,
     fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   pledgeCount: {
     color: MetroColors.accent.purple,
     fontFamily: Fonts.heading,
     fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   cardActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing[3],
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
     marginTop: Spacing[2],
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: Spacing[16],
   },
   emptyIcon: {
@@ -826,18 +893,17 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
   },
   cartFab: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 24,
     left: Spacing[4],
     right: Spacing[4],
     backgroundColor: MetroColors.accent.cyan,
     borderRadius: 16,
-    ...Shadows.cyanGlow,
   },
   cartFabContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: Spacing[3],
     paddingHorizontal: Spacing[4],
   },
@@ -852,20 +918,20 @@ const styles = StyleSheet.create({
     color: MetroColors.accent.cyan,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   cartFabText: {
     flex: 1,
     color: MetroColors.background.primary,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.sm,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 1,
   },
   cartFabPrice: {
     color: MetroColors.background.primary,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });
