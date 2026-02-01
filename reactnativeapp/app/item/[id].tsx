@@ -25,7 +25,7 @@ import {
 } from '@/components/metro';
 import { Fonts, FontSizes, MetroColors, Spacing } from '@/constants/theme';
 import { useApp, useCart, usePledges } from '@/context/AppContext';
-import { comparePrices, evaluateBulkBuy } from '@/services/agents';
+import { evaluateBulkBuy, getRegionalRetailPrice } from '@/services/agents';
 import {
   createPledge,
   fetchBulkOrderForProduct,
@@ -36,7 +36,7 @@ import {
   getSplitProgress as getSplittableProgress,
   SplittableItem,
 } from '@/services/splittableItems';
-import { AgentDecision, BulkOrder, PriceComparison, Product } from '@/types';
+import { AgentDecision, BulkOrder, Product } from '@/types';
 
 export default function ItemDetailModal() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -49,8 +49,8 @@ export default function ItemDetailModal() {
   const [splittableItem, setSplittableItem] = useState<SplittableItem | null>(null);
   const [bulkOrder, setBulkOrder] = useState<BulkOrder | null>(null);
   const [quantity, setQuantity] = useState('1');
-  const [priceComparison, setPriceComparison] = useState<PriceComparison | null>(null);
   const [agentDecision, setAgentDecision] = useState<AgentDecision | null>(null);
+  const [regionalRetailPrice, setRegionalRetailPrice] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [pledging, setPledging] = useState(false);
 
@@ -82,30 +82,43 @@ export default function ItemDetailModal() {
     setLoading(false);
   }, [id]);
 
+  // Fetch regional price once when product loads (not on every quantity change)
+  const fetchRegionalPrice = useCallback(async () => {
+    if (product) {
+      const regionalPrice = await getRegionalRetailPrice({
+        productName: product.name,
+        category: product.category,
+        region: 'Providence, RI',
+        bulkUnitPrice: product.bulkPrice,
+      });
+      setRegionalRetailPrice(regionalPrice.retailUnitPrice);
+    } else if (splittableItem) {
+      // Use pre-calculated retail price for splittable items (more efficient)
+      setRegionalRetailPrice(splittableItem.estimatedRetailPricePerUnit || splittableItem.price_per_unit * 1.35);
+    }
+  }, [product, splittableItem]);
+
+  // Run agent decision analysis (re-runs on quantity change for agent decision only)
   const runAgentAnalysis = useCallback(async () => {
     if (!product) return;
-    
+
     const qty = parseInt(quantity) || 1;
-    
-    const [comparison, decision] = await Promise.all([
-      comparePrices(product, qty),
-      evaluateBulkBuy({
-        productId: product.id,
-        productName: product.name,
-        quantity: qty,
-        retailPrice: product.retailPrice,
-        bulkPrice: product.bulkPrice,
-        bulkMinimum: product.bulkMinimum,
-        currentPledgedQuantity: bulkOrder?.totalQuantity || 0,
-        userLocations: [
-          { latitude: 41.8236, longitude: -71.4222 },
-          { latitude: 41.8198, longitude: -71.4178 },
-          { latitude: 41.8156, longitude: -71.4289 },
-        ],
-      }),
-    ]);
-    
-    setPriceComparison(comparison);
+
+    const decision = await evaluateBulkBuy({
+      productId: product.id,
+      productName: product.name,
+      quantity: qty,
+      retailPrice: product.retailPrice,
+      bulkPrice: product.bulkPrice,
+      bulkMinimum: product.bulkMinimum,
+      currentPledgedQuantity: bulkOrder?.totalQuantity || 0,
+      userLocations: [
+        { latitude: 41.8236, longitude: -71.4222 },
+        { latitude: 41.8198, longitude: -71.4178 },
+        { latitude: 41.8156, longitude: -71.4289 },
+      ],
+    });
+
     setAgentDecision(decision);
   }, [product, quantity, bulkOrder?.totalQuantity]);
 
@@ -113,6 +126,14 @@ export default function ItemDetailModal() {
     loadData();
   }, [loadData]);
 
+  // Fetch regional price once when product loads
+  useEffect(() => {
+    if (product || splittableItem) {
+      fetchRegionalPrice();
+    }
+  }, [product, splittableItem, fetchRegionalPrice]);
+
+  // Run agent analysis when quantity changes (for regular products only)
   useEffect(() => {
     if (product && quantity) {
       runAgentAnalysis();
@@ -209,19 +230,19 @@ export default function ItemDetailModal() {
 
             <View style={styles.priceComparison}>
               <View style={styles.priceColumn}>
-                <Text style={styles.priceType}>TOTAL PACK</Text>
+                <Text style={styles.priceType}>RETAIL UNIT PRICE</Text>
                 <PriceDisplay
-                  amount={splittableItem.total_price}
+                  amount={regionalRetailPrice || splittableItem.price_per_unit * 1.35}
                   size="xl"
                   variant="muted"
                 />
                 <Text style={styles.unitPrice}>
-                  {splittableItem.pack_quantity} units
+                  Regional avg/unit
                 </Text>
               </View>
 
               <View style={styles.vsContainer}>
-                <Text style={styles.vsText}>÷</Text>
+                <Text style={styles.vsText}>VS</Text>
                 <View style={styles.savingsArrow}>
                   <Text style={styles.arrowText}>{'->'}</Text>
                 </View>
@@ -235,17 +256,22 @@ export default function ItemDetailModal() {
                   variant="highlight"
                 />
                 <Text style={styles.unitPrice}>
-                  per item
+                  Bulk price/unit
                 </Text>
               </View>
             </View>
 
             <View style={styles.savingsBox}>
-              <Text style={styles.savingsLabel}>YOUR COST ({qty} {qty === 1 ? 'UNIT' : 'UNITS'})</Text>
+              <Text style={styles.savingsLabel}>YOUR SAVINGS PER UNIT</Text>
               <View style={styles.savingsRow}>
                 <Text style={styles.savingsAmount}>
-                  ${(splittableItem.price_per_unit * qty).toFixed(2)}
+                  ${((regionalRetailPrice || splittableItem.price_per_unit * 1.35) - splittableItem.price_per_unit).toFixed(2)}
                 </Text>
+                <StatusBadge
+                  label={`-${((((regionalRetailPrice || splittableItem.price_per_unit * 1.35) - splittableItem.price_per_unit) / (regionalRetailPrice || splittableItem.price_per_unit * 1.35)) * 100).toFixed(0)}% OFF`}
+                  variant="success"
+                  size="md"
+                />
               </View>
             </View>
           </MetroCard>
@@ -339,17 +365,6 @@ export default function ItemDetailModal() {
               />
             </View>
 
-            <View style={styles.quickQuantities}>
-              {[1, 2, 3, 4].map((q) => (
-                <MetroButton
-                  key={q}
-                  title={`${q}`}
-                  variant={qty === q ? 'primary' : 'ghost'}
-                  size="sm"
-                  onPress={() => setQuantity(String(q))}
-                />
-              ))}
-            </View>
           </MetroCard>
 
           {/* Cost Summary */}
@@ -449,49 +464,49 @@ export default function ItemDetailModal() {
         {/* Price Comparison Card */}
         <MetroCard variant="active" style={styles.priceCard}>
           <Text style={styles.sectionLabel}>PRICE ANALYSIS</Text>
-          
+
           <View style={styles.priceComparison}>
             <View style={styles.priceColumn}>
-              <Text style={styles.priceType}>RETAIL</Text>
+              <Text style={styles.priceType}>RETAIL UNIT PRICE</Text>
               <PriceDisplay
-                amount={product.retailPrice * qty}
+                amount={regionalRetailPrice || product.retailPrice}
                 size="xl"
                 variant="muted"
               />
               <Text style={styles.unitPrice}>
-                ${product.retailPrice.toFixed(2)}/{product.unit}
+                Regional avg/{product.unit}
               </Text>
             </View>
-            
+
             <View style={styles.vsContainer}>
               <Text style={styles.vsText}>VS</Text>
               <View style={styles.savingsArrow}>
                 <Text style={styles.arrowText}>{'->'}</Text>
               </View>
             </View>
-            
+
             <View style={styles.priceColumn}>
-              <Text style={styles.priceType}>BULK</Text>
+              <Text style={styles.priceType}>PER UNIT</Text>
               <PriceDisplay
-                amount={product.bulkPrice * qty}
+                amount={product.bulkPrice}
                 size="xl"
                 variant="highlight"
               />
               <Text style={styles.unitPrice}>
-                ${product.bulkPrice.toFixed(2)}/{product.unit}
+                Bulk price/{product.unit}
               </Text>
             </View>
           </View>
 
-          {priceComparison && (
+          {regionalRetailPrice && (
             <View style={styles.savingsBox}>
-              <Text style={styles.savingsLabel}>YOUR SAVINGS</Text>
+              <Text style={styles.savingsLabel}>YOUR SAVINGS PER UNIT</Text>
               <View style={styles.savingsRow}>
                 <Text style={styles.savingsAmount}>
-                  ${priceComparison.savings.toFixed(2)}
+                  ${(regionalRetailPrice - product.bulkPrice).toFixed(2)}
                 </Text>
                 <StatusBadge
-                  label={`${priceComparison.savingsPercent.toFixed(0)}% OFF`}
+                  label={`${(((regionalRetailPrice - product.bulkPrice) / regionalRetailPrice) * 100).toFixed(0)}% OFF`}
                   variant="success"
                   size="md"
                 />
@@ -606,18 +621,6 @@ export default function ItemDetailModal() {
               size="md"
               onPress={() => setQuantity(String(qty + 1))}
             />
-          </View>
-          
-          <View style={styles.quickQuantities}>
-            {[5, 10, 15, 20].map((q) => (
-              <MetroButton
-                key={q}
-                title={`${q}`}
-                variant={qty === q ? 'primary' : 'ghost'}
-                size="sm"
-                onPress={() => setQuantity(String(q))}
-              />
-            ))}
           </View>
         </MetroCard>
 

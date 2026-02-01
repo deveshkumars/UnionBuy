@@ -402,18 +402,27 @@ export async function createPledge(
     }
     console.log('[createPledge] Bulk order:', bulkOrder.id, 'created:', orderCreated, 'current qty:', bulkOrder.totalQuantity);
     
-    // 3. Calculate pricing
+    // 3. Check available slots (NEW LOGIC)
+    const availableSlots = product.bulkMinimum - bulkOrder.totalQuantity;
+    if (quantity > availableSlots) {
+      return { 
+        success: false, 
+        error: `Only ${availableSlots} units available. Requested ${quantity}.` 
+      };
+    }
+    
+    // 4. Calculate pricing
     const unitPrice = bulkOrder.pricePerUnit;
     const totalAmount = unitPrice * quantity;
     const maxAmount = product.retailPrice * quantity;
     
-    // 4. Create the pledge
+    // 5. Create the pledge (full success)
     const pledgeResult = await createPledgeInBackend(productId, product, quantity, unitPrice, totalAmount, maxAmount, effectiveUserId);
     if (!pledgeResult.success) {
       return pledgeResult;
     }
     
-    // 5. Update bulk order quantity
+    // 6. Update bulk order quantity
     const newTotal = bulkOrder.totalQuantity + quantity;
     const willTrigger = newTotal >= product.bulkMinimum;
     
@@ -453,12 +462,23 @@ export async function createPledge(
   const product = mockProducts.find((p) => p.id === productId);
   if (!product) return { success: false, error: 'Product not found' };
   const bulkOrder = mockBulkOrders.find((o) => o.productId === productId && o.status === 'collecting');
+  
+  // Check available slots (NEW LOGIC)
+  const currentQuantity = bulkOrder?.totalQuantity || 0;
+  const availableSlots = product.bulkMinimum - currentQuantity;
+  if (quantity > availableSlots) {
+    return { 
+      success: false, 
+      error: `Only ${availableSlots} units available. Requested ${quantity}.` 
+    };
+  }
+  
   const unitPrice = bulkOrder?.pricePerUnit || product.bulkPrice * 1.1;
   const totalAmount = unitPrice * quantity;
   const maxAmount = product.retailPrice * quantity;
   
   // Check if this pledge will trigger the bulk order (meet the minimum)
-  const newTotal = (bulkOrder?.totalQuantity || 0) + quantity;
+  const newTotal = currentQuantity + quantity;
   const willTrigger = bulkOrder && newTotal >= product.bulkMinimum;
   
   const newPledge: Pledge = {

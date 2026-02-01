@@ -279,6 +279,10 @@ export default function MarketScreen() {
             const pledgedQuantity = progress ? progress.pledgedQuantity : 0;
             const participantCount = progress ? progress.participantCount : 0;
 
+            // Calculate savings using pre-calculated retail price for consistency
+            const estimatedRetail = splitItem.estimatedRetailPricePerUnit || splitItem.price_per_unit * 1.35;
+            const savings = ((estimatedRetail - splitItem.price_per_unit) / estimatedRetail) * 100;
+
             return (
               <TouchableOpacity
                 activeOpacity={0.8}
@@ -296,8 +300,8 @@ export default function MarketScreen() {
                       </Text>
                     </View>
                     <StatusBadge
-                      label={`${splitItem.pack_quantity}x`}
-                      variant="info"
+                      label={`-${savings.toFixed(0)}%`}
+                      variant="success"
                       size="md"
                     />
                   </View>
@@ -305,14 +309,14 @@ export default function MarketScreen() {
                   <View style={styles.priceRow}>
                     <View style={styles.priceCompare}>
                       <View style={styles.priceItem}>
-                        <Text style={styles.priceLabel}>TOTAL</Text>
+                        <Text style={styles.priceLabel}>RETAIL</Text>
                         <Text style={styles.retailPrice}>
-                          ${splitItem.total_price.toFixed(2)}
+                          ${(splitItem.price_per_unit * 1.35).toFixed(2)}
                         </Text>
                       </View>
                       <Text style={styles.priceArrow}>{'→'}</Text>
                       <View style={styles.priceItem}>
-                        <Text style={styles.priceLabel}>PER UNIT</Text>
+                        <Text style={styles.priceLabel}>BULK</Text>
                         <PriceDisplay
                           amount={splitItem.price_per_unit}
                           size="lg"
@@ -320,7 +324,7 @@ export default function MarketScreen() {
                         />
                       </View>
                     </View>
-                    <Text style={styles.unitText}>/each</Text>
+                    <Text style={styles.unitText}>/unit</Text>
                   </View>
 
                   <View style={styles.progressSection}>
@@ -419,7 +423,7 @@ export default function MarketScreen() {
                       />
                     </View>
                   </View>
-                  <Text style={styles.unitText}>/{product.unit}</Text>
+                  <Text style={styles.unitText}>/unit</Text>
                 </View>
 
                 <View style={styles.progressSection}>

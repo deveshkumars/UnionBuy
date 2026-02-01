@@ -235,6 +235,119 @@ export async function performSecurityCheck(
 }
 
 // ============================================
+// AGENT #4: Regional Retail Price Fetcher
+// ============================================
+
+interface RegionalPriceInput {
+  productName: string;
+  category: string;
+  region: string; // e.g., "Providence, RI"
+  bulkUnitPrice?: number; // Optional bulk price to ensure retail > bulk
+}
+
+interface RegionalPriceResult {
+  retailUnitPrice: number;
+  confidence: number;
+  source: string;
+}
+
+/**
+ * Agent #4: Fetch average retail unit price for a product in a specific region
+ * In production, this would query real-time pricing data from various retailers
+ *
+ * IMPORTANT: If bulkUnitPrice is provided, ensures retail price is higher
+ * Uses deterministic calculation based on product name for stable pricing
+ */
+export async function getRegionalRetailPrice(
+  input: RegionalPriceInput
+): Promise<RegionalPriceResult> {
+  await agentDelay(900); // Simulate LLM processing
+
+  const { productName, category, bulkUnitPrice } = input;
+
+  // If bulk price is provided, calculate retail as markup over bulk
+  if (bulkUnitPrice !== undefined && bulkUnitPrice > 0) {
+    // Generate deterministic variation based on product name hash
+    // This ensures the same product always gets the same "retail" price
+    let hash = 0;
+    for (let i = 0; i < productName.length; i++) {
+      hash = ((hash << 5) - hash) + productName.charCodeAt(i);
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    const deterministicSeed = Math.abs(hash % 100) / 100; // 0-1
+
+    // Retail markup ranges: 35-85% higher than bulk (more realistic variety)
+    // Different categories have different base markups
+    let minMarkup = 0.35;
+    let maxMarkup = 0.85;
+
+    // Category-specific markup ranges (wider variety)
+    if (category.toLowerCase().includes('meat')) {
+      minMarkup = 0.40;
+      maxMarkup = 0.90;
+    } else if (category.toLowerCase().includes('dairy')) {
+      minMarkup = 0.35;
+      maxMarkup = 0.75;
+    } else if (category.toLowerCase().includes('produce')) {
+      minMarkup = 0.50;
+      maxMarkup = 1.00;
+    } else if (category.toLowerCase().includes('bakery') || category.toLowerCase().includes('dessert')) {
+      minMarkup = 0.45;
+      maxMarkup = 0.95;
+    } else if (category.toLowerCase().includes('pantry')) {
+      minMarkup = 0.40;
+      maxMarkup = 0.80;
+    } else if (category.toLowerCase().includes('household')) {
+      minMarkup = 0.30;
+      maxMarkup = 0.70;
+    }
+
+    // Calculate markup using deterministic seed (not random!)
+    const markupPercent = minMarkup + (deterministicSeed * (maxMarkup - minMarkup));
+
+    const retailUnitPrice = bulkUnitPrice * (1 + markupPercent);
+
+    // Confidence also deterministic
+    const confidence = 85 + Math.floor(deterministicSeed * 10);
+
+    return {
+      retailUnitPrice: Math.round(retailUnitPrice * 100) / 100,
+      confidence,
+      source: 'Regional Price Aggregator (Mock)',
+    };
+  }
+
+  // Fallback: Generate retail price based on category (old logic)
+  let basePrice = 5.00;
+
+  // Category-based pricing
+  if (category.toLowerCase().includes('meat')) {
+    basePrice = 8.50;
+  } else if (category.toLowerCase().includes('dairy')) {
+    basePrice = 6.00;
+  } else if (category.toLowerCase().includes('produce')) {
+    basePrice = 4.50;
+  } else if (category.toLowerCase().includes('bakery')) {
+    basePrice = 5.50;
+  } else if (category.toLowerCase().includes('pantry')) {
+    basePrice = 7.00;
+  }
+
+  // Add some variation based on product name length (mock)
+  const variation = (productName.length % 10) * 0.3;
+  const retailUnitPrice = basePrice + variation;
+
+  // High confidence since this is simulated data
+  const confidence = 85 + Math.floor(Math.random() * 10);
+
+  return {
+    retailUnitPrice: Math.round(retailUnitPrice * 100) / 100,
+    confidence,
+    source: 'Regional Price Aggregator (Mock)',
+  };
+}
+
+// ============================================
 // DROP ZONE CALCULATION
 // ============================================
 
