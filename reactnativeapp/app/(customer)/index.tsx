@@ -7,47 +7,36 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  FlatList,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+    FlatList,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  DataTicker,
-  InfoBar,
-  MetroButton,
-  MetroCard,
-  PriceDisplay,
-  ProgressBar,
-  StatusBadge,
-} from "@/components/metro";
+    DataTicker,
+    InfoBar,
+    MetroButton,
+    MetroCard,
+    PriceDisplay,
+    ProgressBar,
+    StatusBadge,
+} from '@/components/metro';
+import { Fonts, FontSizes, MetroColors, Shadows, Spacing } from '@/constants/theme';
+import { useCart } from '@/context/AppContext';
+import { fetchProducts, fetchTrendingItems, searchProducts } from '@/services/api';
 import {
-  BorderRadius,
-  Fonts,
-  FontSizes,
-  MetroColors,
-  Shadows,
-  Spacing
-} from "@/constants/theme";
-import { useCart } from "@/context/AppContext";
-import {
-  fetchProducts,
-  fetchTrendingItems,
-  searchProducts,
-} from "@/services/api";
-import {
-  getAllSplittableItems,
-  getSplitProgress,
-  searchSplittableItems,
-  SplittableItem,
-} from "@/services/splittableItems";
-import { Product, TrendingItem } from "@/types";
+    getAllSplittableItems,
+    getSplitProgress,
+    searchSplittableItems,
+    SplittableItem,
+} from '@/services/splittableItems';
+import { Product, TrendingItem } from '@/types';
 
 export default function MarketScreen() {
   const router = useRouter();
@@ -143,10 +132,21 @@ export default function MarketScreen() {
       )
     : splittableItems;
 
+  // Combine both product types into one unified list for Bulk Orders
+  // Hard-coded products first (for reliability), then splittable items
+  // Add prefix to avoid duplicate key issues
   const allBulkItems: (Product | SplittableItem)[] = [
     ...filteredProducts,
     ...filteredSplittableItems,
   ];
+
+  // Create unique keys for the FlatList
+  const getItemKey = (item: Product | SplittableItem): string => {
+    if ('title' in item) {
+      return `split_${item.id}`;
+    }
+    return `prod_${item.id}`;
+  };
 
   const cartTotals = getCartTotal();
 
@@ -169,33 +169,11 @@ export default function MarketScreen() {
             <Text style={styles.headerTitle}>Market</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity 
-              style={styles.headerIconButton}
-              onPress={() => router.push("/(customer)/wallet")}
-            >
-              <Ionicons
-                name="wallet-outline"
-                size={24}
-                color={MetroColors.text.primary}
-              />
+            <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+              <Text style={styles.utilityIcon}>CRT</Text>
+              <Text style={styles.utilityText}>{cartTotals.items}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerIconButton}
-              onPress={() => router.push("/(customer)/cart")}
-            >
-              <Ionicons
-                name="cart-outline"
-                size={24}
-                color={MetroColors.text.primary}
-              />
-            </TouchableOpacity>
-            <View style={styles.cutoffBox}>
-              <Text style={styles.timeLabel}>Cutoff</Text>
-              <Text style={styles.timeValue}>6:00 PM</Text>
-              {timeRemaining && (
-                <Text style={styles.timeRemaining}>{timeRemaining}</Text>
-              )}
-            </View>
+            {/* Cutoff timer hidden but logic still runs */}
           </View>
         </View>
 
@@ -289,7 +267,7 @@ export default function MarketScreen() {
       {/* Products List */}
       <FlatList
         data={allBulkItems}
-        keyExtractor={(item) => item.id}
+        keyExtractor={getItemKey}
         numColumns={1}
         contentContainerStyle={styles.productsContainer}
         ListHeaderComponent={<View style={styles.listSpacer} />}

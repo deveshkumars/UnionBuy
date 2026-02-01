@@ -11,9 +11,15 @@ import 'react-native-reanimated';
 import { MetroColors } from '@/constants/theme';
 import { AppProvider, useRole } from '@/context/AppContext';
 import { configureAmplify } from '@/lib/amplify';
+import { clearAllBackendData } from '@/services/backend';
+import { resetAllMockData } from '@/services/mockData';
 
 // Configure AWS (Cognito + DynamoDB) when amplify_outputs.json is present
 configureAmplify();
+
+// Auto-reset ALL data on app startup for clean testing
+resetAllMockData();
+clearAllBackendData(); // Also clear DynamoDB data
 
 function RootNavigator() {
   const { role } = useRole();

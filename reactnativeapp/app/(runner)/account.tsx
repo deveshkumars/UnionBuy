@@ -74,13 +74,9 @@ export default function RunnerAccountScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.headerLabel}>UNION BUY</Text>
           <Text style={styles.headerTitle}>Runner Profile</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <StatusBadge label="RUNNER" variant="success" size="sm" />
-          <StatusBadge label="CUSTOMER" variant="info" size="sm" />
         </View>
       </View>
 
@@ -254,6 +250,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
     backgroundColor: MetroColors.background.secondary,
+  },
+  headerLeft: {
+    flex: 1,
   },
   headerLabel: {
     color: MetroColors.accent.green,

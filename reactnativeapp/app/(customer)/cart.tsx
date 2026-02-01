@@ -36,7 +36,8 @@ export default function CartScreen() {
   const handlePledgeItem = async (product: Product, quantity: number) => {
     setPledgingItem(product.id);
     try {
-      const result = await createPledge(product.id, quantity, user.id);
+      // Pass product data so custom items can be created in backend if needed
+      const result = await createPledge(product.id, quantity, user.id, product);
       if (result.success && result.pledge) {
         addPledge(result.pledge);
         removeFromCart(product.id);
@@ -75,7 +76,8 @@ export default function CartScreen() {
 
             for (const { product, quantity } of cart) {
               try {
-                const result = await createPledge(product.id, quantity, user.id);
+                // Pass product data so custom items can be created in backend if needed
+                const result = await createPledge(product.id, quantity, user.id, product);
                 if (result.success && result.pledge) {
                   addPledge(result.pledge);
                   pledgedItems.push(product.id);

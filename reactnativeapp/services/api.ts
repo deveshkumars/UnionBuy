@@ -21,6 +21,7 @@ import {
     createDistributionInBackend,
     createMissionInBackend,
     createPledgeInBackend,
+    createProductInBackend,
     createUserProfileInBackend,
     fetchActiveBulkOrdersFromBackend,
     fetchAvailableMissionsFromBackend,
@@ -211,15 +212,33 @@ export async function fetchStackedMissions(): Promise<MissionStack[]> {
 // ============================================
 
 export async function fetchProducts(): Promise<Product[]> {
-  if (isBackendConfigured()) return fetchProductsFromBackend();
+  if (isBackendConfigured()) {
+    // Get products from backend but ensure hard-coded demo products appear first
+    const backendProducts = await fetchProductsFromBackend();
+    
+    // Add mock products at the beginning if they're not already in backend
+    // This ensures Local Honey and other demo items always appear at top
+    const hardCodedProducts = mockProducts.slice(0, 2); // Local Honey and Jasmine Rice
+    const hardCodedIds = new Set(hardCodedProducts.map(p => p.id));
+    
+    // Filter out duplicates and combine: hard-coded first, then backend
+    const uniqueBackendProducts = backendProducts.filter(p => !hardCodedIds.has(p.id));
+    return [...hardCodedProducts, ...uniqueBackendProducts];
+  }
   await delay(500);
   return mockProducts;
 }
 
 export async function fetchProductById(id: string): Promise<Product | null> {
+  // First check mock products (hard-coded items always available)
+  const mockProduct = mockProducts.find((p) => p.id === id);
+  if (mockProduct) return mockProduct;
+  
+  // Then check backend if configured
   if (isBackendConfigured()) return fetchProductByIdFromBackend(id);
+  
   await delay(300);
-  return mockProducts.find((p) => p.id === id) || null;
+  return null;
 }
 
 export async function searchProducts(query: string): Promise<Product[]> {
@@ -382,7 +401,8 @@ export async function fetchPledgeById(pledgeId: string): Promise<Pledge | null> 
 export async function createPledge(
   productId: string,
   quantity: number,
-  userId?: string
+  userId?: string,
+  productData?: Product // Optional: pass product data for custom items not in catalog
 ): Promise<{ success: boolean; pledge?: Pledge; error?: string; triggered?: boolean }> {
   // Use provided userId or fall back to currentUser.id
   const effectiveUserId = userId || currentUser.id;
@@ -391,9 +411,22 @@ export async function createPledge(
   if (isBackendConfigured()) {
     console.log('[createPledge] 🔥 Using DynamoDB backend');
     
-    // 1. Get the product
-    const product = await fetchProductById(productId);
-    if (!product) return { success: false, error: 'Product not found' };
+    // 1. Get the product (or use provided product data)
+    let product = await fetchProductById(productId);
+    
+    // If product not found but we have product data, create it in backend
+    if (!product && productData) {
+      console.log('[createPledge] Product not in catalog, creating:', productData.name);
+      const createResult = await createProductInBackend(productData);
+      if (createResult.success && createResult.product) {
+        product = createResult.product;
+        console.log('[createPledge] ✅ Product created in backend:', product.id);
+      } else {
+        console.warn('[createPledge] Failed to create product:', createResult.error);
+      }
+    }
+    
+    if (!product) return { success: false, error: 'Product not found and could not be created' };
     
     // 2. Get or create a bulk order for this product
     const { bulkOrder, created: orderCreated, error: orderError } = await getOrCreateBulkOrderForProduct(product);
@@ -831,7 +864,7 @@ export async function updateMissionStatus(
     mission.orders.forEach((order) => {
       // Mark all pledges for this order's product as completed
       mockPledges.forEach((pledge) => {
-        if (pledge.productId === order.productId && pledge.status === 'active') {
+        if (pledge.productId === order.productId && (pledge.status === 'active' || pledge.status === 'locked')) {
           pledge.status = 'completed';
           pledge.completedAt = new Date().toISOString();
           console.log('[updateMissionStatus] ✅ Pledge completed:', pledge.id);

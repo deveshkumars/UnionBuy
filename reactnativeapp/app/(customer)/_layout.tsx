@@ -79,17 +79,29 @@ export default function CustomerTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="wallet"
-        options={{
-          title: 'Wallet',
-          tabBarIcon: ({ focused }) => <TabIcon name="wallet" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
         name="account"
         options={{
           title: 'Account',
           tabBarIcon: ({ focused }) => <TabIcon name="account" focused={focused} />,
+        }}
+      />
+      {/* Hidden screens - accessible via navigation but not in tab bar */}
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="cart"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="test-db"
+        options={{
+          href: null, // Hide from tab bar
         }}
       />
     </Tabs>

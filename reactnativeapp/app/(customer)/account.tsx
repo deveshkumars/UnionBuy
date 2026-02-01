@@ -83,17 +83,14 @@ export default function AccountScreen() {
           <Text style={styles.headerTitle}>Account</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
-            <Text style={styles.utilityIcon}>CRT</Text>
-          </TouchableOpacity>
           <MetroButton
-            title="Runner"
+            title="RUN"
             variant={role === 'runner' ? 'primary' : 'ghost'}
             size="sm"
             onPress={() => setRoleAndNavigate('runner')}
           />
           <MetroButton
-            title="Customer"
+            title="BUY"
             variant={role === 'customer' ? 'primary' : 'ghost'}
             size="sm"
             onPress={() => setRoleAndNavigate('customer')}
@@ -136,6 +133,20 @@ export default function AccountScreen() {
               <TrustScore score={user.trustScore} />
             </View>
           </View>
+        </MetroCard>
+
+        {/* Wallet Button */}
+        <MetroCard style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>WALLET</Text>
+          </View>
+          <MetroButton
+            title="OPEN WALLET"
+            variant="primary"
+            size="lg"
+            onPress={() => router.push('/(customer)/wallet')}
+            style={{ marginTop: Spacing[2] }}
+          />
         </MetroCard>
 
         {/* Role Switch */}
