@@ -4,15 +4,15 @@
  */
 
 import {
-    BulkOrder,
-    Distribution,
-    Mission,
-    Pledge,
-    Product,
-    Store,
-    TrendingItem,
-    User,
-    Wallet
+  BulkOrder,
+  Distribution,
+  Mission,
+  Pledge,
+  Product,
+  Store,
+  TrendingItem,
+  User,
+  Wallet
 } from '@/types';
 
 // ============================================
@@ -60,9 +60,9 @@ export const mockProducts: Product[] = [
   // ⚡ DEMO TRIGGER ITEM - pledging this will activate the order! (FIRST so it's visible)
   {
     id: 'prod-demo',
-    name: '🍯 Local Honey',
+    name: 'Honey Nut Cheerios',
     category: 'pantry',
-    description: 'Raw wildflower honey from local apiaries - DEMO: 1 jar away from bulk!',
+    description: 'Honey Nut Cheerio Boxes - DEMO: 1 box away from bulk!',
     unit: 'jar',
     retailPrice: 12.99,
     bulkPrice: 7.49,
@@ -72,13 +72,13 @@ export const mockProducts: Product[] = [
   },
   {
     id: 'prod-1',
-    name: 'Jasmine Rice',
+    name: 'Ramen Noodles',
     category: 'grains',
-    description: 'Premium Thai jasmine rice, long grain',
-    unit: 'lb',
+    description: 'Ramen Noodles',
+    unit: 'box',
     retailPrice: 1.89,
     bulkPrice: 0.79,
-    bulkMinimum: 50,
+    bulkMinimum: 10,
     store: mockStores[0],
     available: true,
   },
@@ -168,9 +168,9 @@ export const mockProducts: Product[] = [
   },
   {
     id: 'prod-9',
-    name: 'Ground Beef 80/20',
+    name: 'Ground Chicken',
     category: 'meat',
-    description: 'Fresh ground beef, 80% lean',
+    description: 'Fresh ground chicken',
     unit: 'lb',
     retailPrice: 5.99,
     bulkPrice: 3.79,
