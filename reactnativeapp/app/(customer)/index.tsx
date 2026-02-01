@@ -276,6 +276,8 @@ export default function MarketScreen() {
             const splitItem = item as SplittableItem;
             const progress = getSplitProgress(splitItem.id);
             const splitProgress = progress ? progress.progress : 0;
+            const pledgedQuantity = progress ? progress.pledgedQuantity : 0;
+            const participantCount = progress ? progress.participantCount : 0;
 
             return (
               <TouchableOpacity
@@ -321,19 +323,17 @@ export default function MarketScreen() {
                     <Text style={styles.unitText}>/each</Text>
                   </View>
 
-                  {progress && (
-                    <View style={styles.progressSection}>
-                      <View style={styles.progressHeader}>
-                        <Text style={styles.progressLabel}>
-                          {progress.pledgedQuantity}/{splitItem.pack_quantity} units pledged
-                        </Text>
-                        <Text style={styles.pledgeCount}>
-                          {progress.participantCount} neighbors
-                        </Text>
-                      </View>
-                      <ProgressBar progress={splitProgress} height={10} showLabel />
+                  <View style={styles.progressSection}>
+                    <View style={styles.progressHeader}>
+                      <Text style={styles.progressLabel}>
+                        {pledgedQuantity}/{splitItem.pack_quantity} units pledged
+                      </Text>
+                      <Text style={styles.pledgeCount}>
+                        {participantCount} neighbors
+                      </Text>
                     </View>
-                  )}
+                    <ProgressBar progress={splitProgress} height={10} showLabel />
+                  </View>
 
                   <View style={styles.cardActions}>
                     <MetroButton
@@ -373,6 +373,8 @@ export default function MarketScreen() {
           const product = item as Product;
           const trending = trendingItems.find((t) => t.product.id === product.id);
           const progress = trending ? trending.percentToGoal / 100 : 0;
+          const totalQuantity = trending ? trending.totalQuantity : 0;
+          const pledgeCount = trending ? trending.pledgeCount : 0;
           const savings = ((product.retailPrice - product.bulkPrice) / product.retailPrice) * 100;
 
           return (
@@ -420,19 +422,17 @@ export default function MarketScreen() {
                   <Text style={styles.unitText}>/{product.unit}</Text>
                 </View>
 
-                {trending && (
-                  <View style={styles.progressSection}>
-                    <View style={styles.progressHeader}>
-                      <Text style={styles.progressLabel}>
-                        {trending.totalQuantity}/{product.bulkMinimum} {product.unit} pledged
-                      </Text>
-                      <Text style={styles.pledgeCount}>
-                        {trending.pledgeCount} neighbors
-                      </Text>
-                    </View>
-                    <ProgressBar progress={progress} height={10} showLabel />
+                <View style={styles.progressSection}>
+                  <View style={styles.progressHeader}>
+                    <Text style={styles.progressLabel}>
+                      {totalQuantity}/{product.bulkMinimum} {product.unit} pledged
+                    </Text>
+                    <Text style={styles.pledgeCount}>
+                      {pledgeCount} neighbors
+                    </Text>
                   </View>
-                )}
+                  <ProgressBar progress={progress} height={10} showLabel />
+                </View>
 
                 <View style={styles.cardActions}>
                   <MetroButton

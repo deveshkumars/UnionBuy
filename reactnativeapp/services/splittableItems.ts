@@ -40,8 +40,8 @@ function initializeSampleProgress() {
   const allItems = normalizedData as SplittableItem[];
 
   allItems.forEach((item) => {
-    const pledgedQuantity = Math.floor(Math.random() * item.pack_quantity * 0.8);
-    const participantCount = Math.floor(Math.random() * 10) + 1;
+    const pledgedQuantity = 0; // Start at 0
+    const participantCount = 0; // Start at 0
 
     splitProgressMap.set(item.id, {
       itemId: item.id,
