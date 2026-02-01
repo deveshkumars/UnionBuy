@@ -132,6 +132,8 @@ export interface Mission {
   createdAt: string;
   acceptedAt?: string;
   completedAt?: string;
+  // For stacked missions - contains IDs of all merged missions
+  stackedMissionIds?: string[];
 }
 
 export type MissionStatus =

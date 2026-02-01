@@ -252,13 +252,13 @@ export const currentRunner: User = mockUsers[2];
 // ============================================
 
 export const mockBulkOrders: BulkOrder[] = [
-  // ⚡ DEMO ORDER - half full (10/20) for testing add-to-existing flow
+  // ⚡ DEMO ORDER - empty for testing fresh pledge flow
   {
     id: 'order-demo',
     productId: 'prod-demo',
     product: mockProducts[0], // Local Honey (index 0)
     pledges: [],
-    totalQuantity: 10,
+    totalQuantity: 0, // Start at 0 - customer will add pledges
     targetQuantity: 20,
     pricePerUnit: 7.99,
     status: 'collecting',
@@ -275,7 +275,7 @@ export const mockBulkOrders: BulkOrder[] = [
     productId: 'prod-1',
     product: mockProducts[1], // Jasmine Rice (index 1)
     pledges: [],
-    totalQuantity: 42,
+    totalQuantity: 0, // Start at 0
     targetQuantity: 50,
     pricePerUnit: 0.85,
     status: 'collecting',
@@ -292,38 +292,12 @@ export const mockBulkOrders: BulkOrder[] = [
     productId: 'prod-3',
     product: mockProducts[3], // Organic Eggs (index 3)
     pledges: [],
-    totalQuantity: 12,
+    totalQuantity: 0, // Start at 0
     targetQuantity: 15,
     pricePerUnit: 4.69,
     status: 'collecting',
     cutoffTime: '2026-01-31T18:00:00Z',
     createdAt: '2026-01-31T08:00:00Z',
-  },
-  {
-    id: 'order-3',
-    productId: 'prod-4',
-    product: mockProducts[4], // Chicken Breast (index 4)
-    pledges: [],
-    totalQuantity: 40,
-    targetQuantity: 40,
-    pricePerUnit: 2.95,
-    status: 'assigned',
-    cutoffTime: '2026-01-30T18:00:00Z',
-    createdAt: '2026-01-30T08:00:00Z',
-    executedAt: '2026-01-30T18:05:00Z',
-    runnerId: 'user-3',
-  },
-  {
-    id: 'order-4',
-    productId: 'prod-5',
-    product: mockProducts[5], // All-Purpose Flour (index 5)
-    pledges: [],
-    totalQuantity: 28,
-    targetQuantity: 50,
-    pricePerUnit: 0.48,
-    status: 'rolled_over',
-    cutoffTime: '2026-01-30T18:00:00Z',
-    createdAt: '2026-01-29T08:00:00Z',
   },
 ];
 
@@ -331,187 +305,30 @@ export const mockBulkOrders: BulkOrder[] = [
 // PLEDGES
 // ============================================
 
-export const mockPledges: Pledge[] = [
-  {
-    id: 'pledge-1',
-    userId: 'user-1',
-    productId: 'prod-1',
-    product: mockProducts[1], // Jasmine Rice (index 1)
-    quantity: 10,
-    unitPrice: 0.85,
-    totalAmount: 8.50,
-    maxAmount: 18.90,
-    status: 'locked',
-    createdAt: '2026-01-31T09:15:00Z',
-    lockedAt: '2026-01-31T09:15:00Z',
-    orderId: 'order-1',
-  },
-  {
-    id: 'pledge-2',
-    userId: 'user-1',
-    productId: 'prod-3',
-    product: mockProducts[3], // Organic Eggs (index 3)
-    quantity: 3,
-    unitPrice: 4.69,
-    totalAmount: 14.07,
-    maxAmount: 20.97,
-    status: 'locked',
-    createdAt: '2026-01-31T10:30:00Z',
-    lockedAt: '2026-01-31T10:30:00Z',
-    orderId: 'order-2',
-  },
-  {
-    id: 'pledge-3',
-    userId: 'user-1',
-    productId: 'prod-4',
-    product: mockProducts[4], // Chicken Breast (index 4)
-    quantity: 5,
-    unitPrice: 2.95,
-    totalAmount: 14.75,
-    maxAmount: 24.95,
-    status: 'completed',
-    createdAt: '2026-01-30T11:00:00Z',
-    lockedAt: '2026-01-30T11:00:00Z',
-    completedAt: '2026-01-30T20:30:00Z',
-    orderId: 'order-3',
-  },
-  {
-    id: 'pledge-4',
-    userId: 'user-1',
-    productId: 'prod-5',
-    product: mockProducts[5], // All-Purpose Flour (index 5)
-    quantity: 8,
-    unitPrice: 0.50,
-    totalAmount: 4.0,
-    maxAmount: 7.12,
-    status: 'rollover',
-    createdAt: '2026-01-30T08:30:00Z',
-    lockedAt: '2026-01-30T08:30:00Z',
-    orderId: 'order-4',
-  },
-];
+// Start with empty pledges - customer will create their own
+export const mockPledges: Pledge[] = [];
 
 // ============================================
 // MISSIONS
 // ============================================
 
-export const mockMissions: Mission[] = [
-  {
-    id: 'mission-1',
-    orders: [mockBulkOrders[3]], // Chicken Breast order (index 3)
-    runnerId: 'user-3',
-    status: 'distributing',
-    estimatedEarnings: 28.50,
-    tips: 12.00,
-    totalItems: 40,
-    totalWeight: 40,
-    stores: [mockStores[2]],
-    route: {
-      stores: [mockStores[2].location],
-      dropZone: {
-        latitude: 41.8215,
-        longitude: -71.4190,
-        address: 'Providence Community Center',
-      },
-      totalDistance: 8.2,
-      estimatedTime: 45,
-      optimizedOrder: [0],
-    },
-    dropZone: {
-      latitude: 41.8215,
-      longitude: -71.4190,
-      address: 'Providence Community Center',
-    },
-    createdAt: '2026-01-30T18:10:00Z',
-    acceptedAt: '2026-01-30T18:15:00Z',
-  },
-  {
-    id: 'mission-2',
-    orders: [],
-    status: 'available',
-    estimatedEarnings: 45.00,
-    tips: 0,
-    totalItems: 92,
-    totalWeight: 85,
-    stores: [mockStores[0], mockStores[1]],
-    route: {
-      stores: [mockStores[0].location, mockStores[1].location],
-      dropZone: {
-        latitude: 41.8198,
-        longitude: -71.4178,
-        address: 'College Hill Plaza',
-      },
-      totalDistance: 15.5,
-      estimatedTime: 75,
-      optimizedOrder: [0, 1],
-    },
-    dropZone: {
-      latitude: 41.8198,
-      longitude: -71.4178,
-      address: 'College Hill Plaza',
-    },
-    createdAt: '2026-01-31T18:10:00Z',
-  },
-  // ⚡ DEMO TRIGGER MISSION - starts as 'pending', becomes 'available' when honey order triggers
-  {
-    id: 'mission-demo',
-    orders: [], // Will be populated when triggered
-    status: 'pending', // Changes to 'available' when honey order activates
-    estimatedEarnings: 18.50,
-    tips: 0,
-    totalItems: 20,
-    totalWeight: 15,
-    stores: [mockStores[0]], // Costco
-    route: {
-      stores: [mockStores[0].location],
-      dropZone: {
-        latitude: 41.8236,
-        longitude: -71.4222,
-        address: 'East Side Community Hub',
-      },
-      totalDistance: 6.8,
-      estimatedTime: 35,
-      optimizedOrder: [0],
-    },
-    dropZone: {
-      latitude: 41.8236,
-      longitude: -71.4222,
-      address: 'East Side Community Hub',
-    },
-    createdAt: '2026-01-31T12:00:00Z',
-  },
-];
+// Default drop zone location for Providence, RI (used for geofencing)
+export const DEFAULT_DROP_ZONE = {
+  latitude: 41.8236,
+  longitude: -71.4222,
+  address: 'East Side Community Hub',
+  neighborhood: 'East Side',
+};
+
+// Start empty - missions are created when bulk orders hit minimum
+export const mockMissions: Mission[] = [];
 
 // ============================================
 // DISTRIBUTIONS
 // ============================================
 
-export const mockDistributions: Distribution[] = [
-  {
-    id: 'dist-1',
-    missionId: 'mission-1',
-    userId: 'user-1',
-    user: mockUsers[0],
-    items: [
-      { productId: 'prod-4', productName: 'Chicken Breast', quantity: 5, verified: false },
-    ],
-    pickupPin: '4829',
-    status: 'pending',
-    scheduledTime: '2026-01-30T19:30:00Z',
-  },
-  {
-    id: 'dist-2',
-    missionId: 'mission-1',
-    userId: 'user-2',
-    user: mockUsers[1],
-    items: [
-      { productId: 'prod-4', productName: 'Chicken Breast', quantity: 8, verified: false },
-    ],
-    pickupPin: '7156',
-    status: 'pending',
-    scheduledTime: '2026-01-30T19:45:00Z',
-  },
-];
+// Start empty - will be populated when orders are triggered and distributed
+export const mockDistributions: Distribution[] = [];
 
 // ============================================
 // WALLET & TRANSACTIONS
@@ -519,54 +336,18 @@ export const mockDistributions: Distribution[] = [
 
 export const mockWallet: Wallet = {
   userId: 'user-1',
-  balance: 124.50,
-  lockedFunds: 22.57,
-  totalSavings: 89.34,
+  balance: 150.00, // Fresh starting balance
+  lockedFunds: 0, // No locked funds initially
+  totalSavings: 0, // No savings yet
   discountCredits: 5.00,
   transactions: [
     {
       id: 'txn-1',
-      type: 'pledge_hold',
-      amount: -8.50,
-      description: 'Hold for Jasmine Rice (10 lbs)',
-      status: 'pending',
-      createdAt: '2026-01-31T09:15:00Z',
-      relatedOrderId: 'order-1',
-    },
-    {
-      id: 'txn-2',
-      type: 'pledge_hold',
-      amount: -14.07,
-      description: 'Hold for Organic Eggs (3 dozen)',
-      status: 'pending',
-      createdAt: '2026-01-31T10:30:00Z',
-      relatedOrderId: 'order-2',
-    },
-    {
-      id: 'txn-3',
-      type: 'pledge_capture',
-      amount: -14.75,
-      description: 'Chicken Breast (5 lbs) - Final charge',
+      type: 'deposit',
+      amount: 150.00,
+      description: 'Initial wallet funding',
       status: 'completed',
-      createdAt: '2026-01-30T20:30:00Z',
-      relatedOrderId: 'order-3',
-    },
-    {
-      id: 'txn-4',
-      type: 'pledge_release',
-      amount: 10.20,
-      description: 'Released hold - Chicken Breast savings',
-      status: 'completed',
-      createdAt: '2026-01-30T20:30:00Z',
-      relatedOrderId: 'order-3',
-    },
-    {
-      id: 'txn-5',
-      type: 'discount_applied',
-      amount: 2.50,
-      description: 'Community discount credit applied',
-      status: 'completed',
-      createdAt: '2026-01-28T14:00:00Z',
+      createdAt: '2026-01-31T08:00:00Z',
     },
   ],
 };
@@ -576,53 +357,53 @@ export const mockWallet: Wallet = {
 // ============================================
 
 export const mockTrendingItems: TrendingItem[] = [
-  // ⚡ DEMO - Half full (10/20) for testing add-to-existing flow
+  // Fresh products - all starting at 0 pledges for demo
   {
     product: mockProducts[0], // Local Honey (index 0)
-    pledgeCount: 4,
-    totalQuantity: 10,
-    percentToGoal: 50,
-    savings: 54.95,
+    pledgeCount: 0,
+    totalQuantity: 0,
+    percentToGoal: 0,
+    savings: 0,
     trending: 'up',
   },
   {
     product: mockProducts[1], // Jasmine Rice (index 1)
-    pledgeCount: 8,
-    totalQuantity: 42,
-    percentToGoal: 84,
-    savings: 55.00,
+    pledgeCount: 0,
+    totalQuantity: 0,
+    percentToGoal: 0,
+    savings: 0,
     trending: 'up',
   },
   {
     product: mockProducts[3], // Organic Eggs (index 3)
-    pledgeCount: 5,
-    totalQuantity: 12,
-    percentToGoal: 80,
-    savings: 37.50,
+    pledgeCount: 0,
+    totalQuantity: 0,
+    percentToGoal: 0,
+    savings: 0,
     trending: 'up',
   },
   {
     product: mockProducts[5], // All-Purpose Flour (index 5)
-    pledgeCount: 3,
-    totalQuantity: 28,
-    percentToGoal: 56,
-    savings: 13.16,
+    pledgeCount: 0,
+    totalQuantity: 0,
+    percentToGoal: 0,
+    savings: 0,
     trending: 'stable',
   },
   {
     product: mockProducts[7], // Paper Towels (index 7)
-    pledgeCount: 6,
-    totalQuantity: 24,
-    percentToGoal: 80,
-    savings: 26.40,
+    pledgeCount: 0,
+    totalQuantity: 0,
+    percentToGoal: 0,
+    savings: 0,
     trending: 'up',
   },
   {
     product: mockProducts[10], // Bananas (index 10)
-    pledgeCount: 4,
-    totalQuantity: 32,
-    percentToGoal: 80,
-    savings: 9.60,
+    pledgeCount: 0,
+    totalQuantity: 0,
+    percentToGoal: 0,
+    savings: 0,
     trending: 'down',
   },
 ];
@@ -638,3 +419,58 @@ export const mockNeighborhoodStats = {
   topCategories: ['grains', 'pantry', 'dairy'] as const,
   averageTrustScore: 4.6,
 };
+
+// ============================================
+// RESET ALL MOCK DATA (for testing)
+// ============================================
+
+/**
+ * Resets all in-memory mock data to initial state.
+ * Call this when you want a clean slate for testing.
+ */
+export function resetAllMockData(): void {
+  console.log('[MockData] 🔄 Resetting all mock data to initial state...');
+  
+  // Reset bulk orders to 0 quantity and collecting status
+  mockBulkOrders.forEach((order) => {
+    order.totalQuantity = 0;
+    order.status = 'collecting';
+    order.pledges = [];
+    order.executedAt = undefined;
+    order.runnerId = undefined;
+  });
+  
+  // Clear all pledges
+  mockPledges.length = 0;
+  
+  // Clear all missions
+  mockMissions.length = 0;
+  
+  // Clear all distributions
+  mockDistributions.length = 0;
+  
+  // Reset wallet
+  mockWallet.balance = 150.00;
+  mockWallet.lockedFunds = 0;
+  mockWallet.totalSavings = 0;
+  mockWallet.transactions = [
+    {
+      id: 'txn-1',
+      type: 'deposit',
+      amount: 150.00,
+      description: 'Initial wallet funding',
+      status: 'completed',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  
+  // Reset trending items to 0
+  mockTrendingItems.forEach((item) => {
+    item.pledgeCount = 0;
+    item.totalQuantity = 0;
+    item.percentToGoal = 0;
+    item.savings = 0;
+  });
+  
+  console.log('[MockData] ✅ All mock data reset complete!');
+}

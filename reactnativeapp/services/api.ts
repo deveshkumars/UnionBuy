@@ -7,6 +7,7 @@ import {
     Cart,
     CartItem,
     Distribution,
+    Location,
     Mission,
     Pledge,
     Product,
@@ -44,9 +45,11 @@ import {
     updateUserProfileInBackend,
     verifyDistributionPinInBackend,
 } from './backend';
+import { CustomerPoint, kMeans } from './kmeans';
 import {
     currentRunner,
     currentUser,
+    DEFAULT_DROP_ZONE,
     mockBulkOrders,
     mockDistributions,
     mockMissions,
@@ -59,6 +62,149 @@ import {
 
 // Simulate network delay (mock only)
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ============================================
+// MISSION STACKING (Zone Clustering)
+// ============================================
+
+/**
+ * A stack of missions in the same geographic zone
+ * Runners can accept the whole stack for efficiency
+ */
+export interface MissionStack {
+  id: string;
+  zoneName: string;
+  zoneCenter: Location;
+  zoneRadius: number; // in miles
+  missions: Mission[];
+  totalItems: number;
+  totalWeight: number;
+  totalEarnings: number;
+  totalStores: number;
+  estimatedTime: number;
+  customerCount: number;
+}
+
+/**
+ * Calculate haversine distance between two points (in miles)
+ */
+function haversineDistance(loc1: Location, loc2: Location): number {
+  const R = 3959; // Earth's radius in miles
+  const dLat = ((loc2.latitude - loc1.latitude) * Math.PI) / 180;
+  const dLon = ((loc2.longitude - loc1.longitude) * Math.PI) / 180;
+  const lat1 = (loc1.latitude * Math.PI) / 180;
+  const lat2 = (loc2.latitude * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+/**
+ * Cluster missions by drop zone proximity using K-means
+ * @param missions - Array of missions to cluster
+ * @param maxZoneRadius - Maximum radius in miles for a zone (default 1 mile)
+ * @returns Array of MissionStacks grouped by zone
+ */
+export function clusterMissionsByZone(
+  missions: Mission[],
+  maxZoneRadius: number = 1.0
+): MissionStack[] {
+  if (missions.length === 0) return [];
+
+  // Convert missions to customer points for clustering
+  const points: CustomerPoint[] = missions.map((m) => ({
+    location: m.dropZone,
+    weight: m.totalItems,
+  }));
+
+  // Determine optimal number of clusters
+  // Start with 1 and increase until all points are within maxZoneRadius
+  let optimalK = 1;
+  for (let k = 1; k <= Math.min(5, missions.length); k++) {
+    const result = kMeans(points, k, 50);
+    
+    // Check if all missions are within acceptable radius of their centroid
+    let allWithinRange = true;
+    for (let i = 0; i < missions.length; i++) {
+      const dist = haversineDistance(missions[i].dropZone, result.centroids[result.clusters[i]]);
+      if (dist > maxZoneRadius) {
+        allWithinRange = false;
+        break;
+      }
+    }
+    
+    if (allWithinRange) {
+      optimalK = k;
+      break;
+    }
+    optimalK = k;
+  }
+
+  // Run final clustering with optimal K
+  const result = kMeans(points, optimalK, 50);
+
+  // Group missions by cluster
+  const stacks: MissionStack[] = [];
+  for (let clusterIdx = 0; clusterIdx < result.centroids.length; clusterIdx++) {
+    const clusterMissions = missions.filter((_, i) => result.clusters[i] === clusterIdx);
+    
+    if (clusterMissions.length === 0) continue;
+
+    // Calculate max distance from centroid for zone radius
+    let maxDist = 0;
+    for (const m of clusterMissions) {
+      const dist = haversineDistance(m.dropZone, result.centroids[clusterIdx]);
+      maxDist = Math.max(maxDist, dist);
+    }
+
+    // Determine zone name from missions' neighborhoods
+    const neighborhoods = clusterMissions
+      .map((m) => (m.dropZone as any).neighborhood || 'Zone')
+      .filter((n, i, arr) => arr.indexOf(n) === i);
+    const zoneName = neighborhoods[0] || `Zone ${clusterIdx + 1}`;
+
+    // Calculate totals
+    const totalItems = clusterMissions.reduce((sum, m) => sum + m.totalItems, 0);
+    const totalWeight = clusterMissions.reduce((sum, m) => sum + (m.totalWeight || 0), 0);
+    const totalEarnings = clusterMissions.reduce((sum, m) => sum + m.estimatedEarnings, 0);
+    const estimatedTime = clusterMissions.reduce((sum, m) => sum + m.route.estimatedTime, 0);
+    
+    // Get unique stores
+    const storeIds = new Set<string>();
+    clusterMissions.forEach((m) => m.stores.forEach((s) => storeIds.add(s.id)));
+
+    stacks.push({
+      id: `stack-${clusterIdx}-${Date.now()}`,
+      zoneName,
+      zoneCenter: result.centroids[clusterIdx],
+      zoneRadius: Math.max(0.1, maxDist), // Minimum 0.1 mile radius for display
+      missions: clusterMissions,
+      totalItems,
+      totalWeight,
+      totalEarnings,
+      totalStores: storeIds.size,
+      estimatedTime,
+      customerCount: clusterMissions.length, // Each mission = 1 customer group
+    });
+  }
+
+  // Sort stacks by earnings (highest first)
+  stacks.sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+  return stacks;
+}
+
+/**
+ * Fetch available missions grouped by zone
+ */
+export async function fetchStackedMissions(): Promise<MissionStack[]> {
+  const missions = await fetchAvailableMissions();
+  return clusterMissionsByZone(missions);
+}
 
 // ============================================
 // PRODUCTS API
@@ -350,11 +496,8 @@ export async function createPledge(
     
     // 3. Create a new mission for this order
     const store = product.store;
-    const dropZone = bulkOrder.dropZone || {
-      latitude: store.location.latitude + 0.01,
-      longitude: store.location.longitude + 0.01,
-      address: 'Community Drop Zone',
-    };
+    // Use default Providence, RI drop zone for geofencing/clustering
+    const dropZone = bulkOrder.dropZone || DEFAULT_DROP_ZONE;
     
     const missionId = `mission-${Date.now()}`;
     const newMission: Mission = {
@@ -663,6 +806,34 @@ export async function updateMissionStatus(
   mission.status = status;
   if (status === 'completed') {
     mission.completedAt = new Date().toISOString();
+    
+    // Mark all related pledges as completed and update wallet
+    mission.orders.forEach((order) => {
+      // Mark all pledges for this order's product as completed
+      mockPledges.forEach((pledge) => {
+        if (pledge.productId === order.productId && pledge.status === 'active') {
+          pledge.status = 'completed';
+          pledge.completedAt = new Date().toISOString();
+          console.log('[updateMissionStatus] ✅ Pledge completed:', pledge.id);
+        }
+      });
+      
+      // Update the bulk order status to completed
+      const bulkOrder = mockBulkOrders.find((bo) => bo.id === order.id);
+      if (bulkOrder) {
+        bulkOrder.status = 'completed';
+        console.log('[updateMissionStatus] ✅ Bulk order completed:', bulkOrder.id);
+      }
+    });
+    
+    // Release locked funds to available balance in wallet
+    // In a real app, this would calculate actual charges vs. max hold
+    if (mockWallet.lockedAmount > 0) {
+      const refund = mockWallet.lockedAmount * 0.1; // Refund 10% as savings
+      mockWallet.availableBalance += refund;
+      mockWallet.lockedAmount = 0;
+      console.log('[updateMissionStatus] ✅ Wallet updated: +$' + refund.toFixed(2) + ' refunded');
+    }
   }
   
   return { success: true };

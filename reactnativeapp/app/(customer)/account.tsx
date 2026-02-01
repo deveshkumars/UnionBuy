@@ -26,6 +26,7 @@ import {
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import { useApp, useRole, useUser } from '@/context/AppContext';
 import { isBackendConfigured } from '@/lib/amplify';
+import { resetAllMockData } from '@/services/mockData';
 
 export default function AccountScreen() {
   const { user } = useApp();
@@ -296,6 +297,39 @@ export default function AccountScreen() {
             )}
           </MetroCard>
         )}
+
+        {/* Dev Tools */}
+        <MetroCard style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>DEV TOOLS</Text>
+          </View>
+          <Text style={styles.devToolsDesc}>
+            Reset all in-memory mock data to test fresh workflows
+          </Text>
+          <MetroButton
+            title="RESET ALL MOCK DATA"
+            variant="danger"
+            size="lg"
+            fullWidth
+            onPress={() => {
+              Alert.alert(
+                'Reset Mock Data',
+                'This will clear all pledges, missions, distributions, and reset bulk orders to 0. Continue?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Reset',
+                    style: 'destructive',
+                    onPress: () => {
+                      resetAllMockData();
+                      Alert.alert('Done', 'All mock data has been reset. Refresh screens to see changes.');
+                    },
+                  },
+                ]
+              );
+            }}
+          />
+        </MetroCard>
 
         {/* Version */}
         <Text style={styles.versionText}>METROPOLIS v1.0.0 • BUILD 2026.01.31</Text>
@@ -612,6 +646,12 @@ const styles = StyleSheet.create({
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.xs,
+  },
+  devToolsDesc: {
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.sm,
+    marginBottom: Spacing[3],
   },
   versionText: {
     color: MetroColors.text.muted,

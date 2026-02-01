@@ -34,91 +34,104 @@ interface DistributionItem {
 }
 
 export default function ScannerScreen() {
-  const { activeMission, setActiveMission } = useMission();
+  const { activeMission, setActiveMission, setDistributionsComplete } = useMission();
   const [verifying, setVerifying] = useState(false);
   const [selectedDistribution, setSelectedDistribution] = useState<string | null>(null);
   const [pinDigits, setPinDigits] = useState(['', '', '', '']);
   const [pinError, setPinError] = useState<string | null>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
-  // Mock distributions - 5 neighbors in the bulk order
-  const [distributions, setDistributions] = useState<DistributionItem[]>([
-    {
-      id: '1',
-      name: 'Maria Santos',
-      pickupPin: '4829',
-      items: [
-        { name: 'Chicken Breast', quantity: 5, unit: 'lbs' },
-        { name: 'Jasmine Rice', quantity: 10, unit: 'lbs' },
-      ],
-      status: 'pending',
-    },
-    {
-      id: '2',
-      name: 'James Chen',
-      pickupPin: '7156',
-      items: [
-        { name: 'Chicken Breast', quantity: 8, unit: 'lbs' },
-        { name: 'Jasmine Rice', quantity: 15, unit: 'lbs' },
-        { name: 'Olive Oil', quantity: 2, unit: 'bottles' },
-      ],
-      status: 'pending',
-    },
-    {
-      id: '3',
-      name: 'Sarah Williams',
-      pickupPin: '3042',
-      items: [
-        { name: 'Organic Eggs', quantity: 3, unit: 'dozen' },
-        { name: 'Paper Towels', quantity: 6, unit: 'rolls' },
-      ],
-      status: 'arrived',
-    },
-    {
-      id: '4',
-      name: 'David Park',
-      pickupPin: '9583',
-      items: [
-        { name: 'Chicken Breast', quantity: 12, unit: 'lbs' },
-        { name: 'Organic Eggs', quantity: 4, unit: 'dozen' },
-      ],
-      status: 'pending',
-    },
-    {
-      id: '5',
-      name: 'Lisa Thompson',
-      pickupPin: '6271',
-      items: [
-        { name: 'Jasmine Rice', quantity: 25, unit: 'lbs' },
-        { name: 'Paper Towels', quantity: 10, unit: 'rolls' },
-        { name: 'Olive Oil', quantity: 4, unit: 'bottles' },
-      ],
-      status: 'pending',
-    },
-  ]);
+  // Distributions will be loaded from missions - start empty and populate
+  const [distributions, setDistributions] = useState<DistributionItem[]>([]);
 
-  // Load real distributions if available
+  // Load real distributions from ALL stacked missions
   useEffect(() => {
     const loadDistributions = async () => {
       if (activeMission) {
         try {
-          const realDistributions = await fetchDistributions(activeMission.id);
-          if (realDistributions.length > 0) {
-            setDistributions(realDistributions.map(d => ({
-              id: d.id,
-              name: d.user.name,
-              pickupPin: d.pickupPin,
-              items: d.items.map(i => ({
-                name: i.productName,
-                quantity: i.quantity,
-                unit: 'units',
-              })),
-              status: d.status,
-            })));
+          // Get all mission IDs (including stacked ones)
+          const missionIds = activeMission.stackedMissionIds || [activeMission.id];
+          
+          // Fetch distributions from ALL missions in the stack
+          const allDistributions: any[] = [];
+          for (const missionId of missionIds) {
+            const missionDistributions = await fetchDistributions(missionId);
+            allDistributions.push(...missionDistributions);
+          }
+          
+          if (allDistributions.length > 0) {
+            // Group distributions by user (same customer may have items from multiple missions)
+            const distributionsByUser = new Map<string, DistributionItem>();
+            
+            for (const d of allDistributions) {
+              const userId = d.userId;
+              const existing = distributionsByUser.get(userId);
+              
+              if (existing) {
+                // Merge items into existing distribution for this user
+                const newItems = d.items.map((i: any) => ({
+                  name: i.productName,
+                  quantity: i.quantity,
+                  unit: 'units',
+                }));
+                existing.items.push(...newItems);
+              } else {
+                // Create new distribution entry for this user
+                distributionsByUser.set(userId, {
+                  id: d.id,
+                  name: d.user.name,
+                  pickupPin: d.pickupPin,
+                  items: d.items.map((i: any) => ({
+                    name: i.productName,
+                    quantity: i.quantity,
+                    unit: 'units',
+                  })),
+                  status: d.status,
+                });
+              }
+            }
+            
+            setDistributions(Array.from(distributionsByUser.values()));
+          } else {
+            // Fallback: create mock distribution with items from all orders in mission
+            const allItems: { name: string; quantity: number; unit: string }[] = [];
+            for (const order of activeMission.orders || []) {
+              if (order.product) {
+                allItems.push({
+                  name: order.product.name,
+                  quantity: order.totalQuantity || 0,
+                  unit: order.product.unit,
+                });
+              }
+            }
+            
+            // If no order items, show a generic placeholder
+            if (allItems.length === 0) {
+              allItems.push({ name: 'Order Items', quantity: activeMission.totalItems, unit: 'items' });
+            }
+            
+            setDistributions([{
+              id: 'demo-1',
+              name: 'You (Customer)',
+              pickupPin: '1234',
+              items: allItems,
+              status: 'pending',
+            }]);
           }
         } catch (e) {
-          console.log('Using mock distributions');
+          console.log('Using mock distributions, error:', e);
+          // Fallback mock distribution
+          setDistributions([{
+            id: 'demo-1',
+            name: 'You (Customer)',
+            pickupPin: '1234',
+            items: [{ name: 'Order Items', quantity: activeMission.totalItems, unit: 'items' }],
+            status: 'pending',
+          }]);
         }
+      } else {
+        // No active mission - show empty
+        setDistributions([]);
       }
     };
     loadDistributions();
@@ -174,9 +187,17 @@ export default function ScannerScreen() {
       const result = await verifyDistributionPin(distribution.id, enteredPin);
       
       // Update local state
-      setDistributions(distributions.map(d =>
-        d.id === selectedDistribution ? { ...d, status: 'verified' } : d
-      ));
+      const updatedDistributions = distributions.map(d =>
+        d.id === selectedDistribution ? { ...d, status: 'verified' as const } : d
+      );
+      setDistributions(updatedDistributions);
+      
+      // Check if all distributions are now verified or completed
+      const allVerified = updatedDistributions.every(d => d.status === 'verified' || d.status === 'completed');
+      if (allVerified) {
+        setDistributionsComplete(true);
+      }
+      
       setVerifying(false);
       setSelectedDistribution(null);
       setPinDigits(['', '', '', '']);
@@ -205,9 +226,19 @@ export default function ScannerScreen() {
   const handleCompleteAll = async () => {
     if (!activeMission) return;
     
-    // Update mission status to completed
-    const result = await updateMissionStatus(activeMission.id, 'completed');
-    if (result.success) {
+    // Get all mission IDs (including stacked ones)
+    const missionIds = activeMission.stackedMissionIds || [activeMission.id];
+    
+    // Complete ALL missions in the stack
+    let allSuccess = true;
+    for (const missionId of missionIds) {
+      const result = await updateMissionStatus(missionId, 'completed');
+      if (!result.success) {
+        allSuccess = false;
+      }
+    }
+    
+    if (allSuccess) {
       // Update local state
       setActiveMission({ ...activeMission, status: 'completed', completedAt: new Date().toISOString() });
       Alert.alert(

@@ -1,6 +1,7 @@
 /**
  * Job Board Screen - Runner Home
  * Available missions with earnings, cargo, and accept/reject actions
+ * Now shows STACKED missions grouped by zone for efficiency
  */
 
 import { useRouter } from 'expo-router';
@@ -11,6 +12,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,16 +24,17 @@ import {
     PriceDisplay,
     StatusBadge,
 } from '@/components/metro';
-import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { Fonts, FontSizes, MetroColors, Spacing } from '@/constants/theme';
 import { useApp, useMission } from '@/context/AppContext';
-import { acceptMission, fetchAvailableMissions } from '@/services/api';
+import { acceptMission, fetchStackedMissions, MissionStack } from '@/services/api';
 import { Mission } from '@/types';
 
 export default function JobBoardScreen() {
   const router = useRouter();
   const { user } = useApp();
-  const { activeMission, setActiveMission } = useMission();
-  const [availableMissions, setAvailableMissions] = useState<Mission[]>([]);
+  const { activeMission, setActiveMission, setDistributionsComplete } = useMission();
+  const [missionStacks, setMissionStacks] = useState<MissionStack[]>([]);
+  const [expandedStacks, setExpandedStacks] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
 
@@ -40,8 +43,8 @@ export default function JobBoardScreen() {
   }, []);
 
   const loadMissions = async () => {
-    const missions = await fetchAvailableMissions();
-    setAvailableMissions(missions);
+    const stacks = await fetchStackedMissions();
+    setMissionStacks(stacks);
   };
 
   const onRefresh = async () => {
@@ -50,28 +53,69 @@ export default function JobBoardScreen() {
     setRefreshing(false);
   };
 
-  const handleAcceptMission = async (mission: Mission) => {
-    console.log('[JobBoard] Accept button clicked for mission:', mission.id);
-    
+  const toggleStackExpand = (stackId: string) => {
+    setExpandedStacks((prev) => {
+      const next = new Set(prev);
+      if (next.has(stackId)) {
+        next.delete(stackId);
+      } else {
+        next.add(stackId);
+      }
+      return next;
+    });
+  };
+
+  const handleAcceptStack = async (stack: MissionStack) => {
+    if (stack.missions.length === 0) return;
+
     Alert.alert(
-      'Accept Mission',
-      `Accept this mission for estimated $${mission.estimatedEarnings.toFixed(2)}?`,
+      'Accept Zone Stack',
+      `Accept all ${stack.missions.length} orders in ${stack.zoneName} for estimated $${stack.totalEarnings.toFixed(2)}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Accept',
+          text: 'Accept All',
           onPress: async () => {
-            console.log('[JobBoard] Confirming accept for mission:', mission.id, 'runner:', user.id);
-            setAccepting(mission.id);
-            const result = await acceptMission(mission.id, user.id);
-            setAccepting(null);
+            setAccepting(stack.id);
             
-            console.log('[JobBoard] Accept result:', result);
-            if (result.success && result.mission) {
-              setActiveMission(result.mission);
-              // Remove from available list
-              setAvailableMissions(prev => prev.filter(m => m.id !== mission.id));
-              Alert.alert('Mission Accepted', 'Navigate to the Mission tab to begin.');
+            // Accept ALL missions in the stack
+            const acceptedMissionIds: string[] = [];
+            let firstAcceptedMission: Mission | null = null;
+            const allOrders: any[] = [];
+            
+            for (const mission of stack.missions) {
+              const result = await acceptMission(mission.id, user.id);
+              if (result.success && result.mission) {
+                acceptedMissionIds.push(mission.id);
+                // Collect all orders from all missions
+                if (result.mission.orders) {
+                  allOrders.push(...result.mission.orders);
+                }
+                if (!firstAcceptedMission) {
+                  firstAcceptedMission = result.mission;
+                }
+              }
+            }
+            
+            setAccepting(null);
+
+            if (firstAcceptedMission && acceptedMissionIds.length > 0) {
+              // Create a combined stacked mission with ALL mission IDs and ALL orders
+              const stackedMission: Mission = {
+                ...firstAcceptedMission,
+                totalItems: stack.totalItems,
+                totalWeight: stack.totalWeight,
+                estimatedEarnings: stack.totalEarnings,
+                // Combine all orders from all missions in the stack
+                orders: allOrders,
+                // Include ALL mission IDs so scanner can load all distributions
+                stackedMissionIds: acceptedMissionIds,
+              };
+              setActiveMission(stackedMission);
+              setDistributionsComplete(false);
+              // Remove entire stack from available
+              setMissionStacks((prev) => prev.filter((s) => s.id !== stack.id));
+              Alert.alert('Stack Accepted', `You've accepted ${acceptedMissionIds.length} orders in ${stack.zoneName}. Navigate to Mission tab to begin.`);
               router.push('/(runner)/mission');
             } else {
               Alert.alert('Error', result.error || 'Failed to accept mission');
@@ -82,23 +126,24 @@ export default function JobBoardScreen() {
     );
   };
 
-  const handleDeclineMission = (mission: Mission) => {
+  const handleDeclineStack = (stack: MissionStack) => {
     Alert.alert(
-      'Decline Mission',
-      'Are you sure you want to decline this mission?',
+      'Decline Zone Stack',
+      `Decline all ${stack.missions.length} orders in ${stack.zoneName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Decline',
           style: 'destructive',
           onPress: () => {
-            // Remove mission from available list
-            setAvailableMissions(availableMissions.filter(m => m.id !== mission.id));
+            setMissionStacks((prev) => prev.filter((s) => s.id !== stack.id));
           },
         },
       ]
     );
   };
+
+  const totalMissions = missionStacks.reduce((sum, s) => sum + s.missions.length, 0);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -165,14 +210,14 @@ export default function JobBoardScreen() {
 
         {/* Section Header */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>AVAILABLE ORDERS</Text>
+          <Text style={styles.sectionTitle}>AVAILABLE STACKS</Text>
           <Text style={styles.sectionCount}>
-            {availableMissions.length} available
+            {missionStacks.length} zones • {totalMissions} orders
           </Text>
         </View>
 
-        {/* Mission Cards */}
-        {availableMissions.length === 0 ? (
+        {/* Stacked Mission Cards */}
+        {missionStacks.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>▣</Text>
             <Text style={styles.emptyText}>NO ORDERS AVAILABLE</Text>
@@ -181,13 +226,15 @@ export default function JobBoardScreen() {
             </Text>
           </View>
         ) : (
-          availableMissions.map((mission) => (
-            <MissionCard
-              key={mission.id}
-              mission={mission}
-              onAccept={() => handleAcceptMission(mission)}
-              onDecline={() => handleDeclineMission(mission)}
-              accepting={accepting === mission.id}
+          missionStacks.map((stack) => (
+            <StackCard
+              key={stack.id}
+              stack={stack}
+              expanded={expandedStacks.has(stack.id)}
+              onToggleExpand={() => toggleStackExpand(stack.id)}
+              onAccept={() => handleAcceptStack(stack)}
+              onDecline={() => handleDeclineStack(stack)}
+              accepting={accepting === stack.id}
               disabled={!!activeMission}
             />
           ))
@@ -197,109 +244,132 @@ export default function JobBoardScreen() {
   );
 }
 
-interface MissionCardProps {
-  mission: Mission;
+// ============================================
+// STACK CARD COMPONENT
+// ============================================
+
+interface StackCardProps {
+  stack: MissionStack;
+  expanded: boolean;
+  onToggleExpand: () => void;
   onAccept: () => void;
   onDecline: () => void;
   accepting: boolean;
   disabled: boolean;
 }
 
-function MissionCard({ mission, onAccept, onDecline, accepting, disabled }: MissionCardProps) {
-  const storeNames = mission.stores.map((s) => s.name).join(' -> ');
+function StackCard({
+  stack,
+  expanded,
+  onToggleExpand,
+  onAccept,
+  onDecline,
+  accepting,
+  disabled,
+}: StackCardProps) {
+  // Get unique store names
+  const storeNames = [...new Set(stack.missions.flatMap((m) => m.stores.map((s) => s.name)))];
 
   return (
-    <MetroCard variant="active" style={styles.missionCard}>
-      <View style={styles.missionHeader}>
-        <View style={styles.missionHeaderLeft}>
-          <Text style={styles.missionTitle}>
-            ORDER #{mission.id.slice(-4).toUpperCase()}
-          </Text>
-          <Text style={styles.missionStores} numberOfLines={1} ellipsizeMode="tail">
-            {storeNames}
-          </Text>
-        </View>
-        <View style={styles.earningsContainer}>
-          <Text style={styles.earningsLabel}>ESTIMATED</Text>
-          <PriceDisplay
-            amount={mission.estimatedEarnings}
-            size="xl"
-            variant="success"
-          />
-        </View>
-      </View>
-
-      <View style={styles.missionStats}>
-        <MissionStat
-          label="ITEMS"
-          value={mission.totalItems}
-          icon="[]"
-        />
-        <MissionStat
-          label="WEIGHT"
-          value={`${mission.totalWeight || '~'}lbs`}
-          icon="◈"
-        />
-        <MissionStat
-          label="DISTANCE"
-          value={`${mission.route.totalDistance}mi`}
-          icon="O"
-        />
-        <MissionStat
-          label="TIME"
-          value={`~${mission.route.estimatedTime}min`}
-          icon="◉"
-        />
-      </View>
-
-      <View style={styles.missionRoute}>
-        <Text style={styles.routeLabel}>ROUTE</Text>
-        <View style={styles.routeSteps}>
-          {mission.stores.map((store, index) => (
-            <View key={store.id} style={styles.routeStep}>
-              <View style={styles.routeStepDot} />
-              <Text style={styles.routeStepText}>{store.name}</Text>
-              {index < mission.stores.length - 1 && (
-                <Text style={styles.routeArrow}>{'\u2192'}</Text>
-              )}
+    <MetroCard variant="active" style={styles.stackCard}>
+      {/* Stack Header - Zone Info */}
+      <TouchableOpacity onPress={onToggleExpand} activeOpacity={0.7}>
+        <View style={styles.stackHeader}>
+          <View style={styles.stackZoneInfo}>
+            <View style={styles.zoneBadge}>
+              <Text style={styles.zoneBadgeText}>{stack.missions.length}</Text>
             </View>
-          ))}
-          <View style={styles.routeStep}>
-            <View style={[styles.routeStepDot, styles.routeStepDotFinal]} />
-            <Text style={styles.routeStepText}>Drop Zone</Text>
+            <View style={styles.zoneDetails}>
+              <Text style={styles.zoneName}>{stack.zoneName.toUpperCase()}</Text>
+              <Text style={styles.zoneRadius}>
+                {stack.zoneRadius < 0.5 ? 'TIGHT CLUSTER' : `~${stack.zoneRadius.toFixed(1)}mi radius`}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.earningsContainer}>
+            <Text style={styles.earningsLabel}>TOTAL EARNINGS</Text>
+            <PriceDisplay
+              amount={stack.totalEarnings}
+              size="xl"
+              variant="success"
+            />
           </View>
         </View>
+
+        {/* Stack Stats */}
+        <View style={styles.stackStats}>
+          <StackStat label="ORDERS" value={stack.missions.length} icon="◫" />
+          <StackStat label="ITEMS" value={stack.totalItems} icon="[]" />
+          <StackStat label="WEIGHT" value={`${stack.totalWeight}lbs`} icon="◈" />
+          <StackStat label="TIME" value={`~${stack.estimatedTime}min`} icon="◉" />
+        </View>
+      </TouchableOpacity>
+
+      {/* Stores Route */}
+      <View style={styles.storesSection}>
+        <Text style={styles.storesLabel}>STORES</Text>
+        <View style={styles.storesList}>
+          {storeNames.map((name, idx) => (
+            <View key={name} style={styles.storeChip}>
+              <View style={styles.storeChipDot} />
+              <Text style={styles.storeChipText}>{name}</Text>
+            </View>
+          ))}
+        </View>
       </View>
 
-      <View style={styles.missionFooter}>
-        <View style={styles.missionMeta}>
-          <Text style={styles.metaText} numberOfLines={1}>
-            Created {new Date(mission.createdAt).toLocaleTimeString()}
-          </Text>
+      {/* Expanded: Individual Orders */}
+      {expanded && (
+        <View style={styles.expandedSection}>
+          <Text style={styles.expandedTitle}>ORDERS IN THIS STACK</Text>
+          {stack.missions.map((mission, idx) => (
+            <View key={mission.id} style={styles.orderRow}>
+              <View style={styles.orderDot}>
+                <Text style={styles.orderDotText}>{idx + 1}</Text>
+              </View>
+              <View style={styles.orderInfo}>
+                <Text style={styles.orderAddress} numberOfLines={1}>
+                  {mission.dropZone.address || 'Drop Zone'}
+                </Text>
+                <Text style={styles.orderMeta}>
+                  {mission.totalItems} items • ${mission.estimatedEarnings.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          ))}
         </View>
-        <View style={styles.missionActions}>
-          <MetroButton
-            title="DECLINE"
-            variant="ghost"
-            size="sm"
-            onPress={onDecline}
-            disabled={disabled}
-          />
-          <MetroButton
-            title={accepting ? 'ACCEPTING...' : 'ACCEPT'}
-            variant="primary"
-            size="md"
-            onPress={onAccept}
-            loading={accepting}
-            disabled={disabled}
-          />
-        </View>
+      )}
+
+      {/* Expand/Collapse Indicator */}
+      <TouchableOpacity onPress={onToggleExpand} style={styles.expandToggle}>
+        <Text style={styles.expandToggleText}>
+          {expanded ? '▲ COLLAPSE' : '▼ VIEW INDIVIDUAL ORDERS'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Action Buttons */}
+      <View style={styles.stackActions}>
+        <MetroButton
+          title="DECLINE"
+          variant="ghost"
+          size="sm"
+          onPress={onDecline}
+          disabled={disabled}
+        />
+        <MetroButton
+          title={accepting ? 'ACCEPTING...' : `ACCEPT STACK (${stack.missions.length})`}
+          variant="primary"
+          size="md"
+          onPress={onAccept}
+          loading={accepting}
+          disabled={disabled}
+        />
       </View>
     </MetroCard>
   );
 }
 
-function MissionStat({
+function StackStat({
   label,
   value,
   icon,
@@ -423,38 +493,59 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     textAlign: 'center',
   },
-  missionCard: {
+  // Stack Card Styles
+  stackCard: {
     marginBottom: Spacing[4],
   },
-  missionHeader: {
+  stackHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: Spacing[3],
   },
-  missionHeaderLeft: {
+  stackZoneInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    flexShrink: 1,
-    marginRight: Spacing[2],
+    gap: Spacing[3],
   },
-  missionTitle: {
+  zoneBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: MetroColors.accent.cyan + '30',
+    borderWidth: 2,
+    borderColor: MetroColors.accent.cyan,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoneBadgeText: {
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
+  },
+  zoneDetails: {
+    flex: 1,
+  },
+  zoneName: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.xl,
     fontWeight: '800',
     letterSpacing: 1,
-    marginBottom: 4,
   },
-  missionStores: {
+  zoneRadius: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    fontWeight: '500',
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    marginTop: 2,
   },
   earningsContainer: {
     alignItems: 'flex-end',
     flexShrink: 0,
-    minWidth: 90,
+    minWidth: 100,
   },
   earningsLabel: {
     color: MetroColors.text.muted,
@@ -464,7 +555,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 2,
   },
-  missionStats: {
+  stackStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: Spacing[3],
@@ -494,72 +585,118 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
   },
-  missionRoute: {
+  storesSection: {
     marginBottom: Spacing[3],
   },
-  routeLabel: {
+  storesLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: '600',
     letterSpacing: 1,
     marginBottom: Spacing[2],
   },
-  routeSteps: {
+  storesList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'center',
     gap: Spacing[2],
   },
-  routeStep: {
+  storeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing[1],
+    backgroundColor: MetroColors.background.tertiary,
+    paddingHorizontal: Spacing[3],
+    paddingVertical: Spacing[2],
+    borderRadius: 4,
+    gap: Spacing[2],
   },
-  routeStepDot: {
+  storeChipDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: MetroColors.accent.cyan,
   },
-  routeStepDotFinal: {
-    backgroundColor: MetroColors.accent.green,
-  },
-  routeStepText: {
+  storeChipText: {
     color: MetroColors.text.secondary,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+  },
+  expandedSection: {
+    backgroundColor: MetroColors.background.secondary,
+    borderRadius: 4,
+    padding: Spacing[3],
+    marginBottom: Spacing[3],
+    borderWidth: 1,
+    borderColor: MetroColors.border.muted,
+  },
+  expandedTitle: {
+    color: MetroColors.text.muted,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: Spacing[3],
+  },
+  orderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+    marginBottom: Spacing[2],
+    paddingBottom: Spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: MetroColors.border.muted + '50',
+  },
+  orderDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: MetroColors.accent.green + '30',
+    borderWidth: 1,
+    borderColor: MetroColors.accent.green,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orderDotText: {
+    color: MetroColors.accent.green,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+  },
+  orderInfo: {
+    flex: 1,
+  },
+  orderAddress: {
+    color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.md,
     fontWeight: '600',
   },
-  routeArrow: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    marginLeft: Spacing[1],
-  },
-  missionFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: Spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: MetroColors.border.muted,
-    flexWrap: 'wrap',
-    gap: Spacing[2],
-  },
-  missionMeta: {
-    flexShrink: 1,
-    minWidth: 80,
-  },
-  metaText: {
+  orderMeta: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
     fontSize: FontSizes.sm,
     fontWeight: '500',
+    marginTop: 2,
   },
-  missionActions: {
+  expandToggle: {
+    alignItems: 'center',
+    paddingVertical: Spacing[2],
+    marginBottom: Spacing[3],
+  },
+  expandToggleText: {
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  stackActions: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: Spacing[2],
-    flexShrink: 0,
+    paddingTop: Spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: MetroColors.border.muted,
   },
 });

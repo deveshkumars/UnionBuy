@@ -20,6 +20,7 @@ interface AppState {
   cart: CartItem[];
   pledges: Pledge[];
   activeMission: Mission | null;
+  distributionsComplete: boolean;
   isLoading: boolean;
   isAuthenticated: boolean;
   authInitialized: boolean;
@@ -37,6 +38,7 @@ type AppAction =
   | { type: 'ADD_PLEDGE'; payload: Pledge }
   | { type: 'UPDATE_PLEDGE'; payload: Pledge }
   | { type: 'SET_ACTIVE_MISSION'; payload: Mission | null }
+  | { type: 'SET_DISTRIBUTIONS_COMPLETE'; payload: boolean }
   | { type: 'SET_LOADING'; payload: boolean };
 
 // ============================================
@@ -49,6 +51,7 @@ const initialState: AppState = {
   cart: [],
   pledges: [],
   activeMission: null,
+  distributionsComplete: false,
   isLoading: false,
   isAuthenticated: false,
   authInitialized: false,
@@ -156,6 +159,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_ACTIVE_MISSION':
       return { ...state, activeMission: action.payload };
 
+    case 'SET_DISTRIBUTIONS_COMPLETE':
+      return { ...state, distributionsComplete: action.payload };
+
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
 
@@ -191,6 +197,7 @@ interface AppContextValue extends AppState {
   
   // Mission actions
   setActiveMission: (mission: Mission | null) => void;
+  setDistributionsComplete: (complete: boolean) => void;
   
   // Loading
   setLoading: (loading: boolean) => void;
@@ -328,6 +335,10 @@ export function AppProvider({ children }: AppProviderProps) {
     dispatch({ type: 'SET_ACTIVE_MISSION', payload: mission });
   }, []);
 
+  const setDistributionsComplete = useCallback((complete: boolean) => {
+    dispatch({ type: 'SET_DISTRIBUTIONS_COMPLETE', payload: complete });
+  }, []);
+
   // Loading
   const setLoading = useCallback((loading: boolean) => {
     dispatch({ type: 'SET_LOADING', payload: loading });
@@ -348,6 +359,7 @@ export function AppProvider({ children }: AppProviderProps) {
     addPledge,
     updatePledge,
     setActiveMission,
+    setDistributionsComplete,
     setLoading,
   };
 
@@ -388,6 +400,6 @@ export function usePledges() {
 }
 
 export function useMission() {
-  const { activeMission, setActiveMission } = useApp();
-  return { activeMission, setActiveMission };
+  const { activeMission, setActiveMission, distributionsComplete, setDistributionsComplete } = useApp();
+  return { activeMission, setActiveMission, distributionsComplete, setDistributionsComplete };
 }

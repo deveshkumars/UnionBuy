@@ -85,7 +85,7 @@ const demoMission = {
 
 export default function MissionScreen() {
   const router = useRouter();
-  const { activeMission, setActiveMission } = useMission();
+  const { activeMission, setActiveMission, distributionsComplete } = useMission();
   const [updating, setUpdating] = useState(false);
 
   // If no active mission, show empty state (user needs to accept a mission first)
@@ -115,8 +115,22 @@ export default function MissionScreen() {
   const currentStatusIndex = statusFlow.indexOf(displayMission.status);
   const nextStatus = statusFlow[currentStatusIndex + 1];
 
+  // Check if we're in distributing status and all items haven't been distributed yet
+  const isDistributingPhase = displayMission.status === 'distributing';
+  const canCompleteDistribution = !isDistributingPhase || distributionsComplete;
+
   const handleAdvanceStatus = async () => {
     if (!nextStatus) return;
+    
+    // Block completing distribution if not all pins are verified
+    if (isDistributingPhase && !distributionsComplete) {
+      Alert.alert(
+        'Cannot Complete Yet',
+        'Please verify all customer PINs in the Scanner tab before completing distribution.',
+        [{ text: 'Go to Scanner', onPress: () => router.push('/(runner)/scanner') }]
+      );
+      return;
+    }
 
     Alert.alert(
       'Update Status',
@@ -235,20 +249,28 @@ export default function MissionScreen() {
       <View style={styles.statsRow}>
         <StatBox label="ITEMS" value={displayMission.totalItems} />
         <StatBox label="STORES" value={displayMission.stores.length} />
-        <StatBox label="NEIGHBORS" value={5} />
+        <StatBox label="NEIGHBORS" value={1} />
       </View>
 
       {/* Action Button */}
       <View style={styles.actionContainer}>
         {nextStatus ? (
-          <MetroButton
-            title={statusActions[displayMission.status]}
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={updating}
-            onPress={handleAdvanceStatus}
-          />
+          <>
+            <MetroButton
+              title={statusActions[displayMission.status]}
+              variant={isDistributingPhase && !distributionsComplete ? 'secondary' : 'primary'}
+              size="lg"
+              fullWidth
+              loading={updating}
+              disabled={isDistributingPhase && !distributionsComplete}
+              onPress={handleAdvanceStatus}
+            />
+            {isDistributingPhase && !distributionsComplete && (
+              <Text style={styles.lockWarning}>
+                Verify all customer PINs in Scanner tab first
+              </Text>
+            )}
+          </>
         ) : (
           <View style={styles.completedContainer}>
             {/* Earnings Summary */}
@@ -519,6 +541,14 @@ const styles = StyleSheet.create({
   actionContainer: {
     padding: Spacing[4],
     paddingBottom: Spacing[6],
+  },
+  lockWarning: {
+    color: MetroColors.accent.yellow,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.sm,
+    textAlign: 'center',
+    marginTop: Spacing[2],
+    letterSpacing: 0.5,
   },
   completedContainer: {
     gap: Spacing[4],
