@@ -3,35 +3,39 @@
  * Shows locked funds, active orders, and rollover items
  */
 
-import React, { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  MetroCard,
-  MetroButton,
-  PriceDisplay,
-  ProgressBar,
-  OrderStatusBadge,
+    MetroButton,
+    MetroCard,
+    OrderStatusBadge,
+    PriceDisplay,
+    ProgressBar,
+    StatusBadge,
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
-import { usePledges, useApp } from '@/context/AppContext';
-import { fetchUserPledges, cancelPledge } from '@/services/api';
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
+import { useApp, usePledges } from '@/context/AppContext';
+import { cancelPledge, fetchBulkOrderForProductAnyStatus, fetchUserPledges, repledgePledge } from '@/services/api';
 import { Pledge } from '@/types';
 
 export default function PledgesScreen() {
+  const router = useRouter();
   const { user } = useApp();
   const { pledges, setPledges, updatePledge } = usePledges();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [orderProgress, setOrderProgress] = useState<Record<string, { total: number; target: number; status?: string }>>({});
 
   useEffect(() => {
     loadPledges();
@@ -40,6 +44,26 @@ export default function PledgesScreen() {
   const loadPledges = async () => {
     const userPledges = await fetchUserPledges(user.id);
     setPledges(userPledges);
+
+    const productIds = Array.from(new Set(userPledges.map((p) => p.productId)));
+    const progressEntries = await Promise.all(
+      productIds.map(async (id) => {
+        // Use fetchBulkOrderForProductAnyStatus to get order progress even after it's triggered
+        const order = await fetchBulkOrderForProductAnyStatus(id);
+        if (order) {
+          return [id, { total: order.totalQuantity, target: order.targetQuantity, status: order.status }];
+        }
+        return null;
+      })
+    );
+    const map: Record<string, { total: number; target: number; status?: string }> = {};
+    progressEntries.forEach((entry) => {
+      if (entry) {
+        const [id, value] = entry;
+        map[id] = value as { total: number; target: number; status?: string };
+      }
+    });
+    setOrderProgress(map);
   };
 
   const onRefresh = async () => {
@@ -49,6 +73,13 @@ export default function PledgesScreen() {
   };
 
   const handleCancelPledge = async (pledge: Pledge) => {
+    // Check if order is activated - don't allow cancel
+    const progress = orderProgress[pledge.productId];
+    if (progress?.status && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(progress.status)) {
+      Alert.alert('Cannot Cancel', 'This order has been activated and is in progress. Cancellation is no longer available.');
+      return;
+    }
+    
     Alert.alert(
       'Cancel Pledge',
       `Are you sure you want to cancel your pledge for ${pledge.product.name}? Your funds will be released.`,
@@ -58,11 +89,100 @@ export default function PledgesScreen() {
           text: 'Cancel Pledge',
           style: 'destructive',
           onPress: async () => {
+            console.log('[Pledges] Cancelling pledge:', pledge.id);
             const result = await cancelPledge(pledge.id);
+            console.log('[Pledges] Cancel result:', result);
             if (result.success) {
+              console.log('[Pledges] Updating local state...');
               updatePledge({ ...pledge, status: 'cancelled' });
+              // Reload to reflect changes
+              await loadPledges();
+              Alert.alert('Success', 'Pledge cancelled successfully!');
             } else {
               Alert.alert('Error', result.error || 'Failed to cancel pledge');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRepledge = async (pledge: Pledge) => {
+    Alert.alert(
+      'Re-pledge Item',
+      `Re-pledge ${pledge.quantity} ${pledge.product.unit} of ${pledge.product.name} to today's batch?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Re-pledge',
+          onPress: async () => {
+            console.log('[Pledges] Re-pledging:', pledge.id);
+            const result = await repledgePledge(pledge.id, user.id);
+            if (result.success && result.pledge) {
+              // Reload pledges to show updated state
+              await loadPledges();
+              Alert.alert('Success', `Re-pledged ${pledge.product.name} to today's batch!`);
+            } else {
+              Alert.alert('Error', result.error || 'Failed to re-pledge');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Get pledges that can be cleared (active status but order not yet activated)
+  const getClearablePledges = () => {
+    return pledges.filter((p) => {
+      // Must be in an active status
+      if (!['pending', 'locked'].includes(p.status)) return false;
+      // Check if order is activated - can't clear those
+      const progress = orderProgress[p.productId];
+      if (progress?.status && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(progress.status)) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  const handleClearAllPledges = async () => {
+    const clearable = getClearablePledges();
+    
+    if (clearable.length === 0) {
+      Alert.alert('No Pledges to Clear', 'All your pledges are either already completed, cancelled, or have hit bulk and are being processed.');
+      return;
+    }
+
+    Alert.alert(
+      'Clear All Pledges',
+      `Are you sure you want to cancel ${clearable.length} pledge${clearable.length > 1 ? 's' : ''}? Your funds will be released.`,
+      [
+        { text: 'Keep Pledges', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            console.log('[Pledges] Clearing all pledges:', clearable.length);
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const pledge of clearable) {
+              const result = await cancelPledge(pledge.id);
+              if (result.success) {
+                successCount++;
+              } else {
+                failCount++;
+                console.log('[Pledges] Failed to cancel:', pledge.id, result.error);
+              }
+            }
+
+            // Reload to reflect changes
+            await loadPledges();
+
+            if (failCount === 0) {
+              Alert.alert('Success', `Cleared ${successCount} pledge${successCount > 1 ? 's' : ''} successfully!`);
+            } else {
+              Alert.alert('Partial Success', `Cleared ${successCount} pledge${successCount > 1 ? 's' : ''}, but ${failCount} failed to cancel.`);
             }
           },
         },
@@ -75,6 +195,7 @@ export default function PledgesScreen() {
     if (filter === 'completed') return ['completed', 'cancelled'].includes(p.status);
     return true;
   });
+  const rolloverPledges = pledges.filter((p) => p.status === 'rollover');
 
   const activePledges = pledges.filter((p) =>
     ['pending', 'locked', 'active'].includes(p.status)
@@ -86,8 +207,13 @@ export default function PledgesScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerLabel}>YOUR</Text>
-        <Text style={styles.headerTitle}>PLEDGES</Text>
+        <View>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Pledges</Text>
+        </View>
+        <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+          <Text style={styles.utilityIcon}>CRT</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Summary Card */}
@@ -108,6 +234,18 @@ export default function PledgesScreen() {
             Potential savings: ${(totalMaxHold - totalLocked).toFixed(2)}
           </Text>
         </View>
+        <Text style={styles.legendText}>
+          Completed = bulk executed (not cancellable). Active = collecting (cancellable) until cutoff.
+        </Text>
+        {getClearablePledges().length > 0 && (
+          <MetroButton
+            title={`CLEAR ALL (${getClearablePledges().length})`}
+            variant="danger"
+            size="sm"
+            onPress={handleClearAllPledges}
+            style={styles.clearAllButton}
+          />
+        )}
       </MetroCard>
 
       {/* Filter Tabs */}
@@ -147,9 +285,33 @@ export default function PledgesScreen() {
           />
         }
       >
+        {rolloverPledges.length > 0 && (
+          <View style={styles.rolloverSection}>
+            <Text style={styles.rolloverTitle}>ROLLOVER TO TODAY</Text>
+            {rolloverPledges.map((pledge) => (
+              <MetroCard key={pledge.id} style={styles.rolloverCard}>
+                <View style={styles.rolloverHeader}>
+                  <Text style={styles.rolloverName}>{pledge.product.name}</Text>
+                  <StatusBadge label="ROLLED" variant="warning" size="sm" />
+                </View>
+                <Text style={styles.rolloverMeta}>
+                  {pledge.quantity} {pledge.product.unit} • Needed {pledge.product.bulkMinimum}
+                </Text>
+                <MetroButton
+                  title="Re-pledge"
+                  variant="primary"
+                  size="sm"
+                  onPress={() => handleRepledge(pledge)}
+                  style={styles.rolloverButton}
+                />
+              </MetroCard>
+            ))}
+          </View>
+        )}
+
         {filteredPledges.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>◇</Text>
+            <Text style={styles.emptyIcon}>[]</Text>
             <Text style={styles.emptyText}>NO PLEDGES</Text>
             <Text style={styles.emptySubtext}>
               Join a bulk buy from the Market to see your pledges here
@@ -160,6 +322,7 @@ export default function PledgesScreen() {
             <PledgeCard
               key={pledge.id}
               pledge={pledge}
+              progress={orderProgress[pledge.productId]}
               onCancel={() => handleCancelPledge(pledge)}
             />
           ))
@@ -171,105 +334,215 @@ export default function PledgesScreen() {
 
 interface PledgeCardProps {
   pledge: Pledge;
+  progress?: { total: number; target: number; status?: string };
   onCancel: () => void;
 }
 
-function PledgeCard({ pledge, onCancel }: PledgeCardProps) {
+// Helper to generate batch info for display
+interface BatchInfo {
+  batchNumber: number;
+  totalBatches: number;
+  batchTotal: number;
+  batchTarget: number;
+  isFilled: boolean;
+}
+
+function getBatches(total: number, target: number): BatchInfo[] {
+  if (target <= 0) return [{ batchNumber: 1, totalBatches: 1, batchTotal: total, batchTarget: target, isFilled: false }];
+  
+  const completeBatches = Math.floor(total / target);
+  const remainder = total % target;
+  const batches: BatchInfo[] = [];
+  const totalBatches = completeBatches + (remainder > 0 ? 1 : 0);
+  
+  // Add complete (filled) batches
+  for (let i = 0; i < completeBatches; i++) {
+    batches.push({
+      batchNumber: i + 1,
+      totalBatches,
+      batchTotal: target,
+      batchTarget: target,
+      isFilled: true,
+    });
+  }
+  
+  // Add remainder batch if any (or if no batches at all)
+  if (remainder > 0 || batches.length === 0) {
+    batches.push({
+      batchNumber: batches.length + 1,
+      totalBatches: Math.max(totalBatches, 1),
+      batchTotal: remainder > 0 ? remainder : total,
+      batchTarget: target,
+      isFilled: false,
+    });
+  }
+  
+  return batches;
+}
+
+function PledgeCard({ pledge, progress, onCancel }: PledgeCardProps) {
   const isActive = ['pending', 'locked', 'active'].includes(pledge.status);
   const isCompleted = pledge.status === 'completed';
   const isCancelled = pledge.status === 'cancelled';
+  const target = progress?.target || pledge.product.bulkMinimum;
+  const total = progress?.total ?? pledge.quantity;
+  
+  // Check if the order has been triggered/activated
+  const orderStatus = progress?.status;
+  const isOrderActivated = orderStatus && ['assigned', 'shopping', 'in_transit', 'distributing'].includes(orderStatus);
 
-  const variant = isCompleted
-    ? 'success'
-    : isCancelled
-    ? 'default'
-    : pledge.status === 'locked'
-    ? 'locked'
-    : 'warning';
+  // Calculate batches for display
+  const batches = getBatches(total, target);
+  const showMultipleBatches = batches.length > 1 || total > target;
+
+  // Render a single batch card
+  const renderBatchCard = (batch: BatchInfo, isLastBatch: boolean) => {
+    const batchRemaining = Math.max(batch.batchTarget - batch.batchTotal, 0);
+    const batchPct = batch.batchTarget > 0 ? Math.min(batch.batchTotal / batch.batchTarget, 1) : 0;
+    
+    const variant = isCompleted
+      ? 'success'
+      : isCancelled
+      ? 'default'
+      : batch.isFilled
+      ? 'success'  // Filled batches show green
+      : isOrderActivated
+      ? 'success'
+      : pledge.status === 'locked'
+      ? 'locked'
+      : 'warning';
+
+    return (
+      <MetroCard
+        key={`${pledge.id}-batch-${batch.batchNumber}`}
+        variant={variant}
+        style={[styles.pledgeCard, (isCompleted || isCancelled) && styles.pledgeCardInactive]}
+      >
+        <View style={styles.pledgeHeader}>
+          <View style={styles.pledgeInfo}>
+            <Text style={styles.pledgeName}>
+              {pledge.product.name}
+              {showMultipleBatches && (
+                <Text style={styles.batchLabel}> #{batch.batchNumber}</Text>
+              )}
+            </Text>
+            <Text style={styles.pledgeDetails}>
+              {pledge.quantity} {pledge.product.unit} • {pledge.product.store.name}
+            </Text>
+          </View>
+          <OrderStatusBadge status={batch.isFilled ? 'completed' : pledge.status as any} />
+        </View>
+
+        {/* Only show pricing on first/main batch */}
+        {batch.batchNumber === 1 && (
+          <View style={styles.pledgePricing}>
+            <View style={styles.priceBlock}>
+              <Text style={styles.priceBlockLabel}>ESTIMATED</Text>
+              <PriceDisplay
+                amount={pledge.totalAmount}
+                size="lg"
+                variant={isActive ? 'highlight' : 'muted'}
+              />
+            </View>
+            <View style={styles.priceBlock}>
+              <Text style={styles.priceBlockLabel}>MAX HOLD</Text>
+              <PriceDisplay
+                amount={pledge.maxAmount}
+                size="md"
+                variant="muted"
+              />
+            </View>
+            <View style={styles.priceBlock}>
+              <Text style={styles.priceBlockLabel}>SAVINGS</Text>
+              <Text style={styles.savingsAmount}>
+                ${(pledge.maxAmount - pledge.totalAmount).toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Show filled banner for completed batches */}
+        {batch.isFilled && (
+          <View style={[styles.lockInfo, { backgroundColor: MetroColors.accent.greenMuted }]}>
+            <View style={[styles.lockIndicator, { backgroundColor: MetroColors.accent.green }]} />
+            <Text style={[styles.lockText, { color: MetroColors.accent.green }]}>
+              ✅ Order filled at {batch.batchTotal}/{batch.batchTarget}
+            </Text>
+          </View>
+        )}
+
+        {/* Show processing banner for non-filled batches when order is activated */}
+        {!batch.isFilled && isOrderActivated && (
+          <View style={[styles.lockInfo, { backgroundColor: MetroColors.accent.greenMuted }]}>
+            <View style={[styles.lockIndicator, { backgroundColor: MetroColors.accent.green }]} />
+            <Text style={[styles.lockText, { color: MetroColors.accent.green }]}>
+              Order will be processed soon
+            </Text>
+          </View>
+        )}
+
+        {pledge.status === 'locked' && !isOrderActivated && !batch.isFilled && (
+          <View style={styles.lockInfo}>
+            <View style={styles.lockIndicator} />
+            <Text style={styles.lockText}>
+              Funds locked • Waiting for bulk order completion
+            </Text>
+          </View>
+        )}
+
+        {['pending', 'locked', 'active'].includes(pledge.status) && (
+          <View style={styles.progressSection}>
+            <Text style={styles.progressText}>
+              {batch.isFilled
+                ? `✅ Batch filled! ${batch.batchTotal}/${batch.batchTarget} ${pledge.product.unit}`
+                : isOrderActivated
+                ? `✅ Bulk minimum reached! ${batch.batchTotal}/${batch.batchTarget} ${pledge.product.unit} pledged`
+                : batchRemaining === 0
+                ? 'Bulk ready • executing at cutoff'
+                : `Need ${batchRemaining} more ${pledge.product.unit} to reach bulk (${batch.batchTotal}/${batch.batchTarget})`}
+            </Text>
+            <ProgressBar progress={batchPct} height={10} showLabel />
+          </View>
+        )}
+
+        {/* Only show cancel on last batch and if cancellable */}
+        {isLastBatch && isActive && !['active'].includes(pledge.status) && !isOrderActivated && !batch.isFilled && (
+          <View style={styles.pledgeActions}>
+            <MetroButton
+              title="CANCEL"
+              variant="danger"
+              size="sm"
+              onPress={onCancel}
+            />
+          </View>
+        )}
+
+        {isCompleted && batch.batchNumber === 1 && (
+          <View style={styles.completedInfo}>
+            <Text style={styles.completedLabel}>COMPLETED</Text>
+            <Text style={styles.completedDate}>
+              {new Date(pledge.completedAt!).toLocaleDateString()}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.pledgeFooter}>
+          <Text style={styles.pledgeId}>
+            ID: {pledge.id.slice(-8).toUpperCase()}
+            {showMultipleBatches && `-B${batch.batchNumber}`}
+          </Text>
+          <Text style={styles.pledgeDate}>
+            {new Date(pledge.createdAt).toLocaleString()}
+          </Text>
+        </View>
+      </MetroCard>
+    );
+  };
 
   return (
-    <MetroCard
-      variant={variant}
-      style={[styles.pledgeCard, (isCompleted || isCancelled) && styles.pledgeCardInactive]}
-    >
-      <View style={styles.pledgeHeader}>
-        <View style={styles.pledgeInfo}>
-          <Text style={styles.pledgeName}>{pledge.product.name}</Text>
-          <Text style={styles.pledgeDetails}>
-            {pledge.quantity} {pledge.product.unit} • {pledge.product.store.name}
-          </Text>
-        </View>
-        <OrderStatusBadge status={pledge.status as any} />
-      </View>
-
-      <View style={styles.pledgePricing}>
-        <View style={styles.priceBlock}>
-          <Text style={styles.priceBlockLabel}>ESTIMATED</Text>
-          <PriceDisplay
-            amount={pledge.totalAmount}
-            size="lg"
-            variant={isActive ? 'highlight' : 'muted'}
-          />
-        </View>
-        <View style={styles.priceBlock}>
-          <Text style={styles.priceBlockLabel}>MAX HOLD</Text>
-          <PriceDisplay
-            amount={pledge.maxAmount}
-            size="md"
-            variant="muted"
-          />
-        </View>
-        <View style={styles.priceBlock}>
-          <Text style={styles.priceBlockLabel}>SAVINGS</Text>
-          <Text style={styles.savingsAmount}>
-            ${(pledge.maxAmount - pledge.totalAmount).toFixed(2)}
-          </Text>
-        </View>
-      </View>
-
-      {pledge.status === 'locked' && (
-        <View style={styles.lockInfo}>
-          <View style={styles.lockIndicator} />
-          <Text style={styles.lockText}>
-            Funds locked • Waiting for bulk order completion
-          </Text>
-        </View>
-      )}
-
-      {pledge.status === 'active' && (
-        <View style={styles.progressSection}>
-          <Text style={styles.progressText}>Order in progress...</Text>
-          <ProgressBar progress={0.6} height={4} />
-        </View>
-      )}
-
-      {isActive && !['active'].includes(pledge.status) && (
-        <View style={styles.pledgeActions}>
-          <MetroButton
-            title="CANCEL"
-            variant="danger"
-            size="sm"
-            onPress={onCancel}
-          />
-        </View>
-      )}
-
-      {isCompleted && (
-        <View style={styles.completedInfo}>
-          <Text style={styles.completedLabel}>COMPLETED</Text>
-          <Text style={styles.completedDate}>
-            {new Date(pledge.completedAt!).toLocaleDateString()}
-          </Text>
-        </View>
-      )}
-
-      <View style={styles.pledgeFooter}>
-        <Text style={styles.pledgeId}>ID: {pledge.id.slice(-8).toUpperCase()}</Text>
-        <Text style={styles.pledgeDate}>
-          {new Date(pledge.createdAt).toLocaleString()}
-        </Text>
-      </View>
-    </MetroCard>
+    <>
+      {batches.map((batch, index) => renderBatchCard(batch, index === batches.length - 1))}
+    </>
   );
 }
 
@@ -280,25 +553,47 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    backgroundColor: MetroColors.background.secondary,
   },
   headerLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    color: MetroColors.accent.purple,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
-    letterSpacing: 2,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   headerTitle: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
     fontWeight: '700',
+    marginTop: 2,
+  },
+  utilityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: MetroColors.background.secondary,
+    borderWidth: 1,
+    borderColor: MetroColors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+  },
+  utilityIcon: {
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.mono,
+    fontSize: 10,
     letterSpacing: 1,
   },
   summaryCard: {
-    margin: Spacing[4],
+    margin: Spacing[3],
     marginBottom: 0,
   },
   summaryRow: {
@@ -310,11 +605,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1,
-    marginBottom: Spacing[1],
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: Spacing[2],
   },
   summaryDivider: {
     width: 1,
@@ -330,47 +626,61 @@ const styles = StyleSheet.create({
   },
   savingsText: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
+  },
+  legendText: {
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.sm,
+    marginTop: Spacing[2],
+    lineHeight: 20,
+  },
+  clearAllButton: {
+    marginTop: Spacing[3],
   },
   filterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingHorizontal: Spacing[3],
+    paddingVertical: Spacing[2],
     gap: Spacing[2],
+    backgroundColor: MetroColors.background.primary,
   },
   filterTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing[3],
+    paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[2],
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: MetroColors.border.default,
-    borderRadius: 2,
+    borderRadius: 16,
+    backgroundColor: MetroColors.background.secondary,
   },
   filterTabActive: {
-    borderColor: MetroColors.accent.cyan,
-    backgroundColor: MetroColors.accent.cyanMuted,
+    borderColor: MetroColors.accent.purple,
+    backgroundColor: MetroColors.accent.purple,
   },
   filterText: {
-    color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   filterTextActive: {
-    color: MetroColors.accent.cyan,
+    color: MetroColors.background.secondary,
   },
   filterBadge: {
-    backgroundColor: MetroColors.accent.cyan,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 2,
+    backgroundColor: MetroColors.background.secondary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
     marginLeft: Spacing[2],
   },
   filterBadgeText: {
-    color: MetroColors.background.primary,
-    fontFamily: Fonts.mono,
+    color: MetroColors.accent.purple,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
     fontWeight: '700',
   },
@@ -378,34 +688,73 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    padding: Spacing[4],
-    paddingBottom: Spacing[10],
+    padding: Spacing[3],
+    paddingBottom: Spacing[9],
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing[16],
   },
   emptyIcon: {
-    fontSize: 48,
+    fontSize: 32,
     color: MetroColors.text.muted,
     marginBottom: Spacing[4],
   },
   emptyText: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    letterSpacing: 1,
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
     marginBottom: Spacing[2],
   },
   emptySubtext: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
     textAlign: 'center',
     paddingHorizontal: Spacing[8],
+    lineHeight: 22,
+  },
+  rolloverSection: {
+    marginBottom: Spacing[4],
+    gap: Spacing[2],
+  },
+  rolloverTitle: {
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  rolloverCard: {
+    paddingVertical: Spacing[3],
+    paddingHorizontal: Spacing[4],
+  },
+  rolloverHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing[2],
+  },
+  rolloverName: {
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+  },
+  rolloverMeta: {
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+  },
+  rolloverButton: {
+    marginTop: Spacing[2],
   },
   pledgeCard: {
     marginBottom: Spacing[3],
+    paddingVertical: Spacing[4],
+    paddingHorizontal: Spacing[4],
   },
   pledgeCardInactive: {
     opacity: 0.7,
@@ -418,25 +767,33 @@ const styles = StyleSheet.create({
   },
   pledgeInfo: {
     flex: 1,
+    marginRight: Spacing[2],
   },
   pledgeName: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
+    marginBottom: 6,
+    lineHeight: 30,
+  },
+  batchLabel: {
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.mono,
     fontSize: FontSizes.lg,
     fontWeight: '600',
-    marginBottom: 2,
   },
   pledgeDetails: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 0.5,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
   },
   pledgePricing: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing[3],
-    paddingVertical: Spacing[2],
+    marginBottom: Spacing[4],
+    paddingVertical: Spacing[4],
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: MetroColors.border.muted,
@@ -445,24 +802,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priceBlockLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    marginBottom: 2,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+    textTransform: 'uppercase',
   },
   savingsAmount: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
   },
   lockInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: MetroColors.accent.purpleMuted,
-    padding: Spacing[2],
-    borderRadius: 2,
+    padding: Spacing[3],
+    borderRadius: 8,
     marginBottom: Spacing[3],
   },
   lockIndicator: {
@@ -474,18 +833,20 @@ const styles = StyleSheet.create({
   },
   lockText: {
     color: MetroColors.accent.purple,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
     flex: 1,
+    fontWeight: '500',
   },
   progressSection: {
-    marginBottom: Spacing[3],
+    marginBottom: Spacing[4],
   },
   progressText: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    marginBottom: Spacing[2],
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    marginBottom: Spacing[3],
+    fontWeight: '600',
   },
   pledgeActions: {
     flexDirection: 'row',
@@ -497,36 +858,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: MetroColors.accent.greenMuted,
-    padding: Spacing[2],
-    borderRadius: 2,
-    marginBottom: Spacing[3],
+    padding: Spacing[4],
+    borderRadius: 12,
+    marginBottom: Spacing[4],
   },
   completedLabel: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    fontWeight: '600',
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '800',
     letterSpacing: 1,
   },
   completedDate: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   pledgeFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: Spacing[2],
+    paddingTop: Spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: MetroColors.border.muted,
   },
   pledgeId: {
-    color: MetroColors.text.muted,
+    color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   pledgeDate: {
-    color: MetroColors.text.muted,
+    color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
 });
-

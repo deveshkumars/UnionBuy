@@ -142,7 +142,6 @@ async def bulk_approval(input_data: BulkApprovalInput):
 async def security_check(input_data: SecurityCheckInput):
     """
     Perform security check on a user.
-
     Verifies location proximity and trust score.
     """
     try:

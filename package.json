@@ -4,5 +4,8 @@
   "private": true,
   "scripts": {
     "sandbox": "npm run sandbox --prefix amplify"
+  },
+  "devDependencies": {
+    "@aws-amplify/backend-cli": "^1.8.2"
   }
 }

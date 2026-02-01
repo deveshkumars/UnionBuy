@@ -37,9 +37,8 @@ export function isBackendConfigured(): boolean {
   return configured;
 }
 
-/** Typed Data client for AppSync/DynamoDB (Products, Pledges, BulkOrders, UserProfile) */
+/** Typed Data client for AppSync/DynamoDB - uses API key (no auth required) */
 export function getDataClient() {
-  // Use API key for now (no sign-in required)
   return generateClient<Schema>({ authMode: 'apiKey' });
 }
 

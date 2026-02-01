@@ -3,15 +3,15 @@
  * Features animated fill and glow effects
  */
 
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  Easing,
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from 'react-native-reanimated';
-import { MetroColors, FontSizes, Fonts, Spacing } from '@/constants/theme';
 
 interface ProgressRingProps {
   progress: number; // 0 to 1
@@ -140,7 +140,7 @@ interface ProgressBarProps {
 
 export function ProgressBar({
   progress,
-  height = 6,
+  height = 14,
   showLabel = false,
   variant = 'default',
 }: ProgressBarProps) {
@@ -163,6 +163,10 @@ export function ProgressBar({
               width: `${Math.min(progress * 100, 100)}%`,
               backgroundColor: color,
               height,
+              shadowColor: color,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.6,
+              shadowRadius: 6,
             },
           ]}
         />
@@ -224,18 +228,17 @@ const styles = StyleSheet.create({
   barBackground: {
     flex: 1,
     backgroundColor: MetroColors.border.muted,
-    borderRadius: 3,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   barFill: {
-    borderRadius: 3,
+    borderRadius: 8,
   },
   barLabel: {
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    fontWeight: '600',
-    minWidth: 36,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.md,
+    fontWeight: '800',
+    minWidth: 44,
     textAlign: 'right',
   },
 });
-

@@ -3,37 +3,37 @@
  * Product details with agent comparison, confidence score, and pledge actions
  */
 
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  Alert,
-  Dimensions,
-} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+    Alert,
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  MetroCard,
-  MetroButton,
-  PriceDisplay,
-  ProgressBar,
-  ConfidenceBadge,
-  StatusBadge,
+    ConfidenceBadge,
+    MetroButton,
+    MetroCard,
+    PriceDisplay,
+    ProgressBar,
+    StatusBadge,
 } from '@/components/metro';
+import { comparePrices, evaluateBulkBuy } from '@/services/agents';
 import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
-import { useCart, usePledges } from '@/context/AppContext';
+import { useCart, usePledges, useApp } from '@/context/AppContext';
 import {
-  fetchProductById,
-  fetchBulkOrderForProduct,
-  createPledge,
+    createPledge,
+    fetchBulkOrderForProduct,
+    fetchProductById,
 } from '@/services/api';
 <<<<<<< Updated upstream
-import { comparePrices, evaluateBulkBuy } from '@/services/agents';
-import { Product, BulkOrder, PriceComparison, AgentDecision } from '@/types';
+import { AgentDecision, BulkOrder, PriceComparison, Product } from '@/types';
 =======
 import {
     getSplittableItemById,
@@ -50,6 +50,7 @@ export default function ItemDetailModal() {
   const router = useRouter();
   const { addToCart } = useCart();
   const { addPledge } = usePledges();
+  const { user } = useApp();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [splittableItem, setSplittableItem] = useState<SplittableItem | null>(null);
@@ -139,16 +140,30 @@ export default function ItemDetailModal() {
           text: 'Pledge',
           onPress: async () => {
             setPledging(true);
-            const result = await createPledge(product.id, qty);
+            const result = await createPledge(product.id, qty, user.id);
             setPledging(false);
             
             if (result.success && result.pledge) {
               addPledge(result.pledge);
-              Alert.alert(
-                'Pledge Created',
-                'Your funds have been locked. Check the Pledges tab for status.',
-                [{ text: 'OK', onPress: () => router.back() }]
-              );
+              
+              // ⚡ Check if this pledge triggered the bulk order!
+              if ((result as any).triggered) {
+                Alert.alert(
+                  '🎉 BULK ORDER ACTIVATED!',
+                  `Your pledge pushed this order over the threshold!\n\n` +
+                  `✅ Order is now ACTIVE\n` +
+                  `🚗 A runner can now pick it up\n` +
+                  `📦 Check Pledges tab to see your order "In Action"\n\n` +
+                  `You'll be notified when it's ready for pickup!`,
+                  [{ text: 'Awesome!', onPress: () => router.back() }]
+                );
+              } else {
+                Alert.alert(
+                  'Pledge Created',
+                  'Your funds have been locked. Check the Pledges tab for status.',
+                  [{ text: 'OK', onPress: () => router.back() }]
+                );
+              }
             } else {
               Alert.alert('Error', result.error || 'Failed to create pledge');
             }
@@ -430,7 +445,7 @@ export default function ItemDetailModal() {
           <Text style={styles.headerSubtitle}>{product.store.name}</Text>
         </View>
         <MetroButton
-          title="✕"
+          title="X"
           variant="ghost"
           size="sm"
           onPress={() => router.back()}
@@ -459,7 +474,7 @@ export default function ItemDetailModal() {
               <Text style={styles.vsText}>VS</Text>
               <View style={styles.savingsArrow}>
 <<<<<<< Updated upstream
-                <Text style={styles.arrowText}>→</Text>
+                <Text style={styles.arrowText}>-></Text>
 =======
                 <Text style={styles.arrowText}>{'->'}</Text>
 >>>>>>> Stashed changes
@@ -698,21 +713,23 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 2,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    letterSpacing: 1.5,
   },
   headerTitle: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
-    marginVertical: 2,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
+    marginVertical: 4,
   },
   headerSubtitle: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -722,10 +739,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing[10],
   },
   sectionLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 2,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    letterSpacing: 1.5,
     marginBottom: Spacing[3],
   },
   priceCard: {
@@ -777,8 +795,9 @@ const styles = StyleSheet.create({
   },
   savingsLabel: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
     letterSpacing: 1,
     marginBottom: Spacing[1],
   },
@@ -789,9 +808,9 @@ const styles = StyleSheet.create({
   },
   savingsAmount: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes['3xl'],
-    fontWeight: '700',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['4xl'],
+    fontWeight: '800',
   },
   agentCard: {
     marginBottom: Spacing[4],
@@ -835,16 +854,17 @@ const styles = StyleSheet.create({
     borderTopColor: MetroColors.border.muted,
   },
   agentStatLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   agentStatValue: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
   },
   progressCard: {
     marginBottom: Spacing[4],
@@ -859,22 +879,24 @@ const styles = StyleSheet.create({
   },
   progressStatValue: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
   },
   progressStatLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   progressNote: {
-    color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
     marginTop: Spacing[3],
     textAlign: 'center',
+    fontWeight: '500',
   },
   quantityCard: {
     marginBottom: Spacing[4],
@@ -926,13 +948,15 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   summaryValue: {
-    color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
   },
   summaryDivider: {
     height: 1,
@@ -955,4 +979,3 @@ const styles = StyleSheet.create({
     flex: 2,
   },
 });
-

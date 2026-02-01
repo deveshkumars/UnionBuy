@@ -153,10 +153,10 @@ export default function TestDBScreen() {
 
         {/* Instructions */}
         <MetroCard style={styles.card}>
-          <Text style={styles.sectionTitle}>✅ HOW TO VERIFY</Text>
+          <Text style={styles.sectionTitle}>OK HOW TO VERIFY</Text>
           <Text style={styles.instructionText}>
             1. Add a product above{'\n'}
-            2. Go to AWS Console → DynamoDB{'\n'}
+            2. Go to AWS Console -> DynamoDB{'\n'}
             3. Click "Product-..." table{'\n'}
             4. Click "Explore table items"{'\n'}
             5. See your product in the table!

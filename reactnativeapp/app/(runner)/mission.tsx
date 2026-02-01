@@ -1,33 +1,45 @@
+
 /**
  * Mission HUD Screen
  * Full-screen map with route, status indicator, and action buttons
  */
 
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Alert,
+    Alert,
+    Dimensions,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import LeafletMap from '@/components/LeafletMap';
 import {
-  MetroCard,
-  MetroButton,
-  StatusBadge,
-  LocationIndicator,
-  TargetReticle,
+    MetroButton,
+    StatusBadge
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
+import { FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useMission } from '@/context/AppContext';
 import { updateMissionStatus } from '@/services/api';
-import { MissionStatus } from '@/types';
+import { findOptimalDropZone } from '@/services/kmeans';
+import { mockMissions, mockStores, mockUsers } from '@/services/mockData';
+import { Location, MissionStatus } from '@/types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Customer locations for the order (runner can see all to understand drop zone)
+const orderCustomers = [
+  { location: mockUsers[0].location, weight: 10 },
+  { location: mockUsers[1].location, weight: 8 },
+  { location: { latitude: 41.8276, longitude: -71.4103 }, weight: 5 },
+  { location: { latitude: 41.8145, longitude: -71.4256 }, weight: 7 },
+  { location: { latitude: 41.8312, longitude: -71.4089 }, weight: 12 },
+];
+
+// Calculate optimal drop zone using K-means
+const kmeansResult = findOptimalDropZone(orderCustomers);
 
 const statusFlow: MissionStatus[] = [
   'accepted',
@@ -50,7 +62,7 @@ const statusLabels: Record<MissionStatus, string> = {
   completed: 'COMPLETED',
 };
 
-const statusActions: Record<MissionStatus, string> = {
+  const statusActions: Record<MissionStatus, string> = {
   available: 'Accept Mission',
   accepted: 'Start Navigation',
   en_route_to_store: 'Arrived at Store',
@@ -61,25 +73,36 @@ const statusActions: Record<MissionStatus, string> = {
   completed: 'Mission Complete',
 };
 
+// Demo mission for testing UI
+const demoMission = {
+  ...mockMissions[0],
+  status: 'en_route_to_store' as MissionStatus,
+  stores: mockStores.slice(0, 2),
+  estimatedEarnings: 42.50,
+  tips: 8.00,
+  totalItems: 92,
+};
+
 export default function MissionScreen() {
   const router = useRouter();
   const { activeMission, setActiveMission } = useMission();
   const [updating, setUpdating] = useState(false);
 
+  // If no active mission, show empty state (user needs to accept a mission first)
   if (!activeMission) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.noMissionContainer}>
-          <Text style={styles.noMissionIcon}>◉</Text>
+          <Text style={styles.noMissionIcon}>▣</Text>
           <Text style={styles.noMissionTitle}>NO ACTIVE MISSION</Text>
           <Text style={styles.noMissionSubtext}>
-            Accept a mission from the Job Board to begin
+            Accept a mission from the Job Board to get started
           </Text>
           <MetroButton
             title="VIEW JOB BOARD"
             variant="primary"
             size="lg"
-            onPress={() => router.push('/(runner)/')}
+            onPress={() => router.push('/(runner)')}
             style={styles.viewJobsButton}
           />
         </View>
@@ -87,7 +110,9 @@ export default function MissionScreen() {
     );
   }
 
-  const currentStatusIndex = statusFlow.indexOf(activeMission.status);
+  const displayMission = activeMission;
+
+  const currentStatusIndex = statusFlow.indexOf(displayMission.status);
   const nextStatus = statusFlow[currentStatusIndex + 1];
 
   const handleAdvanceStatus = async () => {
@@ -102,18 +127,19 @@ export default function MissionScreen() {
           text: 'Confirm',
           onPress: async () => {
             setUpdating(true);
-            const result = await updateMissionStatus(activeMission.id, nextStatus);
+            const result = await updateMissionStatus(displayMission.id, nextStatus);
             setUpdating(false);
 
             if (result.success) {
               if (nextStatus === 'completed') {
-                Alert.alert(
-                  'Mission Complete!',
-                  `You earned $${(activeMission.estimatedEarnings + activeMission.tips).toFixed(2)}`,
-                  [{ text: 'OK', onPress: () => setActiveMission(null) }]
-                );
+                // Keep mission in state with completed status to show earnings summary
+                setActiveMission({ 
+                  ...displayMission, 
+                  status: 'completed', 
+                  completedAt: new Date().toISOString() 
+                });
               } else {
-                setActiveMission({ ...activeMission, status: nextStatus });
+                setActiveMission({ ...displayMission, status: nextStatus });
               }
             } else {
               Alert.alert('Error', result.error || 'Failed to update status');
@@ -130,78 +156,37 @@ export default function MissionScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.missionId}>
-            MISSION #{activeMission.id.slice(-4).toUpperCase()}
+            ORDER #{displayMission.id.slice(-4).toUpperCase()}
           </Text>
           <StatusBadge
-            label={statusLabels[activeMission.status]}
-            variant={activeMission.status === 'completed' ? 'success' : 'info'}
+            label={statusLabels[displayMission.status]}
+            variant={displayMission.status === 'completed' ? 'success' : 'info'}
             size="md"
-            pulse={activeMission.status !== 'completed'}
+            pulse={displayMission.status !== 'completed'}
           />
         </View>
         <View style={styles.headerRight}>
           <Text style={styles.earningsLabel}>EARNINGS</Text>
           <Text style={styles.earningsValue}>
-            ${(activeMission.estimatedEarnings + activeMission.tips).toFixed(2)}
+            ${(displayMission.estimatedEarnings + displayMission.tips).toFixed(2)}
           </Text>
         </View>
       </View>
 
       {/* Map Area */}
       <View style={styles.mapContainer}>
-        {/* Grid overlay */}
-        <View style={styles.gridOverlay}>
-          {Array.from({ length: 12 }, (_, i) => (
-            <View key={`h-${i}`} style={[styles.gridLine, styles.gridHorizontal, { top: `${(i + 1) * 8.33}%` }]} />
-          ))}
-          {Array.from({ length: 12 }, (_, i) => (
-            <View key={`v-${i}`} style={[styles.gridLine, styles.gridVertical, { left: `${(i + 1) * 8.33}%` }]} />
-          ))}
-        </View>
-
-        {/* Route visualization */}
-        <View style={styles.routeContainer}>
-          {/* Store markers */}
-          {activeMission.stores.map((store, index) => (
-            <View
-              key={store.id}
-              style={[
-                styles.storeMarker,
-                { top: `${30 + index * 15}%`, left: `${20 + index * 25}%` },
-              ]}
-            >
-              <View style={[
-                styles.markerDot,
-                currentStatusIndex >= 2 + index && styles.markerDotVisited
-              ]} />
-              <Text style={styles.markerLabel}>{store.name.split(' ')[0]}</Text>
-            </View>
-          ))}
-
-          {/* Drop zone */}
-          <View style={styles.dropZoneMarker}>
-            <TargetReticle
-              size={60}
-              color={currentStatusIndex >= 5 ? MetroColors.accent.green : MetroColors.accent.cyan}
-              animated={currentStatusIndex === 5}
-            />
-            <Text style={styles.dropZoneLabel}>DROP ZONE</Text>
-          </View>
-
-          {/* Runner position */}
-          <View style={[styles.runnerMarker, getRunnerPosition(activeMission.status)]}>
-            <LocationIndicator size={40} color={MetroColors.accent.green} />
-            <Text style={styles.runnerLabel}>YOU</Text>
-          </View>
-
-          {/* Route lines (simplified) */}
-          <View style={styles.routeLine} />
-        </View>
+        <LeafletMap
+          stores={displayMission.stores}
+          dropZone={kmeansResult.location} // K-means optimized drop zone
+          runnerPosition={getRunnerLocation(displayMission.status, displayMission.stores, displayMission.dropZone)}
+          customerLocations={orderCustomers.map(c => c.location)} // Show all customers to runner
+          missionStatus={displayMission.status}
+        />
 
         {/* Map info overlay */}
         <View style={styles.mapInfo}>
           <Text style={styles.mapInfoText}>
-            {activeMission.route.totalDistance} mi • {activeMission.route.estimatedTime} min
+            {displayMission.route.totalDistance} mi • {displayMission.route.estimatedTime} min • {orderCustomers.length} customers
           </Text>
         </View>
       </View>
@@ -248,8 +233,8 @@ export default function MissionScreen() {
 
       {/* Quick Stats */}
       <View style={styles.statsRow}>
-        <StatBox label="ITEMS" value={activeMission.totalItems} />
-        <StatBox label="STORES" value={activeMission.stores.length} />
+        <StatBox label="ITEMS" value={displayMission.totalItems} />
+        <StatBox label="STORES" value={displayMission.stores.length} />
         <StatBox label="NEIGHBORS" value={5} />
       </View>
 
@@ -257,7 +242,7 @@ export default function MissionScreen() {
       <View style={styles.actionContainer}>
         {nextStatus ? (
           <MetroButton
-            title={statusActions[activeMission.status]}
+            title={statusActions[displayMission.status]}
             variant="primary"
             size="lg"
             fullWidth
@@ -265,8 +250,45 @@ export default function MissionScreen() {
             onPress={handleAdvanceStatus}
           />
         ) : (
-          <View style={styles.completedBanner}>
-            <Text style={styles.completedText}>MISSION COMPLETE</Text>
+          <View style={styles.completedContainer}>
+            {/* Earnings Summary */}
+            <View style={styles.earningsSummary}>
+              <Text style={styles.completedTitle}>🎉 MISSION COMPLETE!</Text>
+              <View style={styles.earningsRow}>
+                <View style={styles.earningsItem}>
+                  <Text style={styles.earningsLabel}>BASE EARNINGS</Text>
+                  <Text style={styles.earningsValue}>
+                    ${displayMission.estimatedEarnings.toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.earningsDivider} />
+                <View style={styles.earningsItem}>
+                  <Text style={styles.earningsLabel}>TIPS</Text>
+                  <Text style={styles.earningsValue}>
+                    ${(displayMission.tips || 0).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.earningsDivider} />
+                <View style={styles.earningsItem}>
+                  <Text style={styles.earningsLabel}>TOTAL</Text>
+                  <Text style={[styles.earningsValue, styles.earningsTotal]}>
+                    ${(displayMission.estimatedEarnings + (displayMission.tips || 0)).toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            
+            {/* Return to Job Board Button */}
+            <MetroButton
+              title="START NEW MISSION"
+              variant="primary"
+              size="lg"
+              fullWidth
+              onPress={() => {
+                setActiveMission(null);
+                router.replace('/(runner)');
+              }}
+            />
           </View>
         )}
       </View>
@@ -283,22 +305,45 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function getRunnerPosition(status: MissionStatus): { top: string; left: string } {
+function getRunnerLocation(
+  status: MissionStatus,
+  stores: { location: Location }[],
+  dropZone: Location
+): Location | undefined {
+  if (stores.length === 0) return undefined;
+
+  const firstStore = stores[0].location;
+  const lastStore = stores[stores.length - 1].location;
+
   switch (status) {
     case 'accepted':
-      return { top: '70%', left: '10%' };
+      // Runner is at starting position (slightly offset from first store)
+      return {
+        latitude: firstStore.latitude - 0.01,
+        longitude: firstStore.longitude - 0.01,
+      };
     case 'en_route_to_store':
-      return { top: '50%', left: '25%' };
+      // Runner is between start and first store
+      return {
+        latitude: firstStore.latitude - 0.005,
+        longitude: firstStore.longitude - 0.005,
+      };
     case 'shopping':
     case 'checkout':
-      return { top: '30%', left: '45%' };
+      // Runner is at the store
+      return lastStore;
     case 'en_route_to_dropzone':
-      return { top: '50%', left: '60%' };
+      // Runner is between store and drop zone
+      return {
+        latitude: (lastStore.latitude + dropZone.latitude) / 2,
+        longitude: (lastStore.longitude + dropZone.longitude) / 2,
+      };
     case 'distributing':
     case 'completed':
-      return { top: '60%', left: '75%' };
+      // Runner is at drop zone
+      return dropZone;
     default:
-      return { top: '70%', left: '10%' };
+      return undefined;
   }
 }
 
@@ -321,14 +366,15 @@ const styles = StyleSheet.create({
   noMissionTitle: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '700',
     letterSpacing: 1,
     marginBottom: Spacing[2],
   },
   noMissionSubtext: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     textAlign: 'center',
     marginBottom: Spacing[6],
   },
@@ -350,8 +396,8 @@ const styles = StyleSheet.create({
   missionId: {
     color: MetroColors.text.primary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
     letterSpacing: 1,
   },
   headerRight: {
@@ -360,98 +406,20 @@ const styles = StyleSheet.create({
   earningsLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   earningsValue: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
   },
   mapContainer: {
     flex: 1,
     backgroundColor: MetroColors.background.tertiary,
     position: 'relative',
-  },
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  gridLine: {
-    position: 'absolute',
-    backgroundColor: MetroColors.border.muted,
-    opacity: 0.2,
-  },
-  gridHorizontal: {
-    left: 0,
-    right: 0,
-    height: 1,
-  },
-  gridVertical: {
-    top: 0,
-    bottom: 0,
-    width: 1,
-  },
-  routeContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  storeMarker: {
-    position: 'absolute',
-    alignItems: 'center',
-    transform: [{ translateX: -20 }, { translateY: -20 }],
-  },
-  markerDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: MetroColors.accent.cyan,
-    borderWidth: 2,
-    borderColor: MetroColors.background.primary,
-  },
-  markerDotVisited: {
-    backgroundColor: MetroColors.accent.green,
-  },
-  markerLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    marginTop: 4,
-  },
-  dropZoneMarker: {
-    position: 'absolute',
-    top: '55%',
-    left: '70%',
-    alignItems: 'center',
-    transform: [{ translateX: -30 }, { translateY: -30 }],
-  },
-  dropZoneLabel: {
-    color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    marginTop: 4,
-  },
-  runnerMarker: {
-    position: 'absolute',
-    alignItems: 'center',
-    transform: [{ translateX: -20 }, { translateY: -20 }],
-  },
-  runnerLabel: {
-    color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  routeLine: {
-    position: 'absolute',
-    top: '40%',
-    left: '15%',
-    width: '60%',
-    height: 2,
-    backgroundColor: MetroColors.accent.cyan,
-    opacity: 0.4,
   },
   mapInfo: {
     position: 'absolute',
@@ -465,7 +433,8 @@ const styles = StyleSheet.create({
   mapInfoText: {
     color: MetroColors.text.secondary,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   progressContainer: {
     paddingHorizontal: Spacing[4],
@@ -521,7 +490,8 @@ const styles = StyleSheet.create({
   progressLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: 8,
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   statsRow: {
@@ -536,32 +506,56 @@ const styles = StyleSheet.create({
   statValue: {
     color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
   },
   statLabel: {
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   actionContainer: {
     padding: Spacing[4],
     paddingBottom: Spacing[6],
   },
-  completedBanner: {
-    backgroundColor: MetroColors.accent.green,
-    paddingVertical: Spacing[4],
+  completedContainer: {
+    gap: Spacing[4],
+  },
+  earningsSummary: {
+    backgroundColor: MetroColors.background.secondary,
     borderRadius: 4,
-    alignItems: 'center',
+    padding: Spacing[4],
+    borderWidth: 2,
+    borderColor: MetroColors.accent.green,
     ...Shadows.glow(MetroColors.accent.green),
   },
-  completedText: {
-    color: MetroColors.background.primary,
+  completedTitle: {
+    color: MetroColors.accent.green,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
-    letterSpacing: 2,
+    fontSize: FontSizes.xl,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: Spacing[3],
+    letterSpacing: 1,
+  },
+  earningsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  earningsItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  earningsDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: MetroColors.border.default,
+  },
+  earningsTotal: {
+    color: MetroColors.accent.green,
+    fontSize: FontSizes['2xl'],
   },
 });
-

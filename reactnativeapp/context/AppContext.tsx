@@ -1,11 +1,14 @@
 /**
  * App Context Provider
  * Manages global state: user role, cart, current user
+ * Integrates with DynamoDB UserProfile when backend is configured
  */
 
-import React, { createContext, useContext, useReducer, useCallback, ReactNode } from 'react';
-import { User, UserRole, CartItem, Product, Pledge, Mission } from '@/types';
-import { currentUser, currentRunner } from '@/services/mockData';
+import { getOrCreateUserProfile, updateUserProfile as updateUserProfileApi } from '@/services/api';
+import { isBackendConfigured } from '@/services/backend';
+import { currentRunner, currentUser } from '@/services/mockData';
+import { CartItem, Mission, Pledge, Product, User, UserRole } from '@/types';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useReducer } from 'react';
 
 // ============================================
 // STATE TYPES
@@ -18,10 +21,14 @@ interface AppState {
   pledges: Pledge[];
   activeMission: Mission | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
+  authInitialized: boolean;
 }
 
 type AppAction =
+  | { type: 'SET_USER'; payload: User }
   | { type: 'SET_ROLE'; payload: UserRole }
+  | { type: 'SET_AUTH_STATE'; payload: { isAuthenticated: boolean; authInitialized: boolean } }
   | { type: 'ADD_TO_CART'; payload: { product: Product; quantity: number } }
   | { type: 'REMOVE_FROM_CART'; payload: string }
   | { type: 'UPDATE_CART_QUANTITY'; payload: { productId: string; quantity: number } }
@@ -43,6 +50,8 @@ const initialState: AppState = {
   pledges: [],
   activeMission: null,
   isLoading: false,
+  isAuthenticated: false,
+  authInitialized: false,
 };
 
 // ============================================
@@ -51,7 +60,32 @@ const initialState: AppState = {
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case 'SET_USER':
+      return {
+        ...state,
+        user: action.payload,
+        role: action.payload.role,
+      };
+
+    case 'SET_AUTH_STATE':
+      return {
+        ...state,
+        isAuthenticated: action.payload.isAuthenticated,
+        authInitialized: action.payload.authInitialized,
+      };
+
     case 'SET_ROLE':
+      // When backend is configured, we just update the role without changing user object
+      // The user object will be updated separately via updateUserProfile
+      if (state.isAuthenticated) {
+        return {
+          ...state,
+          role: action.payload,
+          user: { ...state.user, role: action.payload },
+          cart: [], // Clear cart when switching roles
+        };
+      }
+      // Fallback to mock data when not authenticated
       return {
         ...state,
         role: action.payload,
@@ -135,8 +169,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
 // ============================================
 
 interface AppContextValue extends AppState {
+  // User actions
+  setUser: (user: User) => void;
+  updateUser: (updates: Partial<Omit<User, 'id'>>) => Promise<{ success: boolean; error?: string }>;
+  initializeAuth: () => Promise<void>;
+  
   // Role actions
-  switchRole: (role: UserRole) => void;
+  switchRole: (role: UserRole) => Promise<void>;
   
   // Cart actions
   addToCart: (product: Product, quantity: number) => void;
@@ -170,10 +209,73 @@ interface AppProviderProps {
 export function AppProvider({ children }: AppProviderProps) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // Role actions
-  const switchRole = useCallback((role: UserRole) => {
-    dispatch({ type: 'SET_ROLE', payload: role });
+  // Initialize auth on mount - fetch or create UserProfile from DynamoDB
+  const initializeAuth = useCallback(async () => {
+    if (!isBackendConfigured()) {
+      // No backend - use mock data
+      dispatch({ type: 'SET_AUTH_STATE', payload: { isAuthenticated: false, authInitialized: true } });
+      return;
+    }
+
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const { user, created, error } = await getOrCreateUserProfile();
+      if (user) {
+        dispatch({ type: 'SET_USER', payload: user });
+        dispatch({ type: 'SET_AUTH_STATE', payload: { isAuthenticated: true, authInitialized: true } });
+        if (created) {
+          console.log('[AppContext] Created new UserProfile in DynamoDB');
+        }
+      } else {
+        // No authenticated user - fall back to mock
+        console.log('[AppContext] No authenticated user:', error);
+        dispatch({ type: 'SET_AUTH_STATE', payload: { isAuthenticated: false, authInitialized: true } });
+      }
+    } catch (e) {
+      console.error('[AppContext] Auth initialization error:', e);
+      dispatch({ type: 'SET_AUTH_STATE', payload: { isAuthenticated: false, authInitialized: true } });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
   }, []);
+
+  // Auto-initialize on mount
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
+  // User actions
+  const setUser = useCallback((user: User) => {
+    dispatch({ type: 'SET_USER', payload: user });
+  }, []);
+
+  const updateUser = useCallback(async (updates: Partial<Omit<User, 'id'>>): Promise<{ success: boolean; error?: string }> => {
+    if (!state.isAuthenticated || !isBackendConfigured()) {
+      // Update local state only when not authenticated
+      dispatch({ type: 'SET_USER', payload: { ...state.user, ...updates } });
+      return { success: true };
+    }
+
+    const result = await updateUserProfileApi(state.user.id, updates);
+    if (result.success && result.user) {
+      dispatch({ type: 'SET_USER', payload: result.user });
+    }
+    return result;
+  }, [state.isAuthenticated, state.user]);
+
+  // Role actions - now async to persist to DynamoDB
+  const switchRole = useCallback(async (role: UserRole) => {
+    dispatch({ type: 'SET_ROLE', payload: role });
+    
+    // Persist role change to DynamoDB if authenticated
+    if (state.isAuthenticated && isBackendConfigured()) {
+      try {
+        await updateUserProfileApi(state.user.id, { role });
+      } catch (e) {
+        console.error('[AppContext] Failed to persist role change:', e);
+      }
+    }
+  }, [state.isAuthenticated, state.user.id]);
 
   // Cart actions
   const addToCart = useCallback((product: Product, quantity: number) => {
@@ -233,6 +335,9 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const value: AppContextValue = {
     ...state,
+    setUser,
+    updateUser,
+    initializeAuth,
     switchRole,
     addToCart,
     removeFromCart,
@@ -263,8 +368,13 @@ export function useApp() {
 
 // Convenience hooks
 export function useRole() {
-  const { role, switchRole } = useApp();
-  return { role, switchRole };
+  const { role, switchRole, isAuthenticated, authInitialized } = useApp();
+  return { role, switchRole, isAuthenticated, authInitialized };
+}
+
+export function useUser() {
+  const { user, setUser, updateUser, isAuthenticated, authInitialized, initializeAuth } = useApp();
+  return { user, setUser, updateUser, isAuthenticated, authInitialized, initializeAuth };
 }
 
 export function useCart() {
@@ -281,4 +391,3 @@ export function useMission() {
   const { activeMission, setActiveMission } = useApp();
   return { activeMission, setActiveMission };
 }
-

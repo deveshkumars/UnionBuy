@@ -3,28 +3,31 @@
  * Balance, locked funds, transaction history, and trust score
  */
 
-import React, { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  MetroCard,
-  PriceDisplay,
-  TrustScore,
-  StatusBadge,
+    MetroCard,
+    PriceDisplay,
+    StatusBadge,
+    TrustScore,
 } from '@/components/metro';
-import { MetroColors, FontSizes, Fonts, Spacing, Shadows } from '@/constants/theme';
+import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { fetchWallet } from '@/services/api';
-import { Wallet, Transaction } from '@/types';
+import { Transaction, Wallet } from '@/types';
 
 export default function WalletScreen() {
+  const router = useRouter();
   const { user } = useApp();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,8 +61,13 @@ export default function WalletScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerLabel}>YOUR</Text>
-        <Text style={styles.headerTitle}>WALLET</Text>
+        <View>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Wallet</Text>
+        </View>
+        <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+          <Text style={styles.utilityIcon}>CRT</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -237,46 +245,69 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    backgroundColor: MetroColors.background.secondary,
   },
   headerLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    color: MetroColors.accent.green,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
-    letterSpacing: 2,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   headerTitle: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
     fontWeight: '700',
+    marginTop: 2,
+  },
+  utilityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: MetroColors.background.secondary,
+    borderWidth: 1,
+    borderColor: MetroColors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+  },
+  utilityIcon: {
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.mono,
+    fontSize: 10,
     letterSpacing: 1,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: Spacing[4],
-    paddingBottom: Spacing[10],
+    padding: Spacing[3],
+    paddingBottom: Spacing[9],
   },
   balanceCard: {
     alignItems: 'center',
-    paddingVertical: Spacing[6],
-    marginBottom: Spacing[4],
+    paddingVertical: Spacing[5],
+    marginBottom: Spacing[3],
   },
   balanceLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 2,
-    marginBottom: Spacing[2],
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: Spacing[3],
   },
   balanceDetails: {
     flexDirection: 'row',
     marginTop: Spacing[4],
-    paddingTop: Spacing[4],
+    paddingTop: Spacing[3],
     borderTopWidth: 1,
     borderTopColor: MetroColors.border.default,
   },
@@ -289,17 +320,17 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.border.default,
   },
   balanceItemLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1,
-    marginBottom: 2,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   balanceItemValue: {
     color: MetroColors.accent.orange,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
   },
   creditsValue: {
     color: MetroColors.accent.green,
@@ -315,26 +346,28 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[4],
   },
   statLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    letterSpacing: 0.5,
     marginBottom: Spacing[2],
   },
   statValue: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
   },
   statSubtext: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    marginTop: 2,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    marginTop: 4,
   },
   quickStats: {
     marginBottom: Spacing[4],
+    paddingVertical: Spacing[4],
   },
   quickStatsRow: {
     flexDirection: 'row',
@@ -344,17 +377,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   quickStatLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: 9,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
     letterSpacing: 0.5,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   quickStatValue: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
   },
   transactionsHeader: {
     flexDirection: 'row',
@@ -363,18 +397,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[3],
   },
   sectionTitle: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    letterSpacing: 1,
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   sectionCount: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.tertiary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
   },
   transactionCard: {
     marginBottom: Spacing[2],
+    paddingVertical: Spacing[4],
+    paddingHorizontal: Spacing[4],
   },
   transactionHeader: {
     flexDirection: 'row',
@@ -387,13 +425,14 @@ const styles = StyleSheet.create({
   },
   transactionDesc: {
     color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    lineHeight: 20,
   },
   transactionAmount: {
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['2xl'],
+    fontWeight: '800',
     marginLeft: Spacing[2],
   },
   amountPositive: {
@@ -405,24 +444,24 @@ const styles = StyleSheet.create({
   transactionFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing[2],
-    paddingTop: Spacing[2],
+    marginTop: Spacing[3],
+    paddingTop: Spacing[3],
     borderTopWidth: 1,
     borderTopColor: MetroColors.border.muted,
   },
   transactionDate: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
   },
   transactionStatus: {
     color: MetroColors.accent.green,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 0.5,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   statusPending: {
     color: MetroColors.accent.orange,
   },
 });
-

@@ -3,9 +3,9 @@
  * The signature Metropolis card component with cyberpunk aesthetics
  */
 
+import { BorderRadius, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import React from 'react';
-import { View, StyleSheet, ViewProps, Animated } from 'react-native';
-import { MetroColors, BorderRadius, Spacing, Shadows } from '@/constants/theme';
+import { Animated, StyleSheet, View, ViewProps } from 'react-native';
 
 type CardVariant = 'default' | 'active' | 'warning' | 'success' | 'locked';
 
@@ -18,11 +18,11 @@ interface MetroCardProps extends ViewProps {
 }
 
 const variantColors: Record<CardVariant, string> = {
-  default: MetroColors.border.default,
+  default: MetroColors.border.accent,
   active: MetroColors.accent.cyan,
-  warning: MetroColors.accent.orange,
+  warning: MetroColors.accent.yellow,
   success: MetroColors.accent.green,
-  locked: MetroColors.accent.purple,
+  locked: MetroColors.accent.pink,
 };
 
 export function MetroCard({
@@ -77,8 +77,8 @@ export function MetroCard({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: MetroColors.background.secondary,
-    borderWidth: 1,
-    borderRadius: BorderRadius.sm,
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.lg,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -87,9 +87,9 @@ const styles = StyleSheet.create({
   },
   corner: {
     position: 'absolute',
-    width: 12,
-    height: 12,
-    borderWidth: 2,
+    width: 16,
+    height: 16,
+    borderWidth: 2.5,
   },
   topLeft: {
     top: -1,
@@ -130,9 +130,9 @@ const styles = StyleSheet.create({
   },
   labelText: {
     color: MetroColors.background.primary,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   scanLine: {
@@ -140,8 +140,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 2,
-    opacity: 0.6,
+    height: 3,
+    opacity: 0.8,
   },
 });
-

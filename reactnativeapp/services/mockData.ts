@@ -4,16 +4,15 @@
  */
 
 import {
-  User,
-  Product,
-  Store,
-  Pledge,
-  BulkOrder,
-  Mission,
-  Wallet,
-  Transaction,
-  TrendingItem,
-  Distribution,
+    BulkOrder,
+    Distribution,
+    Mission,
+    Pledge,
+    Product,
+    Store,
+    TrendingItem,
+    User,
+    Wallet
 } from '@/types';
 
 // ============================================
@@ -58,6 +57,19 @@ export const mockStores: Store[] = [
 // ============================================
 
 export const mockProducts: Product[] = [
+  // ⚡ DEMO TRIGGER ITEM - pledging this will activate the order! (FIRST so it's visible)
+  {
+    id: 'prod-demo',
+    name: '🍯 Local Honey',
+    category: 'pantry',
+    description: 'Raw wildflower honey from local apiaries - DEMO: 1 jar away from bulk!',
+    unit: 'jar',
+    retailPrice: 12.99,
+    bulkPrice: 7.49,
+    bulkMinimum: 20,
+    store: mockStores[0],
+    available: true,
+  },
   {
     id: 'prod-1',
     name: 'Jasmine Rice',
@@ -240,10 +252,28 @@ export const currentRunner: User = mockUsers[2];
 // ============================================
 
 export const mockBulkOrders: BulkOrder[] = [
+  // ⚡ DEMO ORDER - half full (10/20) for testing add-to-existing flow
+  {
+    id: 'order-demo',
+    productId: 'prod-demo',
+    product: mockProducts[0], // Local Honey (index 0)
+    pledges: [],
+    totalQuantity: 10,
+    targetQuantity: 20,
+    pricePerUnit: 7.99,
+    status: 'collecting',
+    cutoffTime: '2026-01-31T18:00:00Z',
+    createdAt: '2026-01-31T06:00:00Z',
+    dropZone: {
+      latitude: 41.8236,
+      longitude: -71.4222,
+      address: 'East Side Community Hub',
+    },
+  },
   {
     id: 'order-1',
     productId: 'prod-1',
-    product: mockProducts[0],
+    product: mockProducts[1], // Jasmine Rice (index 1)
     pledges: [],
     totalQuantity: 42,
     targetQuantity: 50,
@@ -260,7 +290,7 @@ export const mockBulkOrders: BulkOrder[] = [
   {
     id: 'order-2',
     productId: 'prod-3',
-    product: mockProducts[2],
+    product: mockProducts[3], // Organic Eggs (index 3)
     pledges: [],
     totalQuantity: 12,
     targetQuantity: 15,
@@ -272,7 +302,7 @@ export const mockBulkOrders: BulkOrder[] = [
   {
     id: 'order-3',
     productId: 'prod-4',
-    product: mockProducts[3],
+    product: mockProducts[4], // Chicken Breast (index 4)
     pledges: [],
     totalQuantity: 40,
     targetQuantity: 40,
@@ -282,6 +312,18 @@ export const mockBulkOrders: BulkOrder[] = [
     createdAt: '2026-01-30T08:00:00Z',
     executedAt: '2026-01-30T18:05:00Z',
     runnerId: 'user-3',
+  },
+  {
+    id: 'order-4',
+    productId: 'prod-5',
+    product: mockProducts[5], // All-Purpose Flour (index 5)
+    pledges: [],
+    totalQuantity: 28,
+    targetQuantity: 50,
+    pricePerUnit: 0.48,
+    status: 'rolled_over',
+    cutoffTime: '2026-01-30T18:00:00Z',
+    createdAt: '2026-01-29T08:00:00Z',
   },
 ];
 
@@ -294,7 +336,7 @@ export const mockPledges: Pledge[] = [
     id: 'pledge-1',
     userId: 'user-1',
     productId: 'prod-1',
-    product: mockProducts[0],
+    product: mockProducts[1], // Jasmine Rice (index 1)
     quantity: 10,
     unitPrice: 0.85,
     totalAmount: 8.50,
@@ -308,7 +350,7 @@ export const mockPledges: Pledge[] = [
     id: 'pledge-2',
     userId: 'user-1',
     productId: 'prod-3',
-    product: mockProducts[2],
+    product: mockProducts[3], // Organic Eggs (index 3)
     quantity: 3,
     unitPrice: 4.69,
     totalAmount: 14.07,
@@ -322,7 +364,7 @@ export const mockPledges: Pledge[] = [
     id: 'pledge-3',
     userId: 'user-1',
     productId: 'prod-4',
-    product: mockProducts[3],
+    product: mockProducts[4], // Chicken Breast (index 4)
     quantity: 5,
     unitPrice: 2.95,
     totalAmount: 14.75,
@@ -333,6 +375,20 @@ export const mockPledges: Pledge[] = [
     completedAt: '2026-01-30T20:30:00Z',
     orderId: 'order-3',
   },
+  {
+    id: 'pledge-4',
+    userId: 'user-1',
+    productId: 'prod-5',
+    product: mockProducts[5], // All-Purpose Flour (index 5)
+    quantity: 8,
+    unitPrice: 0.50,
+    totalAmount: 4.0,
+    maxAmount: 7.12,
+    status: 'rollover',
+    createdAt: '2026-01-30T08:30:00Z',
+    lockedAt: '2026-01-30T08:30:00Z',
+    orderId: 'order-4',
+  },
 ];
 
 // ============================================
@@ -342,7 +398,7 @@ export const mockPledges: Pledge[] = [
 export const mockMissions: Mission[] = [
   {
     id: 'mission-1',
-    orders: [mockBulkOrders[2]],
+    orders: [mockBulkOrders[3]], // Chicken Breast order (index 3)
     runnerId: 'user-3',
     status: 'distributing',
     estimatedEarnings: 28.50,
@@ -396,6 +452,34 @@ export const mockMissions: Mission[] = [
     },
     createdAt: '2026-01-31T18:10:00Z',
   },
+  // ⚡ DEMO TRIGGER MISSION - starts as 'pending', becomes 'available' when honey order triggers
+  {
+    id: 'mission-demo',
+    orders: [], // Will be populated when triggered
+    status: 'pending', // Changes to 'available' when honey order activates
+    estimatedEarnings: 18.50,
+    tips: 0,
+    totalItems: 20,
+    totalWeight: 15,
+    stores: [mockStores[0]], // Costco
+    route: {
+      stores: [mockStores[0].location],
+      dropZone: {
+        latitude: 41.8236,
+        longitude: -71.4222,
+        address: 'East Side Community Hub',
+      },
+      totalDistance: 6.8,
+      estimatedTime: 35,
+      optimizedOrder: [0],
+    },
+    dropZone: {
+      latitude: 41.8236,
+      longitude: -71.4222,
+      address: 'East Side Community Hub',
+    },
+    createdAt: '2026-01-31T12:00:00Z',
+  },
 ];
 
 // ============================================
@@ -411,7 +495,7 @@ export const mockDistributions: Distribution[] = [
     items: [
       { productId: 'prod-4', productName: 'Chicken Breast', quantity: 5, verified: false },
     ],
-    qrCode: 'METRO-DIST-001-A7B3',
+    pickupPin: '4829',
     status: 'pending',
     scheduledTime: '2026-01-30T19:30:00Z',
   },
@@ -423,7 +507,7 @@ export const mockDistributions: Distribution[] = [
     items: [
       { productId: 'prod-4', productName: 'Chicken Breast', quantity: 8, verified: false },
     ],
-    qrCode: 'METRO-DIST-002-C9D4',
+    pickupPin: '7156',
     status: 'pending',
     scheduledTime: '2026-01-30T19:45:00Z',
   },
@@ -492,8 +576,17 @@ export const mockWallet: Wallet = {
 // ============================================
 
 export const mockTrendingItems: TrendingItem[] = [
+  // ⚡ DEMO - Half full (10/20) for testing add-to-existing flow
   {
-    product: mockProducts[0],
+    product: mockProducts[0], // Local Honey (index 0)
+    pledgeCount: 4,
+    totalQuantity: 10,
+    percentToGoal: 50,
+    savings: 54.95,
+    trending: 'up',
+  },
+  {
+    product: mockProducts[1], // Jasmine Rice (index 1)
     pledgeCount: 8,
     totalQuantity: 42,
     percentToGoal: 84,
@@ -501,7 +594,7 @@ export const mockTrendingItems: TrendingItem[] = [
     trending: 'up',
   },
   {
-    product: mockProducts[2],
+    product: mockProducts[3], // Organic Eggs (index 3)
     pledgeCount: 5,
     totalQuantity: 12,
     percentToGoal: 80,
@@ -509,7 +602,7 @@ export const mockTrendingItems: TrendingItem[] = [
     trending: 'up',
   },
   {
-    product: mockProducts[4],
+    product: mockProducts[5], // All-Purpose Flour (index 5)
     pledgeCount: 3,
     totalQuantity: 28,
     percentToGoal: 56,
@@ -517,7 +610,7 @@ export const mockTrendingItems: TrendingItem[] = [
     trending: 'stable',
   },
   {
-    product: mockProducts[6],
+    product: mockProducts[7], // Paper Towels (index 7)
     pledgeCount: 6,
     totalQuantity: 24,
     percentToGoal: 80,
@@ -525,7 +618,7 @@ export const mockTrendingItems: TrendingItem[] = [
     trending: 'up',
   },
   {
-    product: mockProducts[9],
+    product: mockProducts[10], // Bananas (index 10)
     pledgeCount: 4,
     totalQuantity: 32,
     percentToGoal: 80,
@@ -545,4 +638,3 @@ export const mockNeighborhoodStats = {
   topCategories: ['grains', 'pantry', 'dairy'] as const,
   averageTrustScore: 4.6,
 };
-

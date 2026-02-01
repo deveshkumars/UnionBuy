@@ -4,7 +4,7 @@
  */
 
 import { signOut } from 'aws-amplify/auth';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -24,30 +24,28 @@ import {
     TrustScore,
 } from '@/components/metro';
 import { FontSizes, Fonts, MetroColors, Spacing } from '@/constants/theme';
-import { useApp, useRole } from '@/context/AppContext';
+import { useApp, useRole, useUser } from '@/context/AppContext';
 import { isBackendConfigured } from '@/lib/amplify';
 
 export default function AccountScreen() {
   const { user } = useApp();
   const { role, switchRole } = useRole();
+  const { isAuthenticated, authInitialized } = useUser();
   const [notifications, setNotifications] = useState(true);
   const [locationTracking, setLocationTracking] = useState(true);
+  const router = useRouter();
 
-  const handleRoleSwitch = () => {
-    const newRole = role === 'customer' ? 'runner' : 'customer';
-    Alert.alert(
-      'Switch Role',
-      `Switch to ${newRole.toUpperCase()} mode?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Switch',
-          onPress: () => switchRole(newRole),
-        },
-      ]
-    );
+  const setRoleAndNavigate = (newRole: 'customer' | 'runner') => {
+    switchRole(newRole);
+    // Force navigation to the correct layout
+    if (newRole === 'customer') {
+      router.replace('/(customer)');
+    } else {
+      router.replace('/(runner)');
+    }
   };
 
+  const handleRoleSwitch = () => {}; // legacy stub, replaced by direct buttons
   const handleSignOut = async () => {
     if (!isBackendConfigured()) {
       Alert.alert('Info', 'Backend not configured (using mock data)');
@@ -79,8 +77,27 @@ export default function AccountScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerLabel}>YOUR</Text>
-        <Text style={styles.headerTitle}>ACCOUNT</Text>
+        <View>
+          <Text style={styles.headerLabel}>UNION BUY</Text>
+          <Text style={styles.headerTitle}>Account</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
+            <Text style={styles.utilityIcon}>CRT</Text>
+          </TouchableOpacity>
+          <MetroButton
+            title="Runner"
+            variant={role === 'runner' ? 'primary' : 'ghost'}
+            size="sm"
+            onPress={() => setRoleAndNavigate('runner')}
+          />
+          <MetroButton
+            title="Customer"
+            variant={role === 'customer' ? 'primary' : 'ghost'}
+            size="sm"
+            onPress={() => setRoleAndNavigate('customer')}
+          />
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
@@ -125,40 +142,22 @@ export default function AccountScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>MODE</Text>
           </View>
-          <TouchableOpacity style={styles.roleSwitch} onPress={handleRoleSwitch}>
-            <View style={styles.roleOption}>
-              <View style={[
-                styles.roleIndicator,
-                role === 'customer' && styles.roleIndicatorActive
-              ]} />
-              <View>
-                <Text style={[
-                  styles.roleLabel,
-                  role === 'customer' && styles.roleLabelActive
-                ]}>CUSTOMER</Text>
-                <Text style={styles.roleDesc}>Browse and join bulk buys</Text>
-              </View>
-            </View>
-            <View style={styles.roleSwitchTrack}>
-              <View style={[
-                styles.roleSwitchThumb,
-                role === 'runner' && styles.roleSwitchThumbRight
-              ]} />
-            </View>
-            <View style={styles.roleOption}>
-              <View style={[
-                styles.roleIndicator,
-                role === 'runner' && styles.roleIndicatorActive
-              ]} />
-              <View>
-                <Text style={[
-                  styles.roleLabel,
-                  role === 'runner' && styles.roleLabelActive
-                ]}>RUNNER</Text>
-                <Text style={styles.roleDesc}>Deliver orders, earn money</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.roleButtons}>
+            <MetroButton
+              title="[BUY] Customer"
+              variant={role === 'customer' ? 'primary' : 'secondary'}
+              size="md"
+              style={styles.roleButton}
+              onPress={() => setRoleAndNavigate('customer')}
+            />
+            <MetroButton
+              title="[RUN] Runner"
+              variant={role === 'runner' ? 'primary' : 'secondary'}
+              size="md"
+              style={styles.roleButton}
+              onPress={() => setRoleAndNavigate('runner')}
+            />
+          </View>
         </MetroCard>
 
         {/* Location */}
@@ -168,7 +167,7 @@ export default function AccountScreen() {
           </View>
           <View style={styles.locationInfo}>
             <View style={styles.locationIcon}>
-              <Text style={styles.locationIconText}>◎</Text>
+              <Text style={styles.locationIconText}>LOC</Text>
             </View>
             <View style={styles.locationDetails}>
               <Text style={styles.locationAddress}>
@@ -215,7 +214,7 @@ export default function AccountScreen() {
           </View>
           <View style={styles.paymentMethod}>
             <View style={styles.cardIcon}>
-              <Text style={styles.cardIconText}>⬡</Text>
+              <Text style={styles.cardIconText}>CARD</Text>
             </View>
             <View style={styles.cardInfo}>
               <Text style={styles.cardLabel}>Visa ending in 4242</Text>
@@ -239,36 +238,64 @@ export default function AccountScreen() {
             <Text style={styles.sectionTitle}>SUPPORT</Text>
           </View>
           <TouchableOpacity style={styles.supportItem} onPress={() => router.push('/(customer)/test-db')}>
-            <Text style={styles.supportLabel}>🧪 Test DynamoDB</Text>
-            <Text style={styles.supportArrow}>→</Text>
+            <Text style={styles.supportLabel}>TEST DynamoDB</Text>
+            <Text style={styles.supportArrow}>></Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.supportItem}>
             <Text style={styles.supportLabel}>Help Center</Text>
-            <Text style={styles.supportArrow}>→</Text>
+            <Text style={styles.supportArrow}>></Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.supportItem}>
             <Text style={styles.supportLabel}>Terms of Service</Text>
-            <Text style={styles.supportArrow}>→</Text>
+            <Text style={styles.supportArrow}>></Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.supportItem}>
             <Text style={styles.supportLabel}>Privacy Policy</Text>
-            <Text style={styles.supportArrow}>→</Text>
+            <Text style={styles.supportArrow}>></Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.supportItem}>
             <Text style={styles.supportLabel}>Contact Support</Text>
-            <Text style={styles.supportArrow}>→</Text>
+            <Text style={styles.supportArrow}>></Text>
           </TouchableOpacity>
         </MetroCard>
 
-        {/* Logout */}
-        <MetroButton
-          title="SIGN OUT"
-          variant="danger"
-          size="lg"
-          fullWidth
-          onPress={() => Alert.alert('Sign Out', 'Are you sure you want to sign out?')}
-          style={styles.signOutButton}
-        />
+        {/* Auth Status & Actions */}
+        {authInitialized && (
+          <MetroCard style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>AUTHENTICATION</Text>
+            </View>
+            <View style={styles.authStatus}>
+              <StatusBadge 
+                label={isAuthenticated ? 'SIGNED IN' : 'NOT SIGNED IN'} 
+                variant={isAuthenticated ? 'success' : 'warning'} 
+                size="sm" 
+              />
+              <Text style={styles.authDescription}>
+                {isAuthenticated 
+                  ? 'Your pledges are saved to the cloud' 
+                  : 'Sign in to save pledges to DynamoDB'}
+              </Text>
+            </View>
+            {isAuthenticated ? (
+              <MetroButton
+                title="SIGN OUT"
+                variant="danger"
+                size="lg"
+                fullWidth
+                onPress={handleSignOut}
+              />
+            ) : (
+              <MetroButton
+                title="SIGN IN / SIGN UP"
+                variant="primary"
+                size="lg"
+                fullWidth
+                onPress={() => router.push('/auth')}
+              />
+            )}
+          </MetroCard>
+        )}
 
         {/* Version */}
         <Text style={styles.versionText}>METROPOLIS v1.0.0 • BUILD 2026.01.31</Text>
@@ -314,32 +341,58 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
+    backgroundColor: MetroColors.background.secondary,
   },
   headerLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
+    color: MetroColors.accent.indigo,
+    fontFamily: Fonts.sans,
     fontSize: FontSizes.xs,
-    letterSpacing: 2,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   headerTitle: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
-    fontSize: FontSizes['2xl'],
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
     fontWeight: '700',
+    marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: Spacing[2],
+    alignItems: 'center',
+  },
+  utilityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: MetroColors.background.secondary,
+    borderWidth: 1,
+    borderColor: MetroColors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+  },
+  utilityIcon: {
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.mono,
+    fontSize: 10,
     letterSpacing: 1,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: Spacing[4],
-    paddingBottom: Spacing[10],
+    padding: Spacing[3],
+    paddingBottom: Spacing[9],
   },
   profileCard: {
-    marginBottom: Spacing[4],
+    marginBottom: Spacing[3],
+    paddingVertical: Spacing[4],
+    paddingHorizontal: Spacing[3],
   },
   profileHeader: {
     flexDirection: 'row',
@@ -347,38 +400,39 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[4],
   },
   avatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 4,
-    backgroundColor: MetroColors.accent.cyanMuted,
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    backgroundColor: MetroColors.accent.indigoMuted,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing[4],
   },
   avatarText: {
-    color: MetroColors.accent.cyan,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    color: MetroColors.accent.indigo,
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes['3xl'],
+    fontWeight: '800',
   },
   profileInfo: {
     flex: 1,
-    gap: Spacing[1],
+    gap: Spacing[2],
   },
   profileName: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.heading,
     fontSize: FontSizes.xl,
     fontWeight: '700',
+    lineHeight: 28,
   },
   profileEmail: {
     color: MetroColors.text.tertiary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
   },
   profileStats: {
     flexDirection: 'row',
-    paddingTop: Spacing[4],
+    paddingTop: Spacing[3],
     borderTopWidth: 1,
     borderTopColor: MetroColors.border.muted,
   },
@@ -391,132 +445,102 @@ const styles = StyleSheet.create({
     backgroundColor: MetroColors.border.default,
   },
   profileStatLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1,
-    marginBottom: Spacing[1],
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.sansBold,
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: Spacing[2],
   },
   profileStatValue: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
+    fontFamily: Fonts.heading,
+    fontSize: FontSizes.lg,
+    fontWeight: '800',
   },
   sectionCard: {
-    marginBottom: Spacing[4],
+    marginBottom: Spacing[3],
+    paddingVertical: Spacing[3],
+    paddingHorizontal: Spacing[3],
   },
   sectionHeader: {
     marginBottom: Spacing[3],
   },
   sectionTitle: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-    letterSpacing: 2,
-  },
-  roleSwitch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  roleOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing[2],
-  },
-  roleIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: MetroColors.border.default,
-  },
-  roleIndicatorActive: {
-    backgroundColor: MetroColors.accent.cyan,
-  },
-  roleLabel: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.sans,
+    fontSize: FontSizes.md,
+    fontWeight: '700',
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  roleLabelActive: {
-    color: MetroColors.accent.cyan,
+  roleButtons: {
+    flexDirection: 'row',
+    gap: Spacing[3],
   },
-  roleDesc: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
-  },
-  roleSwitchTrack: {
-    width: 44,
-    height: 24,
-    backgroundColor: MetroColors.background.tertiary,
-    borderRadius: 2,
-    padding: 2,
-    marginHorizontal: Spacing[3],
-  },
-  roleSwitchThumb: {
-    width: 20,
-    height: 20,
-    backgroundColor: MetroColors.accent.cyan,
-    borderRadius: 2,
-  },
-  roleSwitchThumbRight: {
-    alignSelf: 'flex-end',
+  roleButton: {
+    flex: 1,
   },
   locationInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   locationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 4,
-    backgroundColor: MetroColors.background.tertiary,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: MetroColors.accent.cyanMuted,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing[3],
   },
   locationIconText: {
     color: MetroColors.accent.cyan,
-    fontSize: 20,
+    fontFamily: Fonts.mono,
+    fontSize: 12,
+    letterSpacing: 1,
   },
   locationDetails: {
     flex: 1,
   },
   locationAddress: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   locationNeighborhood: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
   },
   settingInfo: {
     flex: 1,
+    marginRight: Spacing[3],
   },
   settingLabel: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   settingDesc: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    lineHeight: 20,
+    fontWeight: '500',
   },
   paymentMethod: {
     flexDirection: 'row',
@@ -524,30 +548,35 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[3],
   },
   cardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 4,
-    backgroundColor: MetroColors.background.tertiary,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: MetroColors.accent.greenMuted,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing[3],
   },
   cardIconText: {
-    color: MetroColors.accent.cyan,
-    fontSize: 20,
+    color: MetroColors.accent.green,
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    letterSpacing: 1,
   },
   cardInfo: {
     flex: 1,
   },
   cardLabel: {
     color: MetroColors.text.primary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   cardExpiry: {
-    color: MetroColors.text.muted,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.xs,
+    color: MetroColors.text.secondary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
   addPaymentButton: {
     marginTop: Spacing[2],
@@ -556,23 +585,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing[3],
+    paddingVertical: Spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: MetroColors.border.muted,
   },
   supportLabel: {
-    color: MetroColors.text.secondary,
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.sm,
+    color: MetroColors.text.primary,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
   },
   supportArrow: {
+    color: MetroColors.accent.cyan,
+    fontFamily: Fonts.mono,
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
+  },
+  authStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing[3],
+    gap: Spacing[2],
+  },
+  authDescription: {
+    flex: 1,
     color: MetroColors.text.muted,
     fontFamily: Fonts.mono,
-    fontSize: FontSizes.md,
-  },
-  signOutButton: {
-    marginTop: Spacing[4],
-    marginBottom: Spacing[4],
+    fontSize: FontSizes.xs,
   },
   versionText: {
     color: MetroColors.text.muted,
@@ -582,4 +621,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
-

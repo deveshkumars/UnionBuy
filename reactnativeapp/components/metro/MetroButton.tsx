@@ -2,16 +2,16 @@
  * MetroButton - Sharp-edged cyberpunk buttons with glow states
  */
 
+import { BorderRadius, FontSizes, Fonts, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import React from 'react';
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  ActivityIndicator,
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TextStyle,
+    TouchableOpacity,
+    ViewStyle,
 } from 'react-native';
-import { MetroColors, BorderRadius, Spacing, FontSizes, Fonts, Shadows } from '@/constants/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'warning' | 'danger' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -58,9 +58,9 @@ const variantStyles: Record<ButtonVariant, { bg: string; border: string; text: s
 };
 
 const sizeStyles: Record<ButtonSize, { height: number; paddingHorizontal: number; fontSize: number }> = {
-  sm: { height: 32, paddingHorizontal: Spacing[3], fontSize: FontSizes.xs },
-  md: { height: 44, paddingHorizontal: Spacing[4], fontSize: FontSizes.sm },
-  lg: { height: 56, paddingHorizontal: Spacing[6], fontSize: FontSizes.base },
+  sm: { height: 38, paddingHorizontal: Spacing[4], fontSize: FontSizes.sm },
+  md: { height: 48, paddingHorizontal: Spacing[5], fontSize: FontSizes.md },
+  lg: { height: 58, paddingHorizontal: Spacing[6], fontSize: FontSizes.lg },
 };
 
 export function MetroButton({
@@ -127,8 +127,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderRadius: BorderRadius.lg,
   },
   fullWidth: {
     width: '100%',
@@ -137,13 +137,12 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   text: {
-    fontFamily: Fonts.mono,
-    fontWeight: '700',
-    letterSpacing: 1.5,
+    fontFamily: Fonts.sans,
+    fontWeight: '800',
+    letterSpacing: 1,
     textTransform: 'uppercase',
   },
   textWithIcon: {
     marginLeft: Spacing[2],
   },
 });
-
