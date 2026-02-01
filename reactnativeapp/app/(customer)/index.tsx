@@ -7,34 +7,34 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    FlatList,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-    DataTicker,
-    InfoBar,
-    MetroButton,
-    MetroCard,
-    PriceDisplay,
-    ProgressBar,
-    StatusBadge,
+  DataTicker,
+  InfoBar,
+  MetroButton,
+  MetroCard,
+  PriceDisplay,
+  ProgressBar,
+  StatusBadge,
 } from '@/components/metro';
-import { Fonts, FontSizes, MetroColors, Shadows, Spacing } from '@/constants/theme';
+import { BorderRadius, Fonts, FontSizes, MetroColors, Shadows, Spacing } from '@/constants/theme';
 import { useCart } from '@/context/AppContext';
 import { fetchProducts, fetchTrendingItems, searchProducts } from '@/services/api';
 import {
-    getAllSplittableItems,
-    getSplitProgress,
-    searchSplittableItems,
-    SplittableItem,
+  getAllSplittableItems,
+  getSplitProgress,
+  searchSplittableItems,
+  SplittableItem,
 } from '@/services/splittableItems';
 import { Product, TrendingItem } from '@/types';
 
@@ -169,11 +169,38 @@ export default function MarketScreen() {
             <Text style={styles.headerTitle}>Market</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.utilityPill} onPress={() => router.push('/(customer)/cart')}>
-              <Text style={styles.utilityIcon}>CRT</Text>
-              <Text style={styles.utilityText}>{cartTotals.items}</Text>
+            <TouchableOpacity 
+              style={styles.headerIconButton}
+              onPress={() => router.push("/(customer)/wallet")}
+            >
+              <Ionicons
+                name="wallet-outline"
+                size={24}
+                color={MetroColors.text.primary}
+              />
             </TouchableOpacity>
-            {/* Cutoff timer hidden but logic still runs */}
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              onPress={() => router.push("/(customer)/cart")}
+            >
+              <Ionicons
+                name="cart-outline"
+                size={24}
+                color={MetroColors.text.primary}
+              />
+              {cartTotals.items > 0 && (
+                <View style={styles.cartBadgeSmall}>
+                  <Text style={styles.cartBadgeSmallText}>{cartTotals.items}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <View style={styles.cutoffBox}>
+              <Text style={styles.timeLabel}>Cutoff</Text>
+              <Text style={styles.timeValue}>6:00 PM</Text>
+              {timeRemaining && (
+                <Text style={styles.timeRemaining}>{timeRemaining}</Text>
+              )}
+            </View>
           </View>
         </View>
 
@@ -567,6 +594,25 @@ const styles = StyleSheet.create({
   },
   headerIconButton: {
     padding: Spacing[2],
+    position: 'relative',
+  },
+  cartBadgeSmall: {
+    position: 'absolute',
+    top: 2,
+    right: 0,
+    backgroundColor: MetroColors.accent.cyan,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeSmallText: {
+    color: MetroColors.text.inverse,
+    fontFamily: Fonts.body,
+    fontSize: 10,
+    fontWeight: '700',
   },
   cutoffBox: {
     alignItems: "flex-end",
